@@ -4,10 +4,15 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavHost;
+import androidx.navigation.NavOptions;
+import androidx.navigation.fragment.NavHostFragment;
 
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
@@ -16,7 +21,7 @@ import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadA
 import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadAllHardrware;
 
 
-public class ConfigureFragment extends Fragment {
+public class InfoFragment extends Fragment {
     public static final String DEVICE_INFO = "DEVICE_INFO";
     public static final String DEVICE_AVAILABLE_WIFIS = "DEVICE_AVAILABLE_WIFIS";
 
@@ -31,6 +36,7 @@ public class ConfigureFragment extends Fragment {
     private TextView discoveredMQTTServerPort;
     private TextView discoveredInnerIP;
     private TextView discoveredWifiMac;
+    private Button configureButton;
 
     private MessageGetSystemAllResponse deviceInfo;
     private MessageGetConfigWifiListResponse deviceAvailableWifis;
@@ -48,7 +54,7 @@ public class ConfigureFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_configure_mqtt, container, false);
+        return inflater.inflate(R.layout.info_fragment, container, false);
     }
 
     @Override
@@ -66,8 +72,24 @@ public class ConfigureFragment extends Fragment {
         discoveredMQTTServerPort = view.findViewById(R.id.discoveredMQTTServerPort);
         discoveredInnerIP = view.findViewById(R.id.discoveredInnerIP);
         discoveredWifiMac = view.findViewById(R.id.discoveredWifiMac);
+        configureButton = view.findViewById(R.id.configureButton);
+
+        configureButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                launchConfigFragment();
+            }
+        });
 
         loadUiInfo();
+    }
+
+    private void launchConfigFragment() {
+        Bundle bundle = new Bundle();
+        bundle.putSerializable(DEVICE_INFO, deviceInfo);
+        bundle.putSerializable(DEVICE_AVAILABLE_WIFIS, deviceAvailableWifis);
+        NavHostFragment.findNavController(InfoFragment.this)
+                .navigate(R.id.ConfigFragment, bundle);
     }
 
     private void loadUiInfo() {

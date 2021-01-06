@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ConfigureFragment">
+    tools:context=".InfoFragment">
 
     <ImageView
         android:id="@+id/imageView"
@@ -240,7 +240,7 @@
         app:layout_constraintTop_toTopOf="@+id/discoveredMQTTServer" />
 
     <Button
-        android:id="@+id/button"
+        android:id="@+id/configureButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"

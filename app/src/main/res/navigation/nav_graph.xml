@@ -22,10 +22,19 @@
         tools:layout="@layout/connect_fragment">
         <action
             android:id="@+id/action_ConnectFragment_to_configureFragment"
-            app:destination="@id/configureFragment" />
+            app:destination="@id/InfoFragment" />
     </fragment>
     <fragment
-        android:id="@+id/configureFragment"
-        android:name="com.albertogeniola.merossconf.ConfigureFragment"
-        android:label="ConfigureFragment" />
+        android:id="@+id/InfoFragment"
+        android:name="com.albertogeniola.merossconf.InfoFragment"
+        android:label="InfoFragment" >
+        <action
+            android:id="@+id/action_InfoFragment_to_configFragment"
+            app:destination="@id/ConfigFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/ConfigFragment"
+        android:name="com.albertogeniola.merossconf.ConfigFragment"
+        android:label="config_fragment"
+        tools:layout="@layout/config_fragment" />
 </navigation>

@@ -183,10 +183,10 @@ public class ConnectFragment extends Fragment {
     private void completeActivityFragment() {
         // Set done and proceed with the next fragment
         Bundle bundle = new Bundle();
-        bundle.putSerializable(ConfigureFragment.DEVICE_INFO, this.deviceInfo);
-        bundle.putSerializable(ConfigureFragment.DEVICE_AVAILABLE_WIFIS, this.deviceAvailableWifis);
+        bundle.putSerializable(InfoFragment.DEVICE_INFO, this.deviceInfo);
+        bundle.putSerializable(InfoFragment.DEVICE_AVAILABLE_WIFIS, this.deviceAvailableWifis);
         NavHostFragment.findNavController(ConnectFragment.this)
-                .navigate(R.id.configureFragment, bundle);
+                .navigate(R.id.InfoFragment, bundle);
     }
 
     // UI
