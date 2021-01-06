@@ -78,19 +78,7 @@ public class ScanFragment extends Fragment {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!AndroidUtils.isLocationEnabled(getContext())) {
-                    Snackbar.make(fab,  "Please enable location access to scan WIFI networks", Snackbar.LENGTH_LONG).show();
-                    return;
-                }
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                            LOCATION_PERMISSION_CODE);
-                    //After this point you wait for callback in onRequestPermissionsResult(int, String[], int[]) overriden method
-
-                }else{
-                    fab.setEnabled(false);
-                    startScan();
-                }
+                startScan();
             }
         });
     }
@@ -109,6 +97,12 @@ public class ScanFragment extends Fragment {
     };
 
     @Override
+    public void onStart() {
+        super.onStart();
+        startScan();
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
         if (requestCode == LOCATION_PERMISSION_CODE
@@ -119,10 +113,20 @@ public class ScanFragment extends Fragment {
     }
 
     private void startScan() {
-        ((ProgressableActivity)getActivity()).setProgressIndeterminate();
-        boolean success = wifiManager.startScan();
-        if (!success) {
-            scanFailure();
+        if (!AndroidUtils.isLocationEnabled(getContext())) {
+            Snackbar.make(fab,  "Please enable location access to scan WIFI networks", Snackbar.LENGTH_LONG).show();
+            return;
+        }
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    LOCATION_PERMISSION_CODE);
+        }else{
+            fab.setEnabled(false);
+            ((ProgressableActivity)getActivity()).setProgressIndeterminate();
+            boolean success = wifiManager.startScan();
+            if (!success) {
+                scanFailure();
+            }
         }
     }
 
