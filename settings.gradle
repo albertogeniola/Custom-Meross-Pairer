@@ -1,0 +1,3 @@
+rootProject.name='Meross Conf'
+include ':app'
+include ':merosslib'

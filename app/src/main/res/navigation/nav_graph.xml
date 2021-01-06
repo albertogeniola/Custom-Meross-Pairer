@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph2"
+    app:startDestination="@id/ScanFragment">
+
+    <fragment
+        android:id="@+id/ScanFragment"
+        android:name="com.albertogeniola.merossconf.ScanFragment"
+        android:label="@string/first_fragment_label"
+        tools:layout="@layout/scan_fragment">
+
+        <action
+            android:id="@+id/scan_to_connect"
+            app:destination="@id/ConnectFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/ConnectFragment"
+        android:name="com.albertogeniola.merossconf.ConnectFragment"
+        android:label="@string/second_fragment_label"
+        tools:layout="@layout/connect_fragment">
+        <action
+            android:id="@+id/action_ConnectFragment_to_configureFragment"
+            app:destination="@id/configureFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/configureFragment"
+        android:name="com.albertogeniola.merossconf.ConfigureFragment"
+        android:label="ConfigureFragment" />
+</navigation>
