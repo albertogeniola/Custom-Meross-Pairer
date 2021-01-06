@@ -7,13 +7,13 @@ import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAll;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.google.gson.Gson;
 
-import org.apache.commons.io.IOUtils;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import org.apache.commons.io.IOUtil;
+
 
 public class MerossDeviceAp {
     private String ip;
@@ -60,7 +60,7 @@ public class MerossDeviceAp {
 
         try (InputStream inputStr = con.getInputStream()) {
             String encoding = con.getContentEncoding() == null ? "UTF-8" : con.getContentEncoding();
-            String jsonResponse = IOUtils.toString(inputStr, encoding);
+            String jsonResponse = IOUtil.toString(inputStr, encoding);
             Gson g = new Gson();
             return g.fromJson(jsonResponse, type);
         }

@@ -82,9 +82,9 @@ public class ConfigureFragment extends Fragment {
             discoveredUUID.setText(hwinfo.getUuid());
             discoveredUserID.setText("" + (fwinfo.getUserId() == 0 ? "N/A" : fwinfo.getUserId()));
             discoveredFWVer.setText(fwinfo.getVersion());
-            discoveredMQTTServer.setText(fwinfo.getServer() == "" ? "N/A" : fwinfo.getServer());
+            discoveredMQTTServer.setText(fwinfo.getServer().isEmpty() ? "N/A" : fwinfo.getServer());
             discoveredMQTTServerPort.setText("" + (fwinfo.getPort() == 0 ? "N/A" : fwinfo.getPort()));
-            discoveredInnerIP.setText(fwinfo.getInnerIp());
+            discoveredInnerIP.setText(fwinfo.getInnerIp().compareTo("0.0.0.0")==0 ? "N/A" : fwinfo.getInnerIp());
             discoveredWifiMac.setText(fwinfo.getWifiMac());
         }
     }

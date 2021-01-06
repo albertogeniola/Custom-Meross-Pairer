@@ -11,13 +11,17 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.BundleCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
@@ -38,6 +42,15 @@ public class ScanFragment extends Fragment {
     private FloatingActionButton fab = null;
     private MerossWifiScanAdapter adapter = new MerossWifiScanAdapter();
     private SwipeRefreshLayout swipeContainer;
+    private Handler uiHandler;
+    private boolean scanning;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        this.uiHandler = new Handler(Looper.getMainLooper());
+        scanning = false;
+    }
 
     @Override
     public View onCreateView(
@@ -63,8 +76,8 @@ public class ScanFragment extends Fragment {
                 // Your code to refresh the list here.
                 // Make sure you call swipeContainer.setRefreshing(false)
                 // once the network request has completed successfully.
-                startScan();
                 swipeContainer.setRefreshing(false);
+                startScan();
             }
         });
 
@@ -113,6 +126,10 @@ public class ScanFragment extends Fragment {
     }
 
     private void startScan() {
+        if (scanning) {
+            Toast.makeText(ScanFragment.this.getContext(), "Scan already in progress.", Toast.LENGTH_SHORT).show();
+        }
+
         if (!AndroidUtils.isLocationEnabled(getContext())) {
             Snackbar.make(fab,  "Please enable location access to scan WIFI networks", Snackbar.LENGTH_LONG).show();
             return;
@@ -121,9 +138,20 @@ public class ScanFragment extends Fragment {
             requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                     LOCATION_PERMISSION_CODE);
         }else{
-            fab.setEnabled(false);
+            fab.hide();
             ((ProgressableActivity)getActivity()).setProgressIndeterminate();
+            scanning = true;
             boolean success = wifiManager.startScan();
+            // Setup a timer
+            uiHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    scanning = false;
+                    fab.show();
+                    ((ProgressableActivity)getActivity()).setProgressDone();
+                }
+            }, 10000);
+
             if (!success) {
                 scanFailure();
             }
@@ -142,16 +170,17 @@ public class ScanFragment extends Fragment {
 
         adapter.updateData(data);
         ((ProgressableActivity)getActivity()).setProgressDone();
-        fab.setEnabled(true);
+        fab.show();
+        this.scanning = false;
     }
 
     private void scanFailure() {
         // handle failure: new scan did NOT succeed
         // consider using old scan results: these are the OLD results!
         ((ProgressableActivity)getActivity()).setProgressDone();
-        fab.setEnabled(true);
+        fab.show();
         Snackbar.make(this.fab, "Unable to scan wifi networks", Snackbar.LENGTH_LONG).show();
-
+        this.scanning = false;
     }
 
     class MerossWifiScanAdapter extends RecyclerView.Adapter<MerossWifiScanAdapter.MyViewHolder>{
