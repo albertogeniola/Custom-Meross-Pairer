@@ -9,9 +9,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import android.util.Base64;
-import android.util.Xml;
 import android.view.LayoutInflater;
-import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -24,7 +22,6 @@ import android.widget.Toast;
 import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
-import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 
 import java.io.UnsupportedEncodingException;
@@ -114,6 +111,13 @@ public class ConfigFragment extends Fragment {
             bundle.putSerializable(PairFragment.DEVICE, device);
             bundle.putString(PairFragment.HOSTNAME, hostnameStr);
             bundle.putInt(PairFragment.PORT, port);
+            bundle.putString(PairFragment.WIFI_SSID_BASE64, selectedWifi.getSsid());
+            try {
+                bundle.putString(PairFragment.WIFI_PASSWORD_BASE64, Base64.encodeToString(wifiPasswordTextView.getText().toString().getBytes("utf8"),0));
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+                throw new RuntimeException("UTF8 unsupported");
+            }
             NavHostFragment.findNavController(ConfigFragment.this)
                     .navigate(R.id.PairFragment, bundle);
         }

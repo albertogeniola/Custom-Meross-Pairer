@@ -1,5 +1,7 @@
 package com.albertogeniola.merosslib.model.protocol.payloads;
 
+import com.albertogeniola.merosslib.model.Cipher;
+import com.albertogeniola.merosslib.model.Encryption;
 import com.google.gson.annotations.SerializedName;
 
 import lombok.Getter;
@@ -19,8 +21,8 @@ public class GetConfigWifiListEntry {
     private Integer channel;
 
     @SerializedName("encryption")
-    private Integer encryption; // Enum?
+    private Encryption encryption;
 
     @SerializedName("cipher")
-    private Integer cipher; // Enum?
+    private Cipher cipher;
 }

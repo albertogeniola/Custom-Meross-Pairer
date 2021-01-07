@@ -4,5 +4,7 @@ public enum Method {
     GET,
     SET,
     PUSH,
+    GETACK,
+    SETACK,
     ERROR
 }

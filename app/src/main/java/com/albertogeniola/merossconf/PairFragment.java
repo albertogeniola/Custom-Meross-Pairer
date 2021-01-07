@@ -45,8 +45,8 @@ public class PairFragment extends Fragment {
     public static final String DEVICE = "DEVICE";
     public static final String HOSTNAME = "HOSTNAME";
     public static final String PORT = "PORT";
-    public static final String WIFI_SSID = "WIFI_SSID";
-    public static final String WIFI_PASSWORD = "WIFI_PASSWORD";
+    public static final String WIFI_SSID_BASE64 = "WIFI_SSID_BASE64";
+    public static final String WIFI_PASSWORD_BASE64 = "WIFI_PASSWORD_BASE64";
 
     private ImageSwitcher imageSwitcher;
     private TextView configureMqttTextView;
@@ -246,8 +246,8 @@ public class PairFragment extends Fragment {
             device = (MerossDeviceAp) getArguments().getSerializable(DEVICE);
             hostname = getArguments().getString(HOSTNAME);
             port = getArguments().getInt(PORT);
-            wifi_ssid = getArguments().getString(WIFI_SSID);
-            wifi_password = getArguments().getString(WIFI_PASSWORD);
+            wifi_ssid = getArguments().getString(WIFI_SSID_BASE64);
+            wifi_password = getArguments().getString(WIFI_PASSWORD_BASE64);
         }
     }
 

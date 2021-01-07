@@ -3,7 +3,7 @@ apply plugin: 'java-library'
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.google.code.gson:gson:2.8.6'
-    api group: 'commons-io', name: 'commons-io', version: '20030203.000550'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
     compileOnly 'org.projectlombok:lombok:1.18.16'
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
 }
