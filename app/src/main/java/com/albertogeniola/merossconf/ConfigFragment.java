@@ -6,17 +6,23 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 
 import android.util.Base64;
 import android.util.Xml;
 import android.view.LayoutInflater;
+import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.albertogeniola.merosslib.MerossDeviceAp;
+import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
@@ -27,19 +33,27 @@ import java.util.List;
 
 
 public class ConfigFragment extends Fragment {
-    public static final String DEVICE_INFO = "DEVICE_INFO";
+    public static final String DEVICE = "DEVICE";
     public static final String DEVICE_AVAILABLE_WIFIS = "DEVICE_AVAILABLE_WIFIS";
 
+    private static final String DEFAULT_KEY = "";
+    private static final String DEFAULT_USER_ID = "";
+
     private Spinner wifiSpinner;
-    private MessageGetSystemAllResponse deviceInfo;
+    private TextView wifiPasswordTextView;
+    private TextView mqttHostTextView;
+    private TextView mqttPortTextView;
+    private Button pairButton;
+    private MerossDeviceAp device;
     private MessageGetConfigWifiListResponse deviceAvailableWifis;
+    private WifiSpinnerAdapter adapter;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            deviceInfo = (MessageGetSystemAllResponse) getArguments().getSerializable(DEVICE_INFO);
+            device = (MerossDeviceAp) getArguments().getSerializable(DEVICE);
             deviceAvailableWifis = (MessageGetConfigWifiListResponse) getArguments().getSerializable(DEVICE_AVAILABLE_WIFIS);
         }
     }
@@ -56,9 +70,54 @@ public class ConfigFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         wifiSpinner = view.findViewById(R.id.wifiListSpinner);
+        adapter = new WifiSpinnerAdapter(ConfigFragment.this.getContext(), deviceAvailableWifis.getPayload().getWifiList());
+        wifiSpinner.setAdapter(adapter);
 
-        wifiSpinner.setAdapter(new WifiSpinnerAdapter(ConfigFragment.this.getContext(), deviceAvailableWifis.getPayload().getWifiList()));
+        wifiPasswordTextView = view.findViewById(R.id.wifi_password);
+        mqttHostTextView = view.findViewById(R.id.mqtt_hostname);
+        mqttPortTextView = view.findViewById(R.id.mqtt_port);
+        pairButton = view.findViewById(R.id.pair_button);
+        pairButton.setOnClickListener(pairButtonClick);
     }
+
+    private View.OnClickListener pairButtonClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            // Validate the configuration...
+            if (wifiSpinner.getSelectedItemPosition() < 0) {
+                Toast.makeText(getContext(), "Please select a Wifi AP from the dropdown", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            // If the wifi requires a password, make sure the user inputed one.
+            GetConfigWifiListEntry selectedWifi = adapter.getItem(wifiSpinner.getSelectedItemPosition());
+            wifiPasswordTextView.setError(selectedWifi.getEncryption() != Encryption.OPEN && wifiPasswordTextView.getText().toString().isEmpty() ? "That wifi requires a password." : null);
+
+            // make sure the host is valid
+            String hostnameStr = mqttHostTextView.getText().toString();
+            mqttHostTextView.setError(hostnameStr.isEmpty() ? "Invalid mqtt host" : null);
+
+            String portstr = mqttPortTextView.getText().toString();
+            int port;
+            try {
+                port = Integer.parseInt(portstr);
+                if (port<1 || port > 65535)
+                    throw new NumberFormatException();
+                mqttPortTextView.setError(null);
+            } catch (NumberFormatException e) {
+                mqttPortTextView.setError("The MQTT port is invalid");
+                return;
+            }
+
+            // Navigate to the next fragment
+            Bundle bundle = new Bundle();
+            bundle.putSerializable(PairFragment.DEVICE, device);
+            bundle.putString(PairFragment.HOSTNAME, hostnameStr);
+            bundle.putInt(PairFragment.PORT, port);
+            NavHostFragment.findNavController(ConfigFragment.this)
+                    .navigate(R.id.PairFragment, bundle);
+        }
+    };
 
     public class WifiSpinnerAdapter extends ArrayAdapter<GetConfigWifiListEntry> {
         private ArrayList<GetConfigWifiListEntry> values;

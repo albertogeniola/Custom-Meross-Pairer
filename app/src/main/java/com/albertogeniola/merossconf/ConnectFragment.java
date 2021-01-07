@@ -37,9 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-//import com.albertogeniola.merosslib.MerossDeviceAp;
-//import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
-
 
 public class ConnectFragment extends Fragment {
 
@@ -183,6 +180,7 @@ public class ConnectFragment extends Fragment {
     private void completeActivityFragment() {
         // Set done and proceed with the next fragment
         Bundle bundle = new Bundle();
+        bundle.putSerializable(InfoFragment.DEVICE, this.device);
         bundle.putSerializable(InfoFragment.DEVICE_INFO, this.deviceInfo);
         bundle.putSerializable(InfoFragment.DEVICE_AVAILABLE_WIFIS, this.deviceAvailableWifis);
         NavHostFragment.findNavController(ConnectFragment.this)
@@ -307,8 +305,8 @@ public class ConnectFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        wifiEnableTextView = view.findViewById(R.id.wifi_enable);
-        wifiConnectTextView = view.findViewById(R.id.wifi_connect);
+        wifiEnableTextView = view.findViewById(R.id.enable_wifi);
+        wifiConnectTextView = view.findViewById(R.id.configure_wifi);
         fetchDeviceInfoTextView = view.findViewById(R.id.fetch_device_info);
         scanWifiTextView = view.findViewById(R.id.scan_wifis);
         setupAnimation();

@@ -18,10 +18,11 @@
         app:layout_constraintVertical_bias="0.0" />
 
     <TextView
-        android:id="@+id/enable_wifi"
+        android:id="@+id/configure_mqtt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Enabling Wifi"
+        android:layout_marginTop="8dp"
+        android:text="Configuring MQTT info..."
         android:visibility="invisible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -32,35 +33,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Connecting to AP"
+        android:text="Configuring WiFi"
         android:visibility="invisible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintHorizontal_bias="0.501"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/enable_wifi" />
-
-    <TextView
-        android:id="@+id/fetch_device_info"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Fetching device info"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/configure_wifi" />
-
-    <TextView
-        android:id="@+id/scan_wifis"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Scanning WiFi"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.503"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/fetch_device_info" />
+        app:layout_constraintTop_toBottomOf="@+id/configure_mqtt" />
 
     <TextView
         android:id="@+id/textView4"
@@ -71,7 +49,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
-        android:text="Please be patient while the app connects to the Meross Device. This operation requires WiFi and location services enabled in order to succeed."
+        android:text="Please be patient while the app connects to the Meross Device. "
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

@@ -35,7 +35,7 @@
         app:layout_constraintTop_toBottomOf="@+id/textView10" />
 
     <EditText
-        android:id="@+id/wifiPassword"
+        android:id="@+id/wifi_password"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
@@ -54,7 +54,7 @@
         android:background="?android:attr/listDivider"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/wifiPassword" />
+        app:layout_constraintTop_toBottomOf="@+id/wifi_password" />
 
     <TextView
         android:id="@+id/textView19"
@@ -81,7 +81,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
-        android:id="@+id/editTextTextPersonName"
+        android:id="@+id/mqtt_hostname"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
@@ -95,18 +95,32 @@
         app:layout_constraintTop_toBottomOf="@+id/textView19" />
 
     <EditText
-        android:id="@+id/editTextTextPersonName2"
+        android:id="@+id/mqtt_port"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginRight="16dp"
+        android:layout_marginTop="4dp"
         android:digits="[0,1,2,3,4,5,6,7,8,9]"
         android:ems="10"
         android:hint="Server Port"
         android:inputType="textPersonName"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/mqtt_hostname"
         app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="@+id/editTextTextPersonName"
-        app:layout_constraintTop_toBottomOf="@+id/editTextTextPersonName" />
+        app:layout_constraintStart_toStartOf="@+id/mqtt_hostname"
+        app:layout_constraintTop_toBottomOf="@+id/mqtt_hostname" />
+
+    <Button
+        android:id="@+id/pair_button"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+        android:text="PAIR"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/mqtt_port"
+        app:layout_constraintVertical_bias="0.954" />
 </androidx.constraintlayout.widget.ConstraintLayout>

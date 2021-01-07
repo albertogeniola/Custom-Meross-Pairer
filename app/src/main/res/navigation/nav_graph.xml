@@ -36,5 +36,13 @@
         android:id="@+id/ConfigFragment"
         android:name="com.albertogeniola.merossconf.ConfigFragment"
         android:label="config_fragment"
-        tools:layout="@layout/config_fragment" />
+        tools:layout="@layout/config_fragment" >
+        <action
+            android:id="@+id/action_ConfigFragment_to_PairFragment"
+            app:destination="@id/PairFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/PairFragment"
+        android:name="com.albertogeniola.merossconf.PairFragment"
+        android:label="PairFragment" />
 </navigation>

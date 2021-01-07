@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadAllFirmware;
@@ -22,8 +23,11 @@ import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadA
 
 
 public class InfoFragment extends Fragment {
+    public static final String DEVICE = "DEVICE";
     public static final String DEVICE_INFO = "DEVICE_INFO";
     public static final String DEVICE_AVAILABLE_WIFIS = "DEVICE_AVAILABLE_WIFIS";
+
+    private MerossDeviceAp device;
 
     private TextView discoveredType;
     private TextView discoveredVersion;
@@ -47,6 +51,7 @@ public class InfoFragment extends Fragment {
         if (getArguments() != null) {
             deviceInfo = (MessageGetSystemAllResponse) getArguments().getSerializable(DEVICE_INFO);
             deviceAvailableWifis = (MessageGetConfigWifiListResponse) getArguments().getSerializable(DEVICE_AVAILABLE_WIFIS);
+            device = (MerossDeviceAp) getArguments().getSerializable(DEVICE);
         }
     }
 
@@ -86,8 +91,8 @@ public class InfoFragment extends Fragment {
 
     private void launchConfigFragment() {
         Bundle bundle = new Bundle();
-        bundle.putSerializable(DEVICE_INFO, deviceInfo);
-        bundle.putSerializable(DEVICE_AVAILABLE_WIFIS, deviceAvailableWifis);
+        bundle.putSerializable(ConfigFragment.DEVICE, device);
+        bundle.putSerializable(ConfigFragment.DEVICE_AVAILABLE_WIFIS, deviceAvailableWifis);
         NavHostFragment.findNavController(InfoFragment.this)
                 .navigate(R.id.ConfigFragment, bundle);
     }
