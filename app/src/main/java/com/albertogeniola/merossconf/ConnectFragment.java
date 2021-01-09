@@ -1,16 +1,25 @@
 package com.albertogeniola.merossconf;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.MacAddress;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.net.wifi.WifiNetworkSpecifier;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,10 +37,14 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
+import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAll;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.google.android.material.snackbar.Snackbar;
-
+import org.apache.commons.io.IOUtils;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,6 +52,8 @@ import java.util.concurrent.TimeUnit;
 
 
 public class ConnectFragment extends Fragment {
+
+    private static final int WIFI_STATE_CHANGE_PERMISSION = 1;
 
     private ImageSwitcher imageSwitcher;
     private TextView wifiEnableTextView;
@@ -58,7 +73,7 @@ public class ConnectFragment extends Fragment {
     private State state = State.INIT;
     private String gatewayIp = null;
     private String error = null;
-    private MerossDeviceAp device;
+    private MerossDeviceAp device = new MerossDeviceAp();
     private MessageGetSystemAllResponse deviceInfo;
     private MessageGetConfigWifiListResponse deviceAvailableWifis;
 
@@ -118,24 +133,65 @@ public class ConnectFragment extends Fragment {
         this.targetSSID = getArguments().getString("SSID");
         this.targetBSSID = getArguments().getString("BSSID");
 
-        wifiManager.setWifiEnabled(true);
-        stateMachine(Signal.WIFI_ENABLED);
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (getContext().checkSelfPermission(Manifest.permission.CHANGE_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED)) {
+            requestPermissions(new String[]{Manifest.permission.CHANGE_NETWORK_STATE},
+                    WIFI_STATE_CHANGE_PERMISSION);
+        } else {
+            wifiManager.setWifiEnabled(true);
+            stateMachine(Signal.WIFI_ENABLED);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        if (requestCode == WIFI_STATE_CHANGE_PERMISSION && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            stateMachine(Signal.WIFI_ENABLED);
+        } else if (requestCode == WIFI_STATE_CHANGE_PERMISSION && grantResults[0] == PackageManager.PERMISSION_DENIED) {
+            error = "Wifi permission has not been granted.";
+            stateMachine(Signal.ERROR);
+        }
     }
 
     private void connectAp() {
-        WifiConfiguration conf = new WifiConfiguration();
-        conf.SSID = "\"" + targetSSID + "\"";
-        conf.BSSID = "\"" + targetBSSID + "\"";
-        conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
-        wifiManager.addNetwork(conf);
-        List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
-        for (WifiConfiguration i : list) {
-            if (i.SSID != null && i.SSID.equals("\"" + targetSSID + "\"")) {
-                wifiManager.disconnect();
-                wifiManager.enableNetwork(i.networkId, true);
-                wifiManager.reconnect();
-                break;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            WifiConfiguration conf = new WifiConfiguration();
+            conf.SSID = "\"" + targetSSID + "\"";
+            conf.BSSID = "\"" + targetBSSID + "\"";
+            conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+            wifiManager.addNetwork(conf);
+            List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
+            for (WifiConfiguration i : list) {
+                if (i.SSID != null && i.SSID.equals("\"" + targetSSID + "\"")) {
+                    wifiManager.disconnect();
+                    wifiManager.enableNetwork(i.networkId, true);
+                    wifiManager.reconnect();
+                    break;
+                }
             }
+        } else {
+            NetworkRequest networkRequest = new NetworkRequest.Builder()
+                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .setNetworkSpecifier(
+                            new WifiNetworkSpecifier.Builder()
+                                    .setSsid(targetSSID)
+                                    .setBssid(MacAddress.fromString(targetBSSID))
+                                    .build()
+                    )
+                    .build();
+            connectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
+
+                @Override
+                public void onUnavailable() {
+                    Log.d("TEST", "Network unavailable");
+                    // TODO
+                }
+                @Override
+                public void onAvailable(Network network) {
+                    device.setSocketFactory(network.getSocketFactory());
+                }
+            });
         }
     }
 
@@ -156,7 +212,6 @@ public class ConnectFragment extends Fragment {
     }
 
     private void collectDeviceInfo(String deviceIp) {
-        device = new MerossDeviceAp(deviceIp);
         worker.schedule(new Runnable() {
             @Override
             public void run() {
@@ -174,7 +229,7 @@ public class ConnectFragment extends Fragment {
                     });
                 }
             }
-        },3, TimeUnit.SECONDS);
+        },10, TimeUnit.SECONDS);
     }
 
     private void completeActivityFragment() {

@@ -113,7 +113,7 @@ public class ConfigFragment extends Fragment {
             bundle.putInt(PairFragment.PORT, port);
             bundle.putString(PairFragment.WIFI_SSID_BASE64, selectedWifi.getSsid());
             try {
-                bundle.putString(PairFragment.WIFI_PASSWORD_BASE64, Base64.encodeToString(wifiPasswordTextView.getText().toString().getBytes("utf8"),0));
+                bundle.putString(PairFragment.WIFI_PASSWORD_BASE64, Base64.encodeToString(wifiPasswordTextView.getText().toString().getBytes("utf8"),Base64.NO_WRAP));
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 throw new RuntimeException("UTF8 unsupported");

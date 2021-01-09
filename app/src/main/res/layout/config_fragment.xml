@@ -90,6 +90,7 @@
         android:ems="10"
         android:hint="Server hostname or IP"
         android:inputType="textPersonName"
+        android:singleLine="true"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/textView19"
         app:layout_constraintTop_toBottomOf="@+id/textView19" />

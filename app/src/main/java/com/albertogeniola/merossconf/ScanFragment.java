@@ -134,8 +134,11 @@ public class ScanFragment extends Fragment {
             Snackbar.make(fab,  "Please enable location access to scan WIFI networks", Snackbar.LENGTH_LONG).show();
             return;
         }
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                (getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+                getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)){
+            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_CODE);
         }else{
             fab.hide();
@@ -158,12 +161,10 @@ public class ScanFragment extends Fragment {
         }
     }
 
-    private void scanSuccess() {
-        List<ScanResult> results = wifiManager.getScanResults();
-
+    private void updateScanData(List<ScanResult> wifiNetworks) {
         // Only filter access points that match the Meross
         ArrayList<ScanResult> data = new ArrayList<>();
-        for (ScanResult r : results) {
+        for (ScanResult r : wifiNetworks) {
             if (MerossUtils.isMerossAp(r.SSID))
                 data.add(r);
         }
@@ -174,12 +175,17 @@ public class ScanFragment extends Fragment {
         this.scanning = false;
     }
 
+    private void scanSuccess() {
+        updateScanData(wifiManager.getScanResults());
+    }
+
     private void scanFailure() {
         // handle failure: new scan did NOT succeed
         // consider using old scan results: these are the OLD results!
+        updateScanData(wifiManager.getScanResults());
         ((ProgressableActivity)getActivity()).setProgressDone();
         fab.show();
-        Snackbar.make(this.fab, "Unable to scan wifi networks", Snackbar.LENGTH_LONG).show();
+        Snackbar.make(this.fab, "Scan failed wifi networks", Snackbar.LENGTH_LONG).show();
         this.scanning = false;
     }
 
@@ -252,10 +258,6 @@ public class ScanFragment extends Fragment {
                     this.signalStrength.setImageResource(R.drawable.ic_signal_wifi_1_bar_black_24dp);
                 else
                     this.signalStrength.setImageResource(R.drawable.ic_signal_wifi_0_bar_black_24dp);
-            }
-
-            public ScanResult getScanResult() {
-                return this.scanResult;
             }
         }
     }
