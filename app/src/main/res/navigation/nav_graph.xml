@@ -8,7 +8,6 @@
     <fragment
         android:id="@+id/ScanFragment"
         android:name="com.albertogeniola.merossconf.ScanFragment"
-        android:label="@string/first_fragment_label"
         tools:layout="@layout/scan_fragment">
 
         <action
@@ -19,7 +18,6 @@
     <fragment
         android:id="@+id/ConnectFragment"
         android:name="com.albertogeniola.merossconf.ConnectFragment"
-        android:label="@string/second_fragment_label"
         tools:layout="@layout/connect_fragment">
         <action
             android:id="@+id/action_ConnectFragment_to_configureFragment"
@@ -28,8 +26,7 @@
     </fragment>
     <fragment
         android:id="@+id/InfoFragment"
-        android:name="com.albertogeniola.merossconf.InfoFragment"
-        android:label="InfoFragment" >
+        android:name="com.albertogeniola.merossconf.InfoFragment">
         <action
             android:id="@+id/action_InfoFragment_to_configFragment"
             app:destination="@id/ConfigFragment"
@@ -38,7 +35,6 @@
     <fragment
         android:id="@+id/ConfigFragment"
         android:name="com.albertogeniola.merossconf.ConfigFragment"
-        android:label="config_fragment"
         tools:layout="@layout/config_fragment" >
         <action
             android:id="@+id/action_ConfigFragment_to_PairFragment"
@@ -47,8 +43,7 @@
     </fragment>
     <fragment
         android:id="@+id/PairFragment"
-        android:name="com.albertogeniola.merossconf.PairFragment"
-        android:label="PairFragment" >
+        android:name="com.albertogeniola.merossconf.PairFragment">
         <action
             android:id="@+id/action_PairFragment_to_PairDone"
             app:destination="@id/PairDone"
@@ -56,6 +51,5 @@
     </fragment>
     <fragment
         android:id="@+id/PairDone"
-        android:name="com.albertogeniola.merossconf.PairDone"
-        android:label="PairDone" />
+        android:name="com.albertogeniola.merossconf.PairDone"/>
 </navigation>
