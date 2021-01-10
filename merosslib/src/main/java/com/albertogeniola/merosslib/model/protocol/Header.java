@@ -2,6 +2,7 @@ package com.albertogeniola.merosslib.model.protocol;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
 @Getter
-public class Header {
+public class Header implements Serializable {
     @SerializedName("messageId")
     private String messageId;
     @SerializedName("method")

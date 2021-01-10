@@ -10,6 +10,11 @@ import com.albertogeniola.merosslib.model.protocol.MessageSetConfigKeyResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageSetConfigWifi;
 import com.albertogeniola.merosslib.model.protocol.MessageSetConfigWifiResponse;
 import com.google.gson.Gson;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -17,20 +22,36 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.io.IOUtils;
+
+import javax.net.SocketFactory;
+
+import lombok.Getter;
+import lombok.Setter;
 
 
 public class MerossDeviceAp implements Serializable {
     private String ip;
     private String cloudKey;
+    private OkHttpClient client;
+    private Gson g = new Gson();
+
+    public void setSocketFactory(SocketFactory factory) {
+        client.setSocketFactory(factory);
+    }
 
     public MerossDeviceAp(String ip, String cloudKey) {
         this.ip = ip;
         this.cloudKey = cloudKey;
+        this.client = new OkHttpClient();
+        this.client.setConnectTimeout(40, TimeUnit.SECONDS);
+        this.client.setReadTimeout(40, TimeUnit.SECONDS);
     }
 
-    public MerossDeviceAp(String ip) {
-        this(ip, "");
+    public MerossDeviceAp() {
+        this("10.10.10.1", "");
     }
 
     public MessageGetSystemAllResponse getConfig() throws IOException {
@@ -55,29 +76,17 @@ public class MerossDeviceAp implements Serializable {
 
     private <T> T sendMessage(Message message, Class<T> type) throws IOException {
         message.sign(cloudKey); // Signature is not verified when pairing!
-        URL url = new URL("http://" + ip + "/config");
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        con.setRequestMethod("POST");
-        con.setRequestProperty("Content-Type", "application/json");
-        con.setDoOutput(true);
-        con.setUseCaches(false);
-        con.setDoInput(true);
 
-        try (BufferedOutputStream osw = new BufferedOutputStream(con.getOutputStream())) {
-            Gson g = new Gson();
-            osw.write(g.toJson(message).getBytes("utf8"));
-        }
+        Request request = new Request.Builder()
+                .url("http://" + ip + "/config")
+                .addHeader("Content-Type", "application/json")
+                .post(RequestBody.create(MediaType.parse("application/json; charset=utf-8"), g.toJson(message).getBytes("utf8")))
+                .build();
+        Response response = client.newCall(request).execute();
 
-        int code = con.getResponseCode();
-        if (code != 200 ) {
-            throw new IOException("Invalid response code (" + code + ") received from Meross Device");
+        if (response.code() != 200 ) {
+            throw new IOException("Invalid response code (" + response.code() + ") received from Meross Device");
         }
-
-        try (InputStream inputStr = con.getInputStream()) {
-            String encoding = con.getContentEncoding() == null ? "UTF-8" : con.getContentEncoding();
-            String jsonResponse = IOUtils.toString(inputStr, encoding);
-            Gson g = new Gson();
-            return g.fromJson(jsonResponse, type);
-        }
+        return g.fromJson(response.body().string(), type);
     }
 }
