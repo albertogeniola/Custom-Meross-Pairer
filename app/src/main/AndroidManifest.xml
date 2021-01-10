@@ -18,6 +18,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|keyboardHidden"
             android:name=".PairActivity"
             android:label="@string/title_activity_pair"
             android:theme="@style/AppTheme.NoActionBar">
