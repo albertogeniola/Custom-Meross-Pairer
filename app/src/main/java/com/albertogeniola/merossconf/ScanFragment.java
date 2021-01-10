@@ -185,7 +185,7 @@ public class ScanFragment extends Fragment {
         updateScanData(wifiManager.getScanResults());
         ((ProgressableActivity)getActivity()).setProgressDone();
         fab.show();
-        Snackbar.make(this.fab, "Scan failed wifi networks", Snackbar.LENGTH_LONG).show();
+        Toast.makeText(getContext(), "Scan failed wifi networks", Toast.LENGTH_SHORT).show();
         this.scanning = false;
     }
 

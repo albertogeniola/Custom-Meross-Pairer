@@ -118,6 +118,7 @@ public class ConfigFragment extends Fragment {
                 e.printStackTrace();
                 throw new RuntimeException("UTF8 unsupported");
             }
+
             NavHostFragment.findNavController(ConfigFragment.this)
                     .navigate(R.id.PairFragment, bundle);
         }

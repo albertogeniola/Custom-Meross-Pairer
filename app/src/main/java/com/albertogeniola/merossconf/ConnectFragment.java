@@ -33,6 +33,7 @@ import android.widget.ViewSwitcher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merosslib.MerossDeviceAp;
@@ -238,8 +239,9 @@ public class ConnectFragment extends Fragment {
         bundle.putSerializable(InfoFragment.DEVICE, this.device);
         bundle.putSerializable(InfoFragment.DEVICE_INFO, this.deviceInfo);
         bundle.putSerializable(InfoFragment.DEVICE_AVAILABLE_WIFIS, this.deviceAvailableWifis);
-        NavHostFragment.findNavController(ConnectFragment.this)
-                .navigate(R.id.InfoFragment, bundle);
+        NavController ctrl = NavHostFragment.findNavController(ConnectFragment.this);
+        ctrl.popBackStack();
+        ctrl.navigate(R.id.InfoFragment, bundle);
     }
 
     // UI

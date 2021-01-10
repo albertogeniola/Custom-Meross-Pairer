@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
 import androidx.navigation.NavHost;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
@@ -93,8 +94,8 @@ public class InfoFragment extends Fragment {
         Bundle bundle = new Bundle();
         bundle.putSerializable(ConfigFragment.DEVICE, device);
         bundle.putSerializable(ConfigFragment.DEVICE_AVAILABLE_WIFIS, deviceAvailableWifis);
-        NavHostFragment.findNavController(InfoFragment.this)
-                .navigate(R.id.ConfigFragment, bundle);
+        NavController ctrl = NavHostFragment.findNavController(InfoFragment.this);
+        ctrl.navigate(R.id.ConfigFragment, bundle);
     }
 
     private void loadUiInfo() {

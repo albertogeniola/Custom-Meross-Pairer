@@ -24,6 +24,7 @@ import android.widget.ViewSwitcher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merosslib.MerossDeviceAp;
@@ -147,8 +148,9 @@ public class PairFragment extends Fragment {
     }
 
     private void completeActivityFragment() {
-        throw new RuntimeException("Not yet implemented");
-
+        NavController ctrl = NavHostFragment.findNavController(this);
+        ctrl.popBackStack(R.id.ScanFragment, false);
+        ctrl.navigate(R.id.PairDone);
     }
 
     // UI
