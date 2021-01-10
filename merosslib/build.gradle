@@ -6,6 +6,8 @@ dependencies {
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
     compileOnly 'org.projectlombok:lombok:1.18.16'
     annotationProcessor 'org.projectlombok:lombok:1.18.16'
+    compile 'com.squareup.okhttp:okhttp:2.5.0'
+
 }
 
 sourceCompatibility = "7"
