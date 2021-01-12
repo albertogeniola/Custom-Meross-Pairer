@@ -39,10 +39,12 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
         android:ems="10"
         android:hint="Wifi password"
         android:inputType="textPassword"
-        app:layout_constraintEnd_toEndOf="@+id/wifiListSpinner"
+        app:layout_constraintEnd_toStartOf="@+id/showPasswordButton"
         app:layout_constraintStart_toStartOf="@+id/wifiListSpinner"
         app:layout_constraintTop_toBottomOf="@+id/wifiListSpinner" />
 
@@ -102,7 +104,7 @@
         android:layout_marginTop="4dp"
         android:digits="[0,1,2,3,4,5,6,7,8,9]"
         android:ems="10"
-        android:hint="Server Port"
+        android:hint="Server Port (8883)"
         android:inputType="textPersonName"
         app:layout_constraintEnd_toEndOf="@+id/mqtt_hostname"
         app:layout_constraintHorizontal_bias="1.0"
@@ -124,4 +126,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/mqtt_port"
         app:layout_constraintVertical_bias="0.954" />
+
+    <ImageButton
+        android:id="@+id/showPasswordButton"
+        style="@android:style/Widget.Material.Light.ImageButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:src="@drawable/ic_remove_red_eye_black_24dp"
+        app:layout_constraintBottom_toBottomOf="@+id/wifi_password"
+        app:layout_constraintEnd_toEndOf="@+id/wifiListSpinner"
+        app:layout_constraintTop_toTopOf="@+id/wifi_password" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

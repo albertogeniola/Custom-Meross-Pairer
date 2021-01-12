@@ -8,12 +8,16 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
+import android.text.method.HideReturnsTransformationMethod;
+import android.text.method.PasswordTransformationMethod;
+import android.text.method.TransformationMethod;
 import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -40,6 +44,7 @@ public class ConfigFragment extends Fragment {
     private TextView wifiPasswordTextView;
     private TextView mqttHostTextView;
     private TextView mqttPortTextView;
+    private ImageButton showPasswordButton;
     private Button pairButton;
     private MerossDeviceAp device;
     private MessageGetConfigWifiListResponse deviceAvailableWifis;
@@ -75,7 +80,21 @@ public class ConfigFragment extends Fragment {
         mqttPortTextView = view.findViewById(R.id.mqtt_port);
         pairButton = view.findViewById(R.id.pair_button);
         pairButton.setOnClickListener(pairButtonClick);
+        showPasswordButton = view.findViewById(R.id.showPasswordButton);
+        showPasswordButton.setOnClickListener(showPasswordClick);
+
     }
+
+    private View.OnClickListener showPasswordClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (wifiPasswordTextView.getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
+                wifiPasswordTextView.setTransformationMethod(PasswordTransformationMethod.getInstance());
+            } else {
+                wifiPasswordTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+            }
+        }
+    };
 
     private View.OnClickListener pairButtonClick = new View.OnClickListener() {
         @Override
