@@ -18,7 +18,7 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
   release:
     name: Release APK
-    needs: apk
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Download APK from build
