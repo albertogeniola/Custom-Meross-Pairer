@@ -161,7 +161,17 @@ public class ConnectFragment extends Fragment {
             conf.BSSID = "\"" + targetBSSID + "\"";
             conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
             wifiManager.addNetwork(conf);
-            List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
+            List<WifiConfiguration> list = null;
+
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                    (getContext().checkSelfPermission(Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED)){
+                error = "User denied CHANGE_WIFI_STATE permission. Wifi cannot be enabled.";
+                stateMachine(Signal.ERROR);
+                return;
+            } else {
+                list = wifiManager.getConfiguredNetworks();
+            }
+
             for (WifiConfiguration i : list) {
                 if (i.SSID != null && i.SSID.equals("\"" + targetSSID + "\"")) {
                     wifiManager.disconnect();
