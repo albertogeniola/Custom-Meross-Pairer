@@ -1,8 +1,10 @@
 package com.albertogeniola.merossconf;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -23,6 +25,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.BundleCompat;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -138,9 +141,25 @@ public class ScanFragment extends Fragment {
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                 (getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
                 getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)){
-            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
-                    LOCATION_PERMISSION_CODE);
-        }else{
+
+            AlertDialog.Builder permissionAlert = new AlertDialog.Builder(this.getContext());
+            permissionAlert.setTitle("Permission requests");
+            permissionAlert.setMessage("Wifi scanning requires access to geolocation services (this is a requirement on Android).");
+            permissionAlert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
+                            LOCATION_PERMISSION_CODE);
+                }
+            });
+            permissionAlert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    Toast.makeText(getContext(), "Aborted Wifi scan: permissions denied.", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+        } else {
             fab.hide();
             ((ProgressableActivity)getActivity()).setProgressIndeterminate();
             scanning = true;

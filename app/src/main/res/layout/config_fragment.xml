@@ -95,7 +95,7 @@
         android:singleLine="true"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/textView19"
-        app:layout_constraintTop_toBottomOf="@+id/textView19" />
+        app:layout_constraintTop_toBottomOf="@+id/textView22" />
 
     <EditText
         android:id="@+id/mqtt_port"
@@ -137,5 +137,19 @@
         app:layout_constraintBottom_toBottomOf="@+id/wifi_password"
         app:layout_constraintEnd_toEndOf="@+id/wifiListSpinner"
         app:layout_constraintTop_toTopOf="@+id/wifi_password" />
+
+    <TextView
+        android:id="@+id/textView22"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+        android:drawableLeft="@drawable/ic_warning_black_24dp"
+        android:text="Meross plugs are only capable to connect to MQTT over TLS connections (default port 8883). Using a clear-mqtt connection won't work."
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView19" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
