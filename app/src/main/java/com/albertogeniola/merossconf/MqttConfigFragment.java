@@ -113,12 +113,18 @@ public class MqttConfigFragment extends Fragment {
                     mqttConfigurationNameEditText.setText("");
                     mqttConfigurationNameEditText.setEnabled(true);
                     mqttHostEditText.setText("");
+                    mqttHostEditText.setEnabled(true);
                     mqttPortEditText.setText("");
+                    mqttPortEditText.setEnabled(true);
+                    saveCheckbox.setVisibility(View.VISIBLE);
                 } else {
                     mqttConfigurationNameEditText.setText(selection.getName());
                     mqttConfigurationNameEditText.setEnabled(false);
                     mqttHostEditText.setText(selection.getHostname());
+                    mqttHostEditText.setEnabled(false);
                     mqttPortEditText.setText(""+selection.getPort());
+                    mqttPortEditText.setEnabled(false);
+                    saveCheckbox.setVisibility(View.GONE);
                 }
             }
 
