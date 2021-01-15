@@ -9,6 +9,7 @@ import android.widget.ProgressBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import com.albertogeniola.merossconf.model.MqttConfiguration;
 import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
@@ -45,11 +46,7 @@ public class PairActivity extends AppCompatActivity implements ProgressableActiv
 
     @Getter
     @Setter
-    private String targetMqttHostname = null;
-
-    @Getter
-    @Setter
-    private int targetMqttPort;
+    private MqttConfiguration targetMqttConfig = null;
 
     @Getter
     @Setter

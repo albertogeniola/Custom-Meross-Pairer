@@ -86,7 +86,7 @@ public class PairFragment extends Fragment {
             public void run() {
                 try {
                     // TODO implement key/userId
-                    MessageSetConfigKeyResponse response = parentActivity.getDevice().setConfigKey(parentActivity.getTargetMqttHostname(), parentActivity.getTargetMqttPort(), "","");
+                    MessageSetConfigKeyResponse response = parentActivity.getDevice().setConfigKey(parentActivity.getTargetMqttConfig().getHostname(), parentActivity.getTargetMqttConfig().getPort(), "","");
                     stateMachine(Signal.MQTT_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
