@@ -108,10 +108,17 @@ public class MqttConfigFragment extends Fragment {
         mqttConfigurationSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (parent.getAdapter().getItem(position) == newMqttConfig) {
-                    newConfigurationFrame.setVisibility(View.VISIBLE);
+                MqttConfiguration selection = (MqttConfiguration) parent.getAdapter().getItem(position);
+                if (selection == newMqttConfig) {
+                    mqttConfigurationNameEditText.setText("");
+                    mqttConfigurationNameEditText.setEnabled(true);
+                    mqttHostEditText.setText("");
+                    mqttPortEditText.setText("");
                 } else {
-                    newConfigurationFrame.setVisibility(View.GONE);
+                    mqttConfigurationNameEditText.setText(selection.getName());
+                    mqttConfigurationNameEditText.setEnabled(false);
+                    mqttHostEditText.setText(selection.getHostname());
+                    mqttPortEditText.setText(""+selection.getPort());
                 }
             }
 
@@ -126,7 +133,7 @@ public class MqttConfigFragment extends Fragment {
             public void onClick(View v) {
                 // New item validation
                 MqttConfiguration tmpConf = new MqttConfiguration();
-                boolean save = saveCheckbox.isSelected();
+                boolean save = saveCheckbox.isChecked();
                 boolean error = false;
                 if (mqttConfigurationSpinner.getSelectedItem() == newMqttConfig) {
                     // make sure the host is populated
@@ -135,6 +142,7 @@ public class MqttConfigFragment extends Fragment {
                         error = true;
                         mqttHostEditText.setError("Invalid mqtt host");
                     } else {
+                        mqttHostEditText.setError(null);
                         tmpConf.setHostname(hostnameStr);
                     }
 
@@ -158,7 +166,12 @@ public class MqttConfigFragment extends Fragment {
                         error = true;
                         mqttConfigurationNameEditText.setError("Invalid name");
                     } else {
+                        mqttConfigurationNameEditText.setError(null);
                         tmpConf.setHostname(name);
+                    }
+
+                    if (error) {
+                        return;
                     }
 
                     if (save) {

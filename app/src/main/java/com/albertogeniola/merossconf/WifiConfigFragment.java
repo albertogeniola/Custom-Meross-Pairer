@@ -93,7 +93,13 @@ public class WifiConfigFragment extends Fragment {
 
             // If the wifi requires a password, make sure the user inputed one.
             GetConfigWifiListEntry selectedWifi = adapter.getItem(wifiSpinner.getSelectedItemPosition());
-            wifiPasswordTextView.setError(selectedWifi.getEncryption() != Encryption.OPEN && wifiPasswordTextView.getText().toString().isEmpty() ? "That wifi requires a password." : null);
+            if (selectedWifi.getEncryption() != Encryption.OPEN && wifiPasswordTextView.getText().toString().isEmpty()) {
+                wifiPasswordTextView.setError("That wifi requires a password.");
+                return ;
+            } else {
+                wifiPasswordTextView.setError(null);
+            }
+
 
             // Navigate to the next fragment
             parentActivity.setDevice(parentActivity.getDevice());
