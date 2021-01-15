@@ -4,8 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ConfigFragment">
-
+    tools:context=".WifiConfigFragment">
 
     <TextView
         android:id="@+id/textView10"
@@ -48,28 +47,6 @@
         app:layout_constraintStart_toStartOf="@+id/wifiListSpinner"
         app:layout_constraintTop_toBottomOf="@+id/wifiListSpinner" />
 
-    <View
-        android:id="@+id/divider2"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="16dp"
-        android:background="?android:attr/listDivider"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/wifi_password" />
-
-    <TextView
-        android:id="@+id/textView19"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="8dp"
-        android:text="MQTT Server"
-        android:textSize="24sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/divider2" />
-
     <TextView
         android:id="@+id/textView20"
         android:layout_width="wrap_content"
@@ -82,49 +59,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <EditText
-        android:id="@+id/mqtt_hostname"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginRight="16dp"
-        android:ems="10"
-        android:hint="Server hostname or IP"
-        android:inputType="textPersonName"
-        android:singleLine="true"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/textView19"
-        app:layout_constraintTop_toBottomOf="@+id/textView22" />
-
-    <EditText
-        android:id="@+id/mqtt_port"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:digits="[0,1,2,3,4,5,6,7,8,9]"
-        android:ems="10"
-        android:hint="Server Port (8883)"
-        android:inputType="textPersonName"
-        app:layout_constraintEnd_toEndOf="@+id/mqtt_hostname"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="@+id/mqtt_hostname"
-        app:layout_constraintTop_toBottomOf="@+id/mqtt_hostname" />
-
     <Button
-        android:id="@+id/pair_button"
+        android:id="@+id/next_button"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
-        android:text="PAIR"
+        android:text="Next"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/mqtt_port"
+        app:layout_constraintTop_toBottomOf="@+id/mqttPortEditText"
         app:layout_constraintVertical_bias="0.954" />
 
     <ImageButton
@@ -137,18 +85,5 @@
         app:layout_constraintEnd_toEndOf="@+id/wifiListSpinner"
         app:layout_constraintTop_toTopOf="@+id/wifi_password" />
 
-    <TextView
-        android:id="@+id/textView22"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginRight="16dp"
-        android:drawableLeft="@drawable/ic_warning_black_24dp"
-        android:text="Meross plugs are only capable to connect to MQTT over TLS connections (default port 8883). Using a clear-mqtt connection won't work."
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView19" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

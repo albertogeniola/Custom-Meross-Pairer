@@ -1,14 +1,6 @@
 package com.albertogeniola.merossconf;
 
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.NavController;
-import androidx.navigation.NavHost;
-import androidx.navigation.NavOptions;
-import androidx.navigation.fragment.NavHostFragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -16,19 +8,18 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.albertogeniola.merosslib.MerossDeviceAp;
-import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
+
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadAllFirmware;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadAllHardrware;
 
 
 public class InfoFragment extends Fragment {
-    public static final String DEVICE = "DEVICE";
-    public static final String DEVICE_INFO = "DEVICE_INFO";
-    public static final String DEVICE_AVAILABLE_WIFIS = "DEVICE_AVAILABLE_WIFIS";
-
-    private MerossDeviceAp device;
+    private PairActivity parentActivity;
 
     private TextView discoveredType;
     private TextView discoveredVersion;
@@ -43,24 +34,17 @@ public class InfoFragment extends Fragment {
     private TextView discoveredWifiMac;
     private Button configureButton;
 
-    private MessageGetSystemAllResponse deviceInfo;
-    private MessageGetConfigWifiListResponse deviceAvailableWifis;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            deviceInfo = (MessageGetSystemAllResponse) getArguments().getSerializable(DEVICE_INFO);
-            deviceAvailableWifis = (MessageGetConfigWifiListResponse) getArguments().getSerializable(DEVICE_AVAILABLE_WIFIS);
-            device = (MerossDeviceAp) getArguments().getSerializable(DEVICE);
-        }
+        parentActivity = (PairActivity) getActivity();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.info_fragment, container, false);
+        return inflater.inflate(R.layout.fragment_info, container, false);
     }
 
     @Override
@@ -91,14 +75,12 @@ public class InfoFragment extends Fragment {
     }
 
     private void launchConfigFragment() {
-        Bundle bundle = new Bundle();
-        bundle.putSerializable(ConfigFragment.DEVICE, device);
-        bundle.putSerializable(ConfigFragment.DEVICE_AVAILABLE_WIFIS, deviceAvailableWifis);
         NavController ctrl = NavHostFragment.findNavController(InfoFragment.this);
-        ctrl.navigate(R.id.ConfigFragment, bundle);
+        ctrl.navigate(R.id.ConfigFragment);
     }
 
     private void loadUiInfo() {
+        MessageGetSystemAllResponse deviceInfo = parentActivity.getDeviceInfo();
         if (deviceInfo != null) {
             GetSystemAllPayloadAllHardrware hwinfo = deviceInfo.getPayload().getAll().getSystem().getHardware();
             GetSystemAllPayloadAllFirmware fwinfo = deviceInfo.getPayload().getAll().getSystem().getFirmware();

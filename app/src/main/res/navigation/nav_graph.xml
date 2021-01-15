@@ -8,7 +8,7 @@
     <fragment
         android:id="@+id/ScanFragment"
         android:name="com.albertogeniola.merossconf.ScanFragment"
-        tools:layout="@layout/scan_fragment">
+        tools:layout="@layout/fragment_scan">
 
         <action
             android:id="@+id/scan_to_connect"
@@ -18,7 +18,7 @@
     <fragment
         android:id="@+id/ConnectFragment"
         android:name="com.albertogeniola.merossconf.ConnectFragment"
-        tools:layout="@layout/connect_fragment">
+        tools:layout="@layout/fragment_connect">
         <action
             android:id="@+id/action_ConnectFragment_to_configureFragment"
             app:destination="@id/InfoFragment"
@@ -34,12 +34,11 @@
     </fragment>
     <fragment
         android:id="@+id/ConfigFragment"
-        android:name="com.albertogeniola.merossconf.ConfigFragment"
-        tools:layout="@layout/config_fragment" >
+        android:name="com.albertogeniola.merossconf.WifiConfigFragment"
+        tools:layout="@layout/freagment_wifi_config" >
         <action
-            android:id="@+id/action_ConfigFragment_to_PairFragment"
-            app:destination="@id/PairFragment"
-            app:popUpToInclusive="false" />
+            android:id="@+id/action_ConfigFragment_to_mqttConfigFragment"
+            app:destination="@id/mqtt_config_fragment" />
     </fragment>
     <fragment
         android:id="@+id/PairFragment"
@@ -52,4 +51,12 @@
     <fragment
         android:id="@+id/PairDone"
         android:name="com.albertogeniola.merossconf.PairDone"/>
+    <fragment
+        android:id="@+id/mqtt_config_fragment"
+        android:name="com.albertogeniola.merossconf.MqttConfigFragment"
+        android:label="MqttConfigFragment" >
+        <action
+            android:id="@+id/action_mqttConfigFragment_to_PairFragment"
+            app:destination="@id/PairFragment" />
+    </fragment>
 </navigation>

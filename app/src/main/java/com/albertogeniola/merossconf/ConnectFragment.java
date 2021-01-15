@@ -38,14 +38,10 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
-import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAll;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.google.android.material.snackbar.Snackbar;
-import org.apache.commons.io.IOUtils;
+
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -55,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 public class ConnectFragment extends Fragment {
 
     private static final int WIFI_STATE_CHANGE_PERMISSION = 1;
+    private PairActivity parentActivity;
 
     private ImageSwitcher imageSwitcher;
     private TextView wifiEnableTextView;
@@ -62,8 +59,6 @@ public class ConnectFragment extends Fragment {
     private TextView fetchDeviceInfoTextView;
     private TextView scanWifiTextView;
     private int animationCounter = 0;
-    private String targetSSID;
-    private String targetBSSID;
     private WifiManager wifiManager;
     private ConnectivityManager connectivityManager;
     private WifiBroadcastReceiver wifiBroadcastReceiver;
@@ -131,9 +126,6 @@ public class ConnectFragment extends Fragment {
     private void enableWifi() {
         wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         connectivityManager = (ConnectivityManager) getContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        this.targetSSID = getArguments().getString("SSID");
-        this.targetBSSID = getArguments().getString("BSSID");
-
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (getContext().checkSelfPermission(Manifest.permission.CHANGE_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED)) {
             requestPermissions(new String[]{Manifest.permission.CHANGE_NETWORK_STATE},
                     WIFI_STATE_CHANGE_PERMISSION);
@@ -157,8 +149,8 @@ public class ConnectFragment extends Fragment {
     private void connectAp() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             WifiConfiguration conf = new WifiConfiguration();
-            conf.SSID = "\"" + targetSSID + "\"";
-            conf.BSSID = "\"" + targetBSSID + "\"";
+            conf.SSID = "\"" + parentActivity.getDeviceApSSID() + "\"";
+            conf.BSSID = "\"" + parentActivity.getDeviceApBSSID() + "\"";
             conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
             wifiManager.addNetwork(conf);
             List<WifiConfiguration> list = null;
@@ -173,7 +165,7 @@ public class ConnectFragment extends Fragment {
             }
 
             for (WifiConfiguration i : list) {
-                if (i.SSID != null && i.SSID.equals("\"" + targetSSID + "\"")) {
+                if (i.SSID != null && i.SSID.equals("\"" + parentActivity.getDeviceApSSID() + "\"")) {
                     wifiManager.disconnect();
                     wifiManager.enableNetwork(i.networkId, true);
                     wifiManager.reconnect();
@@ -186,8 +178,8 @@ public class ConnectFragment extends Fragment {
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     .setNetworkSpecifier(
                             new WifiNetworkSpecifier.Builder()
-                                    .setSsid(targetSSID)
-                                    .setBssid(MacAddress.fromString(targetBSSID))
+                                    .setSsid(parentActivity.getDeviceApSSID())
+                                    .setBssid(MacAddress.fromString(parentActivity.getDeviceApBSSID()))
                                     .build()
                     )
                     .build();
@@ -246,12 +238,12 @@ public class ConnectFragment extends Fragment {
     private void completeActivityFragment() {
         // Set done and proceed with the next fragment
         Bundle bundle = new Bundle();
-        bundle.putSerializable(InfoFragment.DEVICE, this.device);
-        bundle.putSerializable(InfoFragment.DEVICE_INFO, this.deviceInfo);
-        bundle.putSerializable(InfoFragment.DEVICE_AVAILABLE_WIFIS, this.deviceAvailableWifis);
+        parentActivity.setDevice(device);
+        parentActivity.setDeviceInfo(deviceInfo);
+        parentActivity.setDeviceAvailableWifis(deviceAvailableWifis);
         NavController ctrl = NavHostFragment.findNavController(ConnectFragment.this);
         ctrl.popBackStack();
-        ctrl.navigate(R.id.InfoFragment, bundle);
+        ctrl.navigate(R.id.InfoFragment);
     }
 
     // UI
@@ -351,6 +343,7 @@ public class ConnectFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        parentActivity = (PairActivity) getActivity();
         wifiBroadcastReceiver = new WifiBroadcastReceiver();
         uiThreadHandler = new Handler(Looper.getMainLooper());
     }
@@ -367,7 +360,7 @@ public class ConnectFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.connect_fragment, container, false);
+        return inflater.inflate(R.layout.fragment_connect, container, false);
     }
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
@@ -400,7 +393,7 @@ public class ConnectFragment extends Fragment {
                 if (networkInfo.isConnected()) {
                     if (wifiManager.getConnectionInfo() != null &&
                             wifiManager.getConnectionInfo().getBSSID() != null &&
-                            wifiManager.getConnectionInfo().getBSSID().compareTo(targetBSSID) == 0) {
+                            wifiManager.getConnectionInfo().getBSSID().compareTo(parentActivity.getDeviceApBSSID()) == 0) {
                         // Connected!
                         int tmp = wifiManager.getDhcpInfo().gateway;
                         gatewayIp = String.format("%d.%d.%d.%d", (tmp & 0xff), (tmp >> 8 & 0xff), (tmp >> 16 & 0xff), (tmp >> 24 & 0xff));

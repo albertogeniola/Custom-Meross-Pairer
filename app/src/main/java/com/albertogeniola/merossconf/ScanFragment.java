@@ -24,8 +24,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.BundleCompat;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -39,6 +37,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ScanFragment extends Fragment {
+    private PairActivity parentActivity;
+
     private static final int LOCATION_PERMISSION_CODE = 1;
     private WifiManager wifiManager = null;
     private LocationManager locationManager = null;
@@ -51,6 +51,8 @@ public class ScanFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        parentActivity = (PairActivity) getActivity();
+
         this.uiHandler = new Handler(Looper.getMainLooper());
         scanning = false;
     }
@@ -61,7 +63,7 @@ public class ScanFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.scan_fragment, container, false);
+        return inflater.inflate(R.layout.fragment_scan, container, false);
     }
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
@@ -235,11 +237,11 @@ public class ScanFragment extends Fragment {
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Bundle bundle = new Bundle();
-                    bundle.putString("SSID", sr.SSID);
-                    bundle.putString("BSSID", sr.BSSID);
-                    NavHostFragment.findNavController(ScanFragment.this)
-                            .navigate(R.id.scan_to_connect, bundle);
+                    parentActivity.setDeviceApSSID(sr.SSID);
+                    parentActivity.setDeviceApBSSID(sr.BSSID);
+                    NavHostFragment
+                            .findNavController(ScanFragment.this)
+                            .navigate(R.id.scan_to_connect);
                 }
             });
         }

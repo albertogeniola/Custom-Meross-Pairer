@@ -2,15 +2,8 @@ package com.albertogeniola.merossconf;
 
 import android.content.Context;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
-
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.method.PasswordTransformationMethod;
-import android.text.method.TransformationMethod;
 import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,9 +16,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.albertogeniola.merosslib.MerossDeviceAp;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
+
 import com.albertogeniola.merosslib.model.Encryption;
-import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 
 import java.io.UnsupportedEncodingException;
@@ -33,38 +29,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class ConfigFragment extends Fragment {
-    public static final String DEVICE = "DEVICE";
-    public static final String DEVICE_AVAILABLE_WIFIS = "DEVICE_AVAILABLE_WIFIS";
-
+public class WifiConfigFragment extends Fragment {
     private static final String DEFAULT_KEY = "";
     private static final String DEFAULT_USER_ID = "";
 
+    private PairActivity parentActivity;
+
     private Spinner wifiSpinner;
     private TextView wifiPasswordTextView;
-    private TextView mqttHostTextView;
-    private TextView mqttPortTextView;
     private ImageButton showPasswordButton;
-    private Button pairButton;
-    private MerossDeviceAp device;
-    private MessageGetConfigWifiListResponse deviceAvailableWifis;
+    private Button nextButton;
     private WifiSpinnerAdapter adapter;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            device = (MerossDeviceAp) getArguments().getSerializable(DEVICE);
-            deviceAvailableWifis = (MessageGetConfigWifiListResponse) getArguments().getSerializable(DEVICE_AVAILABLE_WIFIS);
-        }
+        parentActivity = (PairActivity) getActivity();
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.config_fragment, container, false);
+        return inflater.inflate(R.layout.freagment_wifi_config, container, false);
     }
 
     @Override
@@ -72,14 +60,12 @@ public class ConfigFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         wifiSpinner = view.findViewById(R.id.wifiListSpinner);
-        adapter = new WifiSpinnerAdapter(ConfigFragment.this.getContext(), deviceAvailableWifis.getPayload().getWifiList());
+        adapter = new WifiSpinnerAdapter(WifiConfigFragment.this.getContext(), parentActivity.getDeviceAvailableWifis().getPayload().getWifiList());
         wifiSpinner.setAdapter(adapter);
 
         wifiPasswordTextView = view.findViewById(R.id.wifi_password);
-        mqttHostTextView = view.findViewById(R.id.mqtt_hostname);
-        mqttPortTextView = view.findViewById(R.id.mqtt_port);
-        pairButton = view.findViewById(R.id.pair_button);
-        pairButton.setOnClickListener(pairButtonClick);
+        nextButton = view.findViewById(R.id.next_button);
+        nextButton.setOnClickListener(pairButtonClick);
         showPasswordButton = view.findViewById(R.id.showPasswordButton);
         showPasswordButton.setOnClickListener(showPasswordClick);
 
@@ -109,37 +95,19 @@ public class ConfigFragment extends Fragment {
             GetConfigWifiListEntry selectedWifi = adapter.getItem(wifiSpinner.getSelectedItemPosition());
             wifiPasswordTextView.setError(selectedWifi.getEncryption() != Encryption.OPEN && wifiPasswordTextView.getText().toString().isEmpty() ? "That wifi requires a password." : null);
 
-            // make sure the host is valid
-            String hostnameStr = mqttHostTextView.getText().toString();
-            mqttHostTextView.setError(hostnameStr.isEmpty() ? "Invalid mqtt host" : null);
-
-            String portstr = mqttPortTextView.getText().toString();
-            int port;
-            try {
-                port = Integer.parseInt(portstr);
-                if (port<1 || port > 65535)
-                    throw new NumberFormatException();
-                mqttPortTextView.setError(null);
-            } catch (NumberFormatException e) {
-                mqttPortTextView.setError("The MQTT port is invalid");
-                return;
-            }
-
             // Navigate to the next fragment
-            Bundle bundle = new Bundle();
-            bundle.putSerializable(PairFragment.DEVICE, device);
-            bundle.putString(PairFragment.HOSTNAME, hostnameStr);
-            bundle.putInt(PairFragment.PORT, port);
-            bundle.putString(PairFragment.WIFI_SSID_BASE64, selectedWifi.getSsid());
+            parentActivity.setDevice(parentActivity.getDevice());
+            parentActivity.setTargetWifiSSID(selectedWifi.getSsid());
+            parentActivity.setTargetWifiPassword(selectedWifi.getSsid());
             try {
-                bundle.putString(PairFragment.WIFI_PASSWORD_BASE64, Base64.encodeToString(wifiPasswordTextView.getText().toString().getBytes("utf8"),Base64.NO_WRAP));
+                parentActivity.setTargetWifiPassword(Base64.encodeToString(wifiPasswordTextView.getText().toString().getBytes("utf8"),Base64.NO_WRAP));
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 throw new RuntimeException("UTF8 unsupported");
             }
 
-            NavHostFragment.findNavController(ConfigFragment.this)
-                    .navigate(R.id.PairFragment, bundle);
+            NavHostFragment.findNavController(WifiConfigFragment.this)
+                    .navigate(R.id.mqtt_config_fragment);
         }
     };
 

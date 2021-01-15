@@ -1,13 +1,5 @@
 package com.albertogeniola.merossconf;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -27,15 +19,11 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.albertogeniola.merosslib.MerossDeviceAp;
-import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
-import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageSetConfigKeyResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageSetConfigWifiResponse;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -43,22 +31,11 @@ import java.util.concurrent.TimeUnit;
 
 public class PairFragment extends Fragment {
 
-    public static final String DEVICE = "DEVICE";
-    public static final String HOSTNAME = "HOSTNAME";
-    public static final String PORT = "PORT";
-    public static final String WIFI_SSID_BASE64 = "WIFI_SSID_BASE64";
-    public static final String WIFI_PASSWORD_BASE64 = "WIFI_PASSWORD_BASE64";
-
     private ImageSwitcher imageSwitcher;
     private TextView configureMqttTextView;
     private TextView configureWifiTextView;
 
-    private MerossDeviceAp device;
-    private String hostname;
-    private int port;
-    private String wifi_ssid;
-    private String wifi_password;
-
+    private PairActivity parentActivity;
     private Handler uiThreadHandler;
     private ScheduledExecutorService worker;
 
@@ -109,7 +86,7 @@ public class PairFragment extends Fragment {
             public void run() {
                 try {
                     // TODO implement key/userId
-                    MessageSetConfigKeyResponse response = device.setConfigKey(hostname, port, "","");
+                    MessageSetConfigKeyResponse response = parentActivity.getDevice().setConfigKey(parentActivity.getTargetMqttHostname(), parentActivity.getTargetMqttPort(), "","");
                     stateMachine(Signal.MQTT_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -131,7 +108,7 @@ public class PairFragment extends Fragment {
             public void run() {
                 try {
                     // TODO implement key/userId
-                    MessageSetConfigWifiResponse response = device.setConfigWifi(wifi_ssid, wifi_password);
+                    MessageSetConfigWifiResponse response = parentActivity.getDevice().setConfigWifi(parentActivity.getTargetWifiSSID(), parentActivity.getTargetWifiPassword());
                     stateMachine(Signal.WIFI_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -243,14 +220,8 @@ public class PairFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        parentActivity = (PairActivity) getActivity();
         uiThreadHandler = new Handler(Looper.getMainLooper());
-        if (getArguments() != null) {
-            device = (MerossDeviceAp) getArguments().getSerializable(DEVICE);
-            hostname = getArguments().getString(HOSTNAME);
-            port = getArguments().getInt(PORT);
-            wifi_ssid = getArguments().getString(WIFI_SSID_BASE64);
-            wifi_password = getArguments().getString(WIFI_PASSWORD_BASE64);
-        }
     }
 
 
@@ -260,7 +231,7 @@ public class PairFragment extends Fragment {
             Bundle savedInstanceState
     ) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.pair_fragment, container, false);
+        return inflater.inflate(R.layout.fragment_pair, container, false);
     }
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
