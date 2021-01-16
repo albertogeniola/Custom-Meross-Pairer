@@ -173,7 +173,7 @@ public class MqttConfigFragment extends Fragment {
                         mqttConfigurationNameEditText.setError("Invalid name");
                     } else {
                         mqttConfigurationNameEditText.setError(null);
-                        tmpConf.setHostname(name);
+                        tmpConf.setName(name);
                     }
 
                     if (error) {
