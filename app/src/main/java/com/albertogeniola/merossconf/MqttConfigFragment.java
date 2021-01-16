@@ -118,6 +118,7 @@ public class MqttConfigFragment extends Fragment {
                     mqttPortEditText.setEnabled(true);
                     saveCheckbox.setVisibility(View.VISIBLE);
                 } else {
+                    mqttConfigurationNameEditText.setVisibility(View.GONE);
                     mqttConfigurationNameEditText.setText(selection.getName());
                     mqttConfigurationNameEditText.setEnabled(false);
                     mqttHostEditText.setText(selection.getHostname());
