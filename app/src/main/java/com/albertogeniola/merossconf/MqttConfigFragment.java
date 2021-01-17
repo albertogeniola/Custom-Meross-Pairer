@@ -23,6 +23,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.model.MqttConfiguration;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 
 import java.io.Serializable;
@@ -34,13 +35,11 @@ import java.util.Map;
 public class MqttConfigFragment extends Fragment {
     private static String PERFS_MQTT_CONFS = "com.albertogeniola.merossconf.mqtt_shared_preferences";
 
-    private View newConfigurationFrame;
     private PairActivity parentActivity;
-    private EditText mqttConfigurationNameEditText;
-    private EditText mqttHostEditText;
-    private EditText mqttPortEditText;
+    private TextInputLayout mqttConfigurationNameEditText;
+    private TextInputLayout mqttHostEditText;
+    private TextInputLayout mqttPortEditText;
     private Spinner mqttConfigurationSpinner;
-    private Button pairButton;
     private CheckBox saveCheckbox;
     private ArrayAdapter<MqttConfiguration> adapter;
     private MqttConfiguration newMqttConfig = new MqttConfiguration("Add new...", null, -1);
@@ -89,41 +88,38 @@ public class MqttConfigFragment extends Fragment {
         mqttConfigurationNameEditText = view.findViewById(R.id.mqttConfigurationNameEditText);
         mqttHostEditText = view.findViewById(R.id.mqttHostnameEditText);
         mqttPortEditText = view.findViewById(R.id.mqttPortEditText);
-        pairButton = view.findViewById(R.id.pairButton);
+        Button pairButton = view.findViewById(R.id.pairButton);
         saveCheckbox = view.findViewById(R.id.saveCheckbox);
-        newConfigurationFrame = view.findViewById(R.id.newConfigurationFrame);
 
         ArrayList<MqttConfiguration> configurations = loadMqttConfigurations();
         configurations.add(this.newMqttConfig);
         adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, configurations);
-        mqttConfigurationSpinner.setAdapter(adapter);
-
         saveCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 mqttConfigurationNameEditText.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             }
         });
+        mqttConfigurationSpinner.setAdapter(adapter);
 
         mqttConfigurationSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 MqttConfiguration selection = (MqttConfiguration) parent.getAdapter().getItem(position);
                 if (selection == newMqttConfig) {
-                    mqttConfigurationNameEditText.setText("");
+                    mqttConfigurationNameEditText.getEditText().setText("");
                     mqttConfigurationNameEditText.setEnabled(true);
-                    mqttHostEditText.setText("");
+                    mqttHostEditText.getEditText().setText("");
                     mqttHostEditText.setEnabled(true);
-                    mqttPortEditText.setText("");
+                    mqttPortEditText.getEditText().setText("");
                     mqttPortEditText.setEnabled(true);
                     saveCheckbox.setVisibility(View.VISIBLE);
                 } else {
-                    mqttConfigurationNameEditText.setVisibility(View.GONE);
-                    mqttConfigurationNameEditText.setText(selection.getName());
+                    mqttConfigurationNameEditText.getEditText().setText(selection.getName());
                     mqttConfigurationNameEditText.setEnabled(false);
-                    mqttHostEditText.setText(selection.getHostname());
+                    mqttHostEditText.getEditText().setText(selection.getHostname());
                     mqttHostEditText.setEnabled(false);
-                    mqttPortEditText.setText(""+selection.getPort());
+                    mqttPortEditText.getEditText().setText(""+selection.getPort());
                     mqttPortEditText.setEnabled(false);
                     saveCheckbox.setVisibility(View.GONE);
                 }
@@ -144,7 +140,7 @@ public class MqttConfigFragment extends Fragment {
                 boolean error = false;
                 if (mqttConfigurationSpinner.getSelectedItem() == newMqttConfig) {
                     // make sure the host is populated
-                    String hostnameStr = mqttHostEditText.getText().toString();
+                    String hostnameStr = mqttHostEditText.getEditText().getText().toString();
                     if (hostnameStr.isEmpty()) {
                         error = true;
                         mqttHostEditText.setError("Invalid mqtt host");
@@ -155,7 +151,7 @@ public class MqttConfigFragment extends Fragment {
 
                     // make sure the port is populated
                     try {
-                        String portstr = mqttPortEditText.getText().toString();
+                        String portstr = mqttPortEditText.getEditText().getText().toString();
                         int port = Integer.parseInt(portstr);
                         if (port<1 || port > 65535)
                             throw new NumberFormatException();
@@ -168,7 +164,7 @@ public class MqttConfigFragment extends Fragment {
                     }
 
                     // Make sure the name is populated
-                    String name = mqttConfigurationNameEditText.getText().toString();
+                    String name = mqttConfigurationNameEditText.getEditText().getText().toString();
                     if (save && (name.isEmpty() || name.trim().toLowerCase().compareTo("add new...")==0)) {
                         error = true;
                         mqttConfigurationNameEditText.setError("Invalid name");

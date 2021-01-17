@@ -42,7 +42,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginRight="8dp"
-        android:text="Put your Meross device in Pairing mode and then tap on the update button.\n\nBe sure to enable both Wifi and Location (GPS) access on your device. Some devices also require to turn off HotSpot in case it's active."
+        android:text="@string/scan_fragment_text2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

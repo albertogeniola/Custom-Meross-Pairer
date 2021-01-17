@@ -15,12 +15,11 @@
         android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
         android:layout_marginBottom="16dp"
-        android:text="Pair!"
+        android:text="@string/pair_btn"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/textView22"
@@ -33,7 +32,7 @@
         android:layout_marginRight="16dp"
         android:drawableStart="@drawable/ic_warning_black_24dp"
         android:drawableLeft="@drawable/ic_warning_black_24dp"
-        android:text="Meross plugs are only capable to connect to MQTT over TLS connections (default port 8883). Using a clear-mqtt connection won't work."
+        android:text="@string/mqtt_config_fragment_text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView19" />
@@ -45,7 +44,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="16dp"
-        android:text="MQTT Server"
+        android:text="@string/mqtt_fragment_title"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -81,30 +80,41 @@
         app:layout_constraintTop_toBottomOf="@+id/mqttConfigurationSpinner"
         tools:context=".WifiConfigFragment">
 
-        <EditText
+        <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/mqttConfigurationNameEditText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:hint="Configuration Name..."
+            android:hint="@string/mqtt_conf_name"
             android:inputType="textPersonName"
             android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
 
-        <EditText
+            <com.google.android.material.textfield.TextInputEditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/mqttHostnameEditText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:ems="10"
-            android:hint="Server hostname or IP..."
+            android:hint="@string/mqtt_host_name"
             android:inputType="textPersonName"
             android:singleLine="true"
+            android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/mqttConfigurationNameEditText" />
+            app:layout_constraintTop_toBottomOf="@+id/mqttConfigurationNameEditText">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <CheckBox
             android:id="@+id/saveCheckbox"
@@ -112,22 +122,29 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:checked="true"
-            android:text="Save for future use"
+            android:text="@string/save_checkbox"
+            android:visibility="visible"
             app:layout_constraintEnd_toEndOf="@+id/mqttPortEditText"
             app:layout_constraintTop_toBottomOf="@+id/mqttPortEditText" />
 
-        <EditText
+        <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/mqttPortEditText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:digits="[0,1,2,3,4,5,6,7,8,9]"
             android:ems="10"
-            android:hint="Server Port (8883)"
+            android:hint="@string/mqtt_port"
             android:inputType="number"
+            android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/mqttHostnameEditText" />
+            app:layout_constraintTop_toBottomOf="@+id/mqttHostnameEditText">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

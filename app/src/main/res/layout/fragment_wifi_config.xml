@@ -15,7 +15,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
-        android:text="Please select the WiFi AP where the Meross device should connect to."
+        android:text="@string/fargment_wifi_text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView20" />
@@ -33,7 +33,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView10" />
 
-    <EditText
+    <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/wifi_password"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -41,11 +41,16 @@
         android:layout_marginEnd="8dp"
         android:layout_marginRight="8dp"
         android:ems="10"
-        android:hint="Wifi password"
+        android:hint="@string/wifi_password"
         android:inputType="textPassword"
         app:layout_constraintEnd_toStartOf="@+id/showPasswordButton"
         app:layout_constraintStart_toStartOf="@+id/wifiListSpinner"
-        app:layout_constraintTop_toBottomOf="@+id/wifiListSpinner" />
+        app:layout_constraintTop_toBottomOf="@+id/wifiListSpinner">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
         android:id="@+id/textView20"
@@ -54,7 +59,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="8dp"
-        android:text="Wifi Connection"
+        android:text="@string/fargment_wifi_title"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -68,19 +73,20 @@
         android:layout_marginEnd="16dp"
         android:layout_marginRight="16dp"
         android:layout_marginBottom="16dp"
-        android:text="Next"
+        android:text="@string/next"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/mqttPortEditText"
-        app:layout_constraintVertical_bias="0.954" />
+        app:layout_constraintTop_toBottomOf="@+id/wifi_password"
+        app:layout_constraintVertical_bias="1.0" />
 
     <ImageButton
         android:id="@+id/showPasswordButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@android:color/transparent"
+        android:contentDescription="@string/show_password"
         android:src="@drawable/ic_remove_red_eye_black_24dp"
         app:layout_constraintBottom_toBottomOf="@+id/wifi_password"
         app:layout_constraintEnd_toEndOf="@+id/wifiListSpinner"

@@ -23,6 +23,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -30,13 +31,10 @@ import java.util.List;
 
 
 public class WifiConfigFragment extends Fragment {
-    private static final String DEFAULT_KEY = "";
-    private static final String DEFAULT_USER_ID = "";
-
     private PairActivity parentActivity;
 
     private Spinner wifiSpinner;
-    private TextView wifiPasswordTextView;
+    private TextInputLayout wifiPasswordTextView;
     private ImageButton showPasswordButton;
     private Button nextButton;
     private WifiSpinnerAdapter adapter;
@@ -52,7 +50,7 @@ public class WifiConfigFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.freagment_wifi_config, container, false);
+        return inflater.inflate(R.layout.fragment_wifi_config, container, false);
     }
 
     @Override
@@ -74,10 +72,10 @@ public class WifiConfigFragment extends Fragment {
     private View.OnClickListener showPasswordClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            if (wifiPasswordTextView.getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
-                wifiPasswordTextView.setTransformationMethod(PasswordTransformationMethod.getInstance());
+            if (wifiPasswordTextView.getEditText().getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
+                wifiPasswordTextView.getEditText().setTransformationMethod(PasswordTransformationMethod.getInstance());
             } else {
-                wifiPasswordTextView.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                wifiPasswordTextView.getEditText().setTransformationMethod(HideReturnsTransformationMethod.getInstance());
             }
         }
     };
@@ -93,7 +91,7 @@ public class WifiConfigFragment extends Fragment {
 
             // If the wifi requires a password, make sure the user inputed one.
             GetConfigWifiListEntry selectedWifi = adapter.getItem(wifiSpinner.getSelectedItemPosition());
-            if (selectedWifi.getEncryption() != Encryption.OPEN && wifiPasswordTextView.getText().toString().isEmpty()) {
+            if (selectedWifi.getEncryption() != Encryption.OPEN && wifiPasswordTextView.getEditText().getText().toString().isEmpty()) {
                 wifiPasswordTextView.setError("That wifi requires a password.");
                 return ;
             } else {
@@ -106,7 +104,7 @@ public class WifiConfigFragment extends Fragment {
             parentActivity.setTargetWifiSSID(selectedWifi.getSsid());
             parentActivity.setTargetWifiPassword(selectedWifi.getSsid());
             try {
-                parentActivity.setTargetWifiPassword(Base64.encodeToString(wifiPasswordTextView.getText().toString().getBytes("utf8"),Base64.NO_WRAP));
+                parentActivity.setTargetWifiPassword(Base64.encodeToString(wifiPasswordTextView.getEditText().getText().toString().getBytes("utf8"),Base64.NO_WRAP));
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 throw new RuntimeException("UTF8 unsupported");

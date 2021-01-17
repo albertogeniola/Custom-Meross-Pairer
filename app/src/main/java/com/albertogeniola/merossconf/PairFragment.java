@@ -30,6 +30,8 @@ import java.util.concurrent.TimeUnit;
 
 
 public class PairFragment extends Fragment {
+    private static final String DEFAULT_KEY = "";
+    private static final String DEFAULT_USER_ID = "";
 
     private ImageSwitcher imageSwitcher;
     private TextView configureMqttTextView;
@@ -86,7 +88,7 @@ public class PairFragment extends Fragment {
             public void run() {
                 try {
                     // TODO implement key/userId
-                    MessageSetConfigKeyResponse response = parentActivity.getDevice().setConfigKey(parentActivity.getTargetMqttConfig().getHostname(), parentActivity.getTargetMqttConfig().getPort(), "","");
+                    MessageSetConfigKeyResponse response = parentActivity.getDevice().setConfigKey(parentActivity.getTargetMqttConfig().getHostname(), parentActivity.getTargetMqttConfig().getPort(), DEFAULT_KEY, DEFAULT_USER_ID);
                     stateMachine(Signal.MQTT_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();

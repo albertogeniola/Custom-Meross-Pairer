@@ -35,7 +35,7 @@
     <fragment
         android:id="@+id/ConfigFragment"
         android:name="com.albertogeniola.merossconf.WifiConfigFragment"
-        tools:layout="@layout/freagment_wifi_config" >
+        tools:layout="@layout/fragment_wifi_config" >
         <action
             android:id="@+id/action_ConfigFragment_to_mqttConfigFragment"
             app:destination="@id/mqtt_config_fragment" />

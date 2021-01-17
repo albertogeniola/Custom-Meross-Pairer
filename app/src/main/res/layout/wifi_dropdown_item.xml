@@ -11,7 +11,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
         android:layout_marginTop="8dp"
-        android:text="WIFI - NAME"
+        android:text="@string/na"
         android:textSize="20sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -21,7 +21,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text="bssid:"
+        android:text="@string/ssid"
         app:layout_constraintStart_toStartOf="@+id/wifi_name"
         app:layout_constraintTop_toBottomOf="@+id/wifi_name" />
 
@@ -29,7 +29,7 @@
         android:id="@+id/wifi_signal_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="signal: "
+        android:text="@string/signal"
         app:layout_constraintStart_toStartOf="@+id/wifi_bssid_label"
         app:layout_constraintTop_toBottomOf="@+id/wifi_bssid_label" />
 
@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
-        android:text="channel:"
+        android:text="@string/channel"
         app:layout_constraintStart_toEndOf="@+id/wifi_bssid"
         app:layout_constraintTop_toTopOf="@+id/wifi_bssid" />
 
@@ -49,7 +49,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
-        android:text="wifi-bssid"
+        android:text="@string/na"
         app:layout_constraintBottom_toBottomOf="@+id/wifi_bssid_label"
         app:layout_constraintStart_toEndOf="@+id/wifi_bssid_label"
         app:layout_constraintTop_toTopOf="@+id/wifi_bssid_label" />
@@ -60,7 +60,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginLeft="8dp"
-        android:text="wifi-channel"
+        android:text="@string/na"
         app:layout_constraintBottom_toBottomOf="@+id/wifi_channel_label"
         app:layout_constraintStart_toEndOf="@+id/wifi_channel_label"
         app:layout_constraintTop_toTopOf="@+id/wifi_channel_label"
