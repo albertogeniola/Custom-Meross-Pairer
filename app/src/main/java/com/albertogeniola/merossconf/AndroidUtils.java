@@ -4,6 +4,11 @@ import android.content.Context;
 import android.location.LocationManager;
 import android.os.Build;
 import android.provider.Settings;
+import android.service.autofill.RegexValidator;
+import android.util.Patterns;
+
+import java.util.regex.Pattern;
+
 
 public class AndroidUtils {
     public static Boolean isLocationEnabled(Context context)
@@ -19,5 +24,9 @@ public class AndroidUtils {
             return  (mode != Settings.Secure.LOCATION_MODE_OFF);
 
         }
+    }
+
+    public static boolean validateBaseUrl(String url) {
+        return Pattern.matches("^(http|https)\\:\\/\\/([\\_\\-a-zA-Z0-9\\.]+)(\\:[0-9]+)?$", url);
     }
 }

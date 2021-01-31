@@ -47,4 +47,8 @@
     <string name="wifi_signal_strength">Wifi signal strength icon</string>
     <string name="signal">Signal:</string>
     <string name="channel">Channel:</string>
+
+    <string name="title_activity_splash">SplashActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
 </resources>
