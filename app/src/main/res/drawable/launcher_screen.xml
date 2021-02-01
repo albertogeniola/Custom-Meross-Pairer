@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" android:opacity="opaque">
+    <item android:drawable="@color/colorAccent"/>
+    <!--
+    <item android:bottom="150dp"
+        android:gravity="center"
+        android:drawable="@drawable/logo_splash"/>
+    <item android:top="150dp" >
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/app_title"/>
+    </item>-->
+</layer-list>
