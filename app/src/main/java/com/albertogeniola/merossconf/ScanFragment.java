@@ -1,6 +1,7 @@
 package com.albertogeniola.merossconf;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -53,6 +54,9 @@ public class ScanFragment extends Fragment {
         super.onCreate(savedInstanceState);
         parentActivity = (PairActivity) getActivity();
 
+        this.wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        this.locationManager = (LocationManager)getContext().getSystemService(Context.LOCATION_SERVICE);
+
         this.uiHandler = new Handler(Looper.getMainLooper());
         scanning = false;
     }
@@ -66,14 +70,22 @@ public class ScanFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_scan, container, false);
     }
 
-    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        this.wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        this.locationManager = (LocationManager)getContext().getSystemService(Context.LOCATION_SERVICE);
+    @Override
+    public void onResume() {
+        super.onResume();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         getContext().registerReceiver(wifiScanReceiver, intentFilter);
+    }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        getContext().unregisterReceiver(wifiScanReceiver);
+    }
+
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         swipeContainer = view.findViewById(R.id.swipeContainer);
         swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -172,7 +184,9 @@ public class ScanFragment extends Fragment {
                 public void run() {
                     scanning = false;
                     fab.show();
-                    ((ProgressableActivity)getActivity()).setProgressDone();
+                    ProgressableActivity activity = ((ProgressableActivity)getActivity());
+                    if (activity != null)
+                        activity.setProgressDone();
                 }
             }, 10000);
 

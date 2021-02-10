@@ -40,7 +40,7 @@
     <string name="fargment_wifi_title">Wifi Connection</string>
     <string name="fargment_wifi_text">Please select the WiFi AP where the Meross device should connect to.</string>
     <string name="wifi_password">Wifi password</string>
-    <string name="show_password">Show/Hide password</string>
+    <string name="show_password">Show password</string>
     <string name="next">Next</string>
     <string name="ssid">SSID:</string>
     <string name="bssid">BSSID:</string>
@@ -51,4 +51,23 @@
     <string name="title_activity_splash">SplashActivity</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="menu_account">Home</string>
+    <string name="menu_pair">Pair</string>
+    <string name="drawer_open">DRAWER OPEN</string>
+    <string name="drawer_close">DRAWER CLOSE</string>
+    <string name="title_activity_login">HTTP Broker Login</string>
+    <string name="login_intro_text">Please input the HTTP broker to use. If using the HomeAssistant addon, refer to its configuration page to determine the values to be inputted here.</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="user_key">User Key</string>
+
 </resources>

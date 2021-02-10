@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/account_fragment">
+
+    <fragment
+        android:id="@+id/account_fragment"
+        android:name="com.albertogeniola.merossconf.ui.home.HomeFragment"
+        android:label="@string/menu_account"
+        tools:layout="@layout/fragment_home">
+
+        <action
+            android:id="@+id/action_nav_home_to_login_fragment"
+            app:destination="@id/login_fragment" />
+        <action
+            android:id="@+id/action_account_fragment_to_pairActivity"
+            app:destination="@id/pairActivity" />
+    </fragment>
+    <fragment
+        android:id="@+id/login_fragment"
+        android:name="com.albertogeniola.merossconf.ui.login.LoginFragment"
+        android:label="@string/title_activity_login" />
+    <activity
+        android:id="@+id/pairActivity"
+        android:name="com.albertogeniola.merossconf.PairActivity"
+        android:label="activity_pair"
+        tools:layout="@layout/activity_pair" />
+
+</navigation>

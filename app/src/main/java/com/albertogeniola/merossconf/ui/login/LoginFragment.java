@@ -1,54 +1,72 @@
-package com.albertogeniola.merossconf;
+package com.albertogeniola.merossconf.ui.login;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Intent;
 import android.os.Bundle;
+
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
+
 import android.os.Handler;
 import android.os.Looper;
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.method.PasswordTransformationMethod;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 
+import com.albertogeniola.merossconf.AndroidPreferencesManager;
+import com.albertogeniola.merossconf.AndroidUtils;
+import com.albertogeniola.merossconf.R;
+import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpInvalidCredentials;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
+
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-
-public class LoginActivity extends AppCompatActivity {
+public class LoginFragment extends Fragment {
 
     private EditText httpHostnameEditText;
     private EditText httpUsernameEditText;
     private EditText httpPasswordEditText;
     private Button loginButton;
-    private ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService loginWorker = Executors.newSingleThreadScheduledExecutor();
     private Handler uiHandler = new Handler(Looper.getMainLooper());
 
-    public final static String RESULT_MEROSS_HTTP_CLIENT = "result_meross_http_client";
+    public LoginFragment() {
+        // Required empty public constructor
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        View view = inflater.inflate(R.layout.fragment_login, container, false);
 
         // Bind views
-        CheckBox showPasswordCheckBox = findViewById(R.id.showPasswordCheckBox);
-        httpPasswordEditText = ((TextInputLayout)findViewById(R.id.httpPasswordEditText)).getEditText();
-        httpHostnameEditText = ((TextInputLayout)findViewById(R.id.httpHostnameEditText)).getEditText();
-        httpUsernameEditText = ((TextInputLayout)findViewById(R.id.httpUsernameEditText)).getEditText();
-        loginButton = findViewById(R.id.loginButton);
-
+        CheckBox showPasswordCheckBox = view.findViewById(R.id.showPasswordCheckBox);
+        httpPasswordEditText = ((TextInputLayout)view.findViewById(R.id.httpPasswordEditText)).getEditText();
+        httpHostnameEditText = ((TextInputLayout)view.findViewById(R.id.httpHostnameEditText)).getEditText();
+        httpUsernameEditText = ((TextInputLayout)view.findViewById(R.id.httpUsernameEditText)).getEditText();
+        loginButton = view.findViewById(R.id.loginButton);
         // Show/Hide password logic
         showPasswordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -68,6 +86,12 @@ public class LoginActivity extends AppCompatActivity {
                 performLogin();
             }
         });
+
+        // Setup the edit-text to hide the password characters
+        showPasswordCheckBox.setChecked(false);
+        httpPasswordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
+
+        return view;
     }
 
     private void performLogin() {
@@ -101,27 +125,36 @@ public class LoginActivity extends AppCompatActivity {
         httpPasswordEditText.setError(null);
 
         // Execute the login.
-        final AlertDialog dialog = new ProgressDialog.Builder(this).setTitle("Logging in").setMessage("Please wait while logging in...").create();
+        final ProgressDialog dialog = new ProgressDialog(getContext());
+        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        dialog.setTitle("Logging in");
+        dialog.setCancelable(false);
+        dialog.setMessage("Please wait while logging in...");
         dialog.show();
-        worker.execute(new Runnable() {
+        loginWorker.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    MerossHttpClient client = MerossHttpClient.getByUserAndPassword(strurl, username, password);
+                    final MerossHttpClient client = MerossHttpClient.getByUserAndPassword(strurl, username, password);
+                    AndroidPreferencesManager.storeHttpCredentials(getContext(), client.getCreds());
                     dialog.dismiss();
 
-                    // Return the httpClient
-                    Intent data = new Intent();
-                    data.putExtra(RESULT_MEROSS_HTTP_CLIENT, client);
-                    setResult(RESULT_OK, data);
-                    finish();
+                    uiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Return the httpClient
+                            MainActivityViewModel mainActivityViewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
+                            mainActivityViewModel.setCredentials(client.getCreds());
+                            NavHostFragment.findNavController(LoginFragment.this).popBackStack();
+                        }
+                    });
                 } catch (IOException e) {
                     e.printStackTrace();
                     uiHandler.post(new Runnable() {
                         @Override
                         public void run() {
                             dialog.dismiss();
-                            Snackbar.make(loginButton, "A network error occurred while executing the request. ", Snackbar.LENGTH_LONG).show();
+                            Snackbar.make(loginButton, "A network error occurred while executing the request. Make sure you are connected to the correct WiFi network.", Snackbar.LENGTH_LONG).show();
                         }
                     });
                 } catch (final HttpApiException e) {

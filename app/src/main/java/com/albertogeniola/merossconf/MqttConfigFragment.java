@@ -1,21 +1,15 @@
 package com.albertogeniola.merossconf;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.Spinner;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,17 +18,11 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.model.MqttConfiguration;
 import com.google.android.material.textfield.TextInputLayout;
-import com.google.gson.Gson;
 
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 
 public class MqttConfigFragment extends Fragment {
-    private static String PERFS_MQTT_CONFS = "com.albertogeniola.merossconf.mqtt_shared_preferences";
-
     private PairActivity parentActivity;
     private TextInputLayout mqttConfigurationNameEditText;
     private TextInputLayout mqttHostEditText;
@@ -57,30 +45,6 @@ public class MqttConfigFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_mqtt_config, container, false);
     }
 
-    private ArrayList<MqttConfiguration> loadMqttConfigurations() {
-        ArrayList<MqttConfiguration> res = new ArrayList<>();
-        Gson g = new Gson();
-        SharedPreferences settings = getContext().getSharedPreferences(PERFS_MQTT_CONFS, Context.MODE_PRIVATE);
-        Map<String, ?> confs = settings.getAll();
-        for (Map.Entry<String, ?> k: confs.entrySet()) {
-            if (k.getValue() != null) {
-                String value = k.getValue().toString();
-                MqttConfiguration conf = g.fromJson(value, MqttConfiguration.class);
-                res.add(conf);
-            }
-        }
-        return res;
-    }
-
-    private void saveConfiguration(MqttConfiguration conf) {
-        SharedPreferences settings = getContext().getSharedPreferences(PERFS_MQTT_CONFS, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = settings.edit();
-        Gson g = new Gson();
-        String json = g.toJson(conf);
-        editor.putString(conf.getName(), json);
-        editor.apply();
-    }
-
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -91,7 +55,7 @@ public class MqttConfigFragment extends Fragment {
         Button pairButton = view.findViewById(R.id.pairButton);
         saveCheckbox = view.findViewById(R.id.saveCheckbox);
 
-        ArrayList<MqttConfiguration> configurations = loadMqttConfigurations();
+        List<MqttConfiguration> configurations = AndroidPreferencesManager.loadAllMqttConfigurations(getContext());
         configurations.add(this.newMqttConfig);
         adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, configurations);
         saveCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -178,7 +142,7 @@ public class MqttConfigFragment extends Fragment {
                     }
 
                     if (save) {
-                        saveConfiguration(tmpConf);
+                        AndroidPreferencesManager.storeNewMqttConfiguration(getContext(), tmpConf);
                         adapter.insert(tmpConf,0);
                         adapter.notifyDataSetChanged();
                         mqttConfigurationSpinner.setSelection(0);
