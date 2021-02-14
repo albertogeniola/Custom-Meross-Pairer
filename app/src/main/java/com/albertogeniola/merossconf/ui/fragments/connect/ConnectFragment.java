@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf;
+package com.albertogeniola.merossconf.ui.fragments.connect;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
@@ -27,15 +27,18 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageSwitcher;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.ViewSwitcher;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.albertogeniola.merossconf.R;
+import com.albertogeniola.merossconf.ui.PairActivityViewModel;
+import com.albertogeniola.merossconf.ui.views.TaskLine;
 import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
@@ -51,27 +54,26 @@ import java.util.concurrent.TimeUnit;
 public class ConnectFragment extends Fragment {
 
     private static final int WIFI_STATE_CHANGE_PERMISSION = 1;
-    private PairActivity parentActivity;
 
-    private ImageSwitcher imageSwitcher;
-    private TextView wifiEnableTextView;
-    private TextView wifiConnectTextView;
-    private TextView fetchDeviceInfoTextView;
-    private TextView scanWifiTextView;
-    private int animationCounter = 0;
+    private TaskLine enablingWifiTask;
+    private TaskLine wifiConnectTask;
+    private TaskLine fetchDeviceInfoTask;
+    private TaskLine scanWifiTask;
     private WifiManager wifiManager;
     private ConnectivityManager connectivityManager;
     private WifiBroadcastReceiver wifiBroadcastReceiver;
     private Handler uiThreadHandler;
     private ScheduledExecutorService worker;
 
-    private boolean animateWifi = false;
     private State state = State.INIT;
+    private TaskLine currentTask = null;
     private String gatewayIp = null;
     private String error = null;
     private MerossDeviceAp device = new MerossDeviceAp();
     private MessageGetSystemAllResponse deviceInfo;
     private MessageGetConfigWifiListResponse deviceAvailableWifis;
+
+    private PairActivityViewModel pairActivityViewModel;
 
     public ConnectFragment() {
         worker = Executors.newSingleThreadScheduledExecutor();
@@ -147,10 +149,13 @@ public class ConnectFragment extends Fragment {
     }
 
     private void connectAp() {
+        String ssid = pairActivityViewModel.getTargetWifiAp().getValue().getSsid();
+        String bssid = pairActivityViewModel.getTargetWifiAp().getValue().getBssid();
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             WifiConfiguration conf = new WifiConfiguration();
-            conf.SSID = "\"" + parentActivity.getDeviceApSSID() + "\"";
-            conf.BSSID = "\"" + parentActivity.getDeviceApBSSID() + "\"";
+            conf.SSID = "\"" + ssid + "\"";
+            conf.BSSID = "\"" + bssid + "\"";
             conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
             wifiManager.addNetwork(conf);
             List<WifiConfiguration> list = null;
@@ -165,7 +170,7 @@ public class ConnectFragment extends Fragment {
             }
 
             for (WifiConfiguration i : list) {
-                if (i.SSID != null && i.SSID.equals("\"" + parentActivity.getDeviceApSSID() + "\"")) {
+                if (i.SSID != null && i.SSID.equals("\"" + ssid + "\"")) {
                     wifiManager.disconnect();
                     wifiManager.enableNetwork(i.networkId, true);
                     wifiManager.reconnect();
@@ -178,8 +183,8 @@ public class ConnectFragment extends Fragment {
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     .setNetworkSpecifier(
                             new WifiNetworkSpecifier.Builder()
-                                    .setSsid(parentActivity.getDeviceApSSID())
-                                    .setBssid(MacAddress.fromString(parentActivity.getDeviceApBSSID()))
+                                    .setSsid(ssid)
+                                    .setBssid(MacAddress.fromString(bssid))
                                     .build()
                     )
                     .build();
@@ -236,14 +241,18 @@ public class ConnectFragment extends Fragment {
     }
 
     private void completeActivityFragment() {
-        // Set done and proceed with the next fragment
-        Bundle bundle = new Bundle();
-        parentActivity.setDevice(device);
-        parentActivity.setDeviceInfo(deviceInfo);
-        parentActivity.setDeviceAvailableWifis(deviceAvailableWifis);
-        NavController ctrl = NavHostFragment.findNavController(ConnectFragment.this);
-        ctrl.popBackStack();
-        ctrl.navigate(R.id.InfoFragment);
+        uiThreadHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                // Set done and proceed with the next fragment
+                pairActivityViewModel.setApDevice(device);
+                pairActivityViewModel.setDeviceInfo(deviceInfo);
+                pairActivityViewModel.setDeviceAvailableWifis(deviceAvailableWifis);
+                NavController ctrl = NavHostFragment.findNavController(ConnectFragment.this);
+                ctrl.popBackStack();
+                ctrl.navigate(R.id.InfoFragment);
+            }
+        });
     }
 
     // UI
@@ -253,33 +262,38 @@ public class ConnectFragment extends Fragment {
             public void run() {
                 switch (state) {
                     case INIT:
-                        animateWifi = false;
-                        wifiEnableTextView.setVisibility(View.INVISIBLE);
-                        wifiConnectTextView.setVisibility(View.INVISIBLE);
-                        fetchDeviceInfoTextView.setVisibility(View.INVISIBLE);
-                        scanWifiTextView.setVisibility(View.INVISIBLE);
+                        enablingWifiTask.setState(TaskLine.TaskState.not_started);
+                        wifiConnectTask.setState(TaskLine.TaskState.not_started);
+                        fetchDeviceInfoTask.setState(TaskLine.TaskState.not_started);
+                        scanWifiTask.setState(TaskLine.TaskState.not_started);
                         break;
                     case ENABLING_WIFI:
-                        animateWifi = true;
-                        startWifiAnimation();
-                        wifiEnableTextView.setVisibility(View.VISIBLE);
+                        enablingWifiTask.setState(TaskLine.TaskState.running);
+                        currentTask = enablingWifiTask;
                         break;
                     case CONNECTING_AP:
-                        wifiConnectTextView.setVisibility(View.VISIBLE);
+                        enablingWifiTask.setState(TaskLine.TaskState.completed);
+                        wifiConnectTask.setState(TaskLine.TaskState.running);
+                        currentTask = wifiConnectTask;
                         break;
                     case GATHERING_INFORMATION:
-                        fetchDeviceInfoTextView.setVisibility(View.VISIBLE);
+                        wifiConnectTask.setState(TaskLine.TaskState.completed);
+                        fetchDeviceInfoTask.setState(TaskLine.TaskState.running);
+                        currentTask = fetchDeviceInfoTask;
                         break;
                     case SCANNING_WIFI:
-                        scanWifiTextView.setVisibility(View.VISIBLE);
+                        fetchDeviceInfoTask.setState(TaskLine.TaskState.completed);
+                        scanWifiTask.setState(TaskLine.TaskState.running);
+                        currentTask = scanWifiTask;
                         break;
                     case DONE:
-                        animateWifi = false;
+                        scanWifiTask.setState(TaskLine.TaskState.completed);
                         break;
                     case ERROR:
-                        animateWifi = false;
-                        imageSwitcher.setImageResource(R.drawable.ic_error_outline_black_24dp);
                         Snackbar.make(ConnectFragment.this.getView(), error, Snackbar.LENGTH_LONG).show();
+                        if (currentTask != null) {
+                            currentTask.setState(TaskLine.TaskState.failed);
+                        }
                         break;
                 }
             }
@@ -292,58 +306,11 @@ public class ConnectFragment extends Fragment {
         }
     }
 
-    private void setupAnimation() {
-        imageSwitcher = getView().findViewById(R.id.wifi_animation);
-        imageSwitcher.setFactory(new ViewSwitcher.ViewFactory() {
-            @Override
-            public View makeView() {
-                ImageView im = new ImageView(ConnectFragment.this.getActivity());
-                im.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                im.setAdjustViewBounds(true);
-                return im;
-            }
-        });
-        Animation in  = AnimationUtils.loadAnimation(this.getContext(), R.anim.fade_in);
-        Animation out  = AnimationUtils.loadAnimation(this.getContext(), R.anim.fade_out);
-        imageSwitcher.setInAnimation(in);
-        imageSwitcher.setOutAnimation(out);
-    }
-
-    private void startWifiAnimation() {
-        // Configure the animation
-        uiThreadHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (animateWifi) {
-                    switch (animationCounter++) {
-                        case 0:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_0_bar_black_24dp);
-                            break;
-                        case 1:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_1_bar_black_24dp);
-                            break;
-                        case 2:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_2_bar_black_24dp);
-                            break;
-                        case 3:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_3_bar_black_24dp);
-                            break;
-                        case 4:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_4_bar_black_24dp);
-                            break;
-                    }
-                    animationCounter %= 5;
-                    uiThreadHandler.postDelayed(this, 2000);
-                }
-            }
-        });
-    }
-
     // Android activity lifecycle
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        parentActivity = (PairActivity) getActivity();
+        pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
         wifiBroadcastReceiver = new WifiBroadcastReceiver();
         uiThreadHandler = new Handler(Looper.getMainLooper());
     }
@@ -365,11 +332,10 @@ public class ConnectFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        wifiEnableTextView = view.findViewById(R.id.enable_wifi);
-        wifiConnectTextView = view.findViewById(R.id.configure_wifi);
-        fetchDeviceInfoTextView = view.findViewById(R.id.fetch_device_info);
-        scanWifiTextView = view.findViewById(R.id.scan_wifis);
-        setupAnimation();
+        enablingWifiTask = view.findViewById(R.id.enablingWifiTask);
+        wifiConnectTask = view.findViewById(R.id.connectWifiTask);
+        fetchDeviceInfoTask = view.findViewById(R.id.fetchDeviceInfoTask);
+        scanWifiTask = view.findViewById(R.id.scanWifiTask);
     }
 
     @Override
@@ -393,7 +359,7 @@ public class ConnectFragment extends Fragment {
                 if (networkInfo.isConnected()) {
                     if (wifiManager.getConnectionInfo() != null &&
                             wifiManager.getConnectionInfo().getBSSID() != null &&
-                            wifiManager.getConnectionInfo().getBSSID().compareTo(parentActivity.getDeviceApBSSID()) == 0) {
+                            wifiManager.getConnectionInfo().getBSSID().compareTo(pairActivityViewModel.getTargetWifiAp().getValue().getBssid()) == 0) {
                         // Connected!
                         int tmp = wifiManager.getDhcpInfo().gateway;
                         gatewayIp = String.format("%d.%d.%d.%d", (tmp & 0xff), (tmp >> 8 & 0xff), (tmp >> 16 & 0xff), (tmp >> 24 & 0xff));

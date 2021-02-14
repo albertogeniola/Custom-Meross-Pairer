@@ -4,63 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ConnectFragment">
-
-    <ImageSwitcher
-        android:id="@+id/wifi_animation"
-        android:layout_width="187dp"
-        android:layout_height="218dp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView4"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <TextView
-        android:id="@+id/enable_wifi"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/enabling_wifi"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/wifi_animation" />
-
-    <TextView
-        android:id="@+id/configure_wifi"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/connecting_to_ap"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/enable_wifi" />
-
-    <TextView
-        android:id="@+id/fetch_device_info"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/fetching_device_info"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/configure_wifi" />
-
-    <TextView
-        android:id="@+id/scan_wifis"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/scanning_wifi"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.503"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/fetch_device_info" />
+    tools:context=".ui.fragments.connect.ConnectFragment">
 
     <TextView
         android:id="@+id/textView4"
@@ -75,5 +19,46 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <com.albertogeniola.merossconf.ui.views.TaskLine
+        android:id="@+id/enablingWifiTask"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView4"
+        app:state="not_started"
+        app:title="@string/enabling_wifi" />
+
+    <com.albertogeniola.merossconf.ui.views.TaskLine
+        android:id="@+id/connectWifiTask"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@+id/enablingWifiTask"
+        app:state="not_started"
+        app:title="@string/connecting_to_ap"
+        tools:layout_editor_absoluteX="1dp" />
+
+    <com.albertogeniola.merossconf.ui.views.TaskLine
+        android:id="@+id/fetchDeviceInfoTask"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@+id/connectWifiTask"
+        app:state="not_started"
+        app:title="@string/fetching_device_info"
+        tools:layout_editor_absoluteX="1dp" />
+
+    <com.albertogeniola.merossconf.ui.views.TaskLine
+        android:id="@+id/scanWifiTask"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@+id/fetchDeviceInfoTask"
+        app:state="not_started"
+        app:title="@string/scanning_wifi"
+        tools:layout_editor_absoluteX="1dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

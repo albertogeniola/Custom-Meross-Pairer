@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ScanFragment">
+    tools:context=".ui.fragments.scan.ScanFragment">
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/scan_button"
@@ -16,20 +16,31 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:src="@drawable/ic_refresh_black_24dp"/>
 
+    <TextView
+        android:id="@+id/enableWifiAndLocationTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawableTop="@drawable/ic_menu_pair"
+        android:text="Please enable Wifi and Location"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/divider" />
+
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView14">
+        app:layout_constraintTop_toBottomOf="@+id/divider">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/wifiList"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:visibility="gone" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 

@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.login;
+package com.albertogeniola.merossconf.ui.fragments.login;
 
 import android.app.ProgressDialog;
 import android.os.Bundle;
@@ -30,12 +30,8 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class LoginFragment extends Fragment {
 

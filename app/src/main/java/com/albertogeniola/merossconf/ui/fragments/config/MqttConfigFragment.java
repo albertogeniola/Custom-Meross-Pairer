@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf;
+package com.albertogeniola.merossconf.ui.fragments.config;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,16 +14,20 @@ import android.widget.Spinner;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.albertogeniola.merossconf.AndroidPreferencesManager;
+import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.MqttConfiguration;
+import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.List;
 
 
 public class MqttConfigFragment extends Fragment {
-    private PairActivity parentActivity;
+    private PairActivityViewModel pairActivityViewModel;
     private TextInputLayout mqttConfigurationNameEditText;
     private TextInputLayout mqttHostEditText;
     private TextInputLayout mqttPortEditText;
@@ -35,7 +39,7 @@ public class MqttConfigFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        parentActivity = (PairActivity) getActivity();
+        pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
     }
 
     @Override
@@ -137,6 +141,7 @@ public class MqttConfigFragment extends Fragment {
                         tmpConf.setName(name);
                     }
 
+                    // Abort on validation error
                     if (error) {
                         return;
                     }
@@ -148,10 +153,10 @@ public class MqttConfigFragment extends Fragment {
                         mqttConfigurationSpinner.setSelection(0);
                     }
 
-                    parentActivity.setTargetMqttConfig(tmpConf);
+                    pairActivityViewModel.setTargetMqttConfig(tmpConf);
                 } else {
                     MqttConfiguration tmp = (MqttConfiguration) mqttConfigurationSpinner.getSelectedItem();
-                    parentActivity.setTargetMqttConfig(tmp);
+                    pairActivityViewModel.setTargetMqttConfig(tmp);
                 }
 
                 NavHostFragment

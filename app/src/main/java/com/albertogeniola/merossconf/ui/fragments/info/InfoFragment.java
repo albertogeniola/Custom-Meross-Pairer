@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf;
+package com.albertogeniola.merossconf.ui.fragments.info;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -10,17 +10,18 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.albertogeniola.merossconf.R;
+import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadAllFirmware;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadAllHardrware;
 
 
 public class InfoFragment extends Fragment {
-    private PairActivity parentActivity;
-
     private TextView discoveredType;
     private TextView discoveredVersion;
     private TextView discoveredChip;
@@ -32,12 +33,13 @@ public class InfoFragment extends Fragment {
     private TextView discoveredMQTTServerPort;
     private TextView discoveredInnerIP;
     private TextView discoveredWifiMac;
-    private Button configureButton;
+
+    private PairActivityViewModel pairActivityViewModel;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        parentActivity = (PairActivity) getActivity();
+        pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
     }
 
     @Override
@@ -62,7 +64,7 @@ public class InfoFragment extends Fragment {
         discoveredMQTTServerPort = view.findViewById(R.id.discoveredMQTTServerPort);
         discoveredInnerIP = view.findViewById(R.id.discoveredInnerIP);
         discoveredWifiMac = view.findViewById(R.id.discoveredWifiMac);
-        configureButton = view.findViewById(R.id.configureButton);
+        Button configureButton = view.findViewById(R.id.configureButton);
 
         configureButton.setOnClickListener(new OnClickListener() {
             @Override
@@ -80,7 +82,7 @@ public class InfoFragment extends Fragment {
     }
 
     private void loadUiInfo() {
-        MessageGetSystemAllResponse deviceInfo = parentActivity.getDeviceInfo();
+        MessageGetSystemAllResponse deviceInfo = pairActivityViewModel.getDeviceInfo().getValue();
         if (deviceInfo != null) {
             GetSystemAllPayloadAllHardrware hwinfo = deviceInfo.getPayload().getAll().getSystem().getHardware();
             GetSystemAllPayloadAllFirmware fwinfo = deviceInfo.getPayload().getAll().getSystem().getFirmware();

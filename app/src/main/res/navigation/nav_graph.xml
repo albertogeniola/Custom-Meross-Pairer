@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/ScanFragment"
-        android:name="com.albertogeniola.merossconf.ScanFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.scan.ScanFragment"
         tools:layout="@layout/fragment_scan">
 
         <action
@@ -17,7 +17,7 @@
     </fragment>
     <fragment
         android:id="@+id/ConnectFragment"
-        android:name="com.albertogeniola.merossconf.ConnectFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.connect.ConnectFragment"
         tools:layout="@layout/fragment_connect">
         <action
             android:id="@+id/action_ConnectFragment_to_configureFragment"
@@ -26,7 +26,7 @@
     </fragment>
     <fragment
         android:id="@+id/InfoFragment"
-        android:name="com.albertogeniola.merossconf.InfoFragment">
+        android:name="com.albertogeniola.merossconf.ui.fragments.info.InfoFragment">
         <action
             android:id="@+id/action_InfoFragment_to_configFragment"
             app:destination="@id/ConfigFragment"
@@ -34,7 +34,7 @@
     </fragment>
     <fragment
         android:id="@+id/ConfigFragment"
-        android:name="com.albertogeniola.merossconf.WifiConfigFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.config.WifiConfigFragment"
         tools:layout="@layout/fragment_wifi_config" >
         <action
             android:id="@+id/action_ConfigFragment_to_mqttConfigFragment"
@@ -42,7 +42,7 @@
     </fragment>
     <fragment
         android:id="@+id/PairFragment"
-        android:name="com.albertogeniola.merossconf.PairFragment">
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.PairFragment">
         <action
             android:id="@+id/action_PairFragment_to_PairDone"
             app:destination="@id/PairDone"
@@ -50,10 +50,10 @@
     </fragment>
     <fragment
         android:id="@+id/PairDone"
-        android:name="com.albertogeniola.merossconf.PairDone"/>
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.PairDoneFragment"/>
     <fragment
         android:id="@+id/mqtt_config_fragment"
-        android:name="com.albertogeniola.merossconf.MqttConfigFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.config.MqttConfigFragment"
         android:label="MqttConfigFragment" >
         <action
             android:id="@+id/action_mqttConfigFragment_to_PairFragment"

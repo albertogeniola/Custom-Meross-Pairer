@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf;
+package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -7,9 +7,11 @@ import android.view.ViewGroup;
 
 import androidx.fragment.app.Fragment;
 
+import com.albertogeniola.merossconf.R;
 
-public class PairDone extends Fragment {
-    public PairDone() {
+
+public class PairDoneFragment extends Fragment {
+    public PairDoneFragment() {
         // Required empty public constructor
     }
 

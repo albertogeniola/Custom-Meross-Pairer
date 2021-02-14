@@ -2,6 +2,7 @@ package com.albertogeniola.merossconf;
 
 import android.content.Context;
 import android.location.LocationManager;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
 import android.service.autofill.RegexValidator;
@@ -11,7 +12,7 @@ import java.util.regex.Pattern;
 
 
 public class AndroidUtils {
-    public static Boolean isLocationEnabled(Context context)
+    public static boolean isLocationEnabled(Context context)
     {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             // This is new method provided in API 28
@@ -24,6 +25,11 @@ public class AndroidUtils {
             return  (mode != Settings.Secure.LOCATION_MODE_OFF);
 
         }
+    }
+
+    public static boolean isWifiEnabbled(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        return wifiManager.isWifiEnabled();
     }
 
     public static boolean validateBaseUrl(String url) {

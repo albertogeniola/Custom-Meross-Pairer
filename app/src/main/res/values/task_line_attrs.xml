@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="TaskLine">
+        <attr name="title" format="string" />
+        <attr name="state" format="enum" >
+            <enum name="not_started" value="0" />
+            <enum name="running" value="1"/>
+            <enum name="completed" value="2" />
+            <enum name="failed" value="3"/>
+            <enum name="skipped" value="4" />
+
+        </attr>
+    </declare-styleable>
+</resources>

@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Custom Meross Pairer</string>
     <string name="scan">Scan WiFi</string>
-    <string name="title_activity_pair">Custom Meross Pairer</string>
+    <string name="title_activity_pair">Pair new device</string>
     <string name="enabling_wifi">Enabling Wifi...</string>
     <string name="connecting_to_ap">Connecting to AP...</string>
     <string name="fetching_device_info">Fetching device info...</string>
@@ -29,7 +29,7 @@
     <string name="mqtt_fragment_title">MQTT Server</string>
     <string name="mqtt_conf_name">Configuration Name...</string>
     <string name="mqtt_host_name">Server hostname or IP...</string>
-    <string name="mqtt_port">Server Port (8883)</string>
+    <string name="mqtt_port">Server Port</string>
     <string name="save_checkbox">Save for future use</string>
     <string name="configuring_mqtt">Configuring MQTT info...</string>
     <string name="configuring_wifi">Configuring WiFi...</string>

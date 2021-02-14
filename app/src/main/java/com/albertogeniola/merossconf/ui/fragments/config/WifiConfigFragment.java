@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf;
+package com.albertogeniola.merossconf.ui.fragments.config;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -10,7 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ImageButton;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -19,8 +20,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.albertogeniola.merossconf.R;
+import com.albertogeniola.merossconf.model.TargetWifiAp;
+import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 import com.google.android.material.textfield.TextInputLayout;
@@ -31,19 +36,17 @@ import java.util.List;
 
 
 public class WifiConfigFragment extends Fragment {
-    private PairActivity parentActivity;
+    private PairActivityViewModel pairActivityViewModel;
 
     private Spinner wifiSpinner;
     private TextInputLayout wifiPasswordTextView;
-    private ImageButton showPasswordButton;
-    private Button nextButton;
     private WifiSpinnerAdapter adapter;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        parentActivity = (PairActivity) getActivity();
+        pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
     }
 
     @Override
@@ -58,27 +61,26 @@ public class WifiConfigFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         wifiSpinner = view.findViewById(R.id.wifiListSpinner);
-        adapter = new WifiSpinnerAdapter(WifiConfigFragment.this.getContext(), parentActivity.getDeviceAvailableWifis().getPayload().getWifiList());
+        adapter = new WifiSpinnerAdapter(WifiConfigFragment.this.getContext(), pairActivityViewModel.getDeviceAvailableWifis().getValue().getPayload().getWifiList());
         wifiSpinner.setAdapter(adapter);
 
         wifiPasswordTextView = view.findViewById(R.id.wifi_password);
-        nextButton = view.findViewById(R.id.next_button);
+        Button nextButton = view.findViewById(R.id.next_button);
         nextButton.setOnClickListener(pairButtonClick);
-        showPasswordButton = view.findViewById(R.id.showPasswordButton);
-        showPasswordButton.setOnClickListener(showPasswordClick);
+        CheckBox showPasswordButton = view.findViewById(R.id.showPasswordCheckbox);
+        wifiPasswordTextView.getEditText().setTransformationMethod(PasswordTransformationMethod.getInstance());
+        showPasswordButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (wifiPasswordTextView.getEditText().getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
+                    wifiPasswordTextView.getEditText().setTransformationMethod(PasswordTransformationMethod.getInstance());
+                } else {
+                    wifiPasswordTextView.getEditText().setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                }
+            }
+        });
 
     }
-
-    private View.OnClickListener showPasswordClick = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (wifiPasswordTextView.getEditText().getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
-                wifiPasswordTextView.getEditText().setTransformationMethod(PasswordTransformationMethod.getInstance());
-            } else {
-                wifiPasswordTextView.getEditText().setTransformationMethod(HideReturnsTransformationMethod.getInstance());
-            }
-        }
-    };
 
     private View.OnClickListener pairButtonClick = new View.OnClickListener() {
         @Override
@@ -98,18 +100,16 @@ public class WifiConfigFragment extends Fragment {
                 wifiPasswordTextView.setError(null);
             }
 
-
-            // Navigate to the next fragment
-            parentActivity.setDevice(parentActivity.getDevice());
-            parentActivity.setTargetWifiSSID(selectedWifi.getSsid());
-            parentActivity.setTargetWifiPassword(selectedWifi.getSsid());
+            TargetWifiAp wifiInfo = new TargetWifiAp(selectedWifi.getSsid(), selectedWifi.getBssid());
             try {
-                parentActivity.setTargetWifiPassword(Base64.encodeToString(wifiPasswordTextView.getEditText().getText().toString().getBytes("utf8"),Base64.NO_WRAP));
+                wifiInfo.setPassword(Base64.encodeToString(wifiPasswordTextView.getEditText().getText().toString().getBytes("utf8"),Base64.NO_WRAP));
+                pairActivityViewModel.setTargetWifiAp(wifiInfo);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 throw new RuntimeException("UTF8 unsupported");
             }
 
+            // Navigate to the next fragment
             NavHostFragment.findNavController(WifiConfigFragment.this)
                     .navigate(R.id.mqtt_config_fragment);
         }

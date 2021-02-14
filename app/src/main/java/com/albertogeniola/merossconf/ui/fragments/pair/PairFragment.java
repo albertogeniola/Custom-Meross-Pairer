@@ -1,5 +1,7 @@
-package com.albertogeniola.merossconf;
+package com.albertogeniola.merossconf.ui.fragments.pair;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -16,10 +18,18 @@ import android.widget.ViewSwitcher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.albertogeniola.merosslib.model.protocol.MessageSetConfigKeyResponse;
+import com.albertogeniola.merossconf.AndroidPreferencesManager;
+import com.albertogeniola.merossconf.R;
+import com.albertogeniola.merossconf.model.MqttConfiguration;
+import com.albertogeniola.merossconf.model.TargetWifiAp;
+import com.albertogeniola.merossconf.ui.PairActivityViewModel;
+import com.albertogeniola.merosslib.MerossDeviceAp;
+import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.albertogeniola.merosslib.model.protocol.MessageSetConfigWifiResponse;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -33,11 +43,12 @@ public class PairFragment extends Fragment {
     private static final String DEFAULT_KEY = "";
     private static final String DEFAULT_USER_ID = "";
 
+    private PairActivityViewModel pairActivityViewModel;
+
     private ImageSwitcher imageSwitcher;
     private TextView configureMqttTextView;
     private TextView configureWifiTextView;
 
-    private PairActivity parentActivity;
     private Handler uiThreadHandler;
     private ScheduledExecutorService worker;
 
@@ -57,7 +68,7 @@ public class PairFragment extends Fragment {
                 if (signal == Signal.RESUMED) {
                     state = State.CONFIGURING_MQTT;
                     updateUi();
-                    configureMqtt();
+                    preConfigureMqtt();
                 }
                 break;
             case CONFIGURING_MQTT:
@@ -82,13 +93,49 @@ public class PairFragment extends Fragment {
         }
     }
 
-    private void configureMqtt() {
+    private void preConfigureMqtt() {
+        // Check if the user has logged in. In case he is not, show a warning message
+        // telling that the userid and key will be populated with predefined defaults
+        ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(getActivity());
+        if (creds == null) {
+            final AlertDialog alert = new AlertDialog.Builder(getActivity())
+                    .setMessage("You have are not logged in to any HTTP API. " +
+                            "The pairing process will therefore send the following defaults:" +
+                            "\nKey: '"+DEFAULT_KEY+"' (empty)" +
+                            "\nuserId: '"+DEFAULT_USER_ID+"' (empty)")
+                    .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            configureMqtt(DEFAULT_USER_ID, DEFAULT_KEY);
+                            dialog.dismiss();
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            error = "Operation aborted.";
+                            stateMachine(Signal.ERROR);
+                            dialog.dismiss();
+                        }
+                    })
+                    .create();
+            alert.show();
+        } else {
+            configureMqtt(creds.getUserId(), creds.getKey());
+        }
+    }
+
+    private void configureMqtt(final String userId, final String key) {
         worker.schedule(new Runnable() {
             @Override
             public void run() {
                 try {
-                    // TODO implement key/userId
-                    MessageSetConfigKeyResponse response = parentActivity.getDevice().setConfigKey(parentActivity.getTargetMqttConfig().getHostname(), parentActivity.getTargetMqttConfig().getPort(), DEFAULT_KEY, DEFAULT_USER_ID);
+                    LiveData<MqttConfiguration> mqttConfig = pairActivityViewModel.getTargetMqttConfig();
+                    pairActivityViewModel.getDevice().getValue().setConfigKey(
+                            mqttConfig.getValue().getHostname(),
+                            mqttConfig.getValue().getPort(),
+                                    key,
+                                    userId);
                     stateMachine(Signal.MQTT_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -105,12 +152,13 @@ public class PairFragment extends Fragment {
     }
 
     private void configureWifi() {
+        final MerossDeviceAp device = pairActivityViewModel.getDevice().getValue();
+        final TargetWifiAp credentials = pairActivityViewModel.getTargetWifiAp().getValue();
         worker.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    // TODO implement key/userId
-                    MessageSetConfigWifiResponse response = parentActivity.getDevice().setConfigWifi(parentActivity.getTargetWifiSSID(), parentActivity.getTargetWifiPassword());
+                    MessageSetConfigWifiResponse response = device.setConfigWifi(credentials.getSsid(), credentials.getPassword());
                     stateMachine(Signal.WIFI_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -222,8 +270,8 @@ public class PairFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        parentActivity = (PairActivity) getActivity();
         uiThreadHandler = new Handler(Looper.getMainLooper());
+        pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
     }
 
 

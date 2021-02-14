@@ -2,6 +2,7 @@ package com.albertogeniola.merossconf;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
@@ -29,11 +30,18 @@ public class AndroidPreferencesManager {
 
     public static List<MqttConfiguration> loadAllMqttConfigurations(Context c) {
         SharedPreferences settings = c.getSharedPreferences(PREFS_CONFS, Context.MODE_PRIVATE);
-        List<MqttConfiguration> res = g.fromJson(settings.getString(KEY_MQTT_CONF, null), new TypeToken<List<MqttConfiguration>>() {}.getType());
+        List<MqttConfiguration> res = null;
+        try {
+            res = g.fromJson(settings.getString(KEY_MQTT_CONF, null), new TypeToken<List<MqttConfiguration>>() {}.getType());
+        } catch (Exception e) {
+            // Error while loading configurations
+            Toast.makeText(c, "Error while loading MQTT configurations", Toast.LENGTH_SHORT).show();
+        }
         if (res == null)
             return new ArrayList<>();
         else
             return res;
+
     }
 
     public static void storeHttpCredentials(Context c, ApiCredentials httpCredentials) {

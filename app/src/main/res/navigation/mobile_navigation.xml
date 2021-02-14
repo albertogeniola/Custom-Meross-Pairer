@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/account_fragment"
-        android:name="com.albertogeniola.merossconf.ui.home.HomeFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.home.HomeFragment"
         android:label="@string/menu_account"
         tools:layout="@layout/fragment_home">
 
@@ -20,7 +20,7 @@
     </fragment>
     <fragment
         android:id="@+id/login_fragment"
-        android:name="com.albertogeniola.merossconf.ui.login.LoginFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.login.LoginFragment"
         android:label="@string/title_activity_login" />
     <activity
         android:id="@+id/pairActivity"

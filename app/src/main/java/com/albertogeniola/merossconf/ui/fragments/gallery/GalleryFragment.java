@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.gallery;
+package com.albertogeniola.merossconf.ui.fragments.gallery;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;

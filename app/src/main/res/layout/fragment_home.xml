@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    tools:context=".ui.home.HomeFragment">
+    tools:context=".ui.fragments.home.HomeFragment">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/httpInfoCard"

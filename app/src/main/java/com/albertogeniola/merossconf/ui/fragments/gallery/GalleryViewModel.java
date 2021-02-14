@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.gallery;
+package com.albertogeniola.merossconf.ui.fragments.gallery;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;

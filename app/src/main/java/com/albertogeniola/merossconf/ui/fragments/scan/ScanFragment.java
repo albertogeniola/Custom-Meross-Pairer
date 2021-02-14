@@ -1,7 +1,6 @@
-package com.albertogeniola.merossconf;
+package com.albertogeniola.merossconf.ui.fragments.scan;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -26,11 +25,20 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.albertogeniola.merossconf.AndroidUtils;
+import com.albertogeniola.merossconf.MerossUtils;
+import com.albertogeniola.merossconf.ProgressableActivity;
+import com.albertogeniola.merossconf.R;
+import com.albertogeniola.merossconf.model.TargetWifiAp;
+import com.albertogeniola.merossconf.model.WifiLocationStatus;
+import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -38,9 +46,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ScanFragment extends Fragment {
-    private PairActivity parentActivity;
-
     private static final int LOCATION_PERMISSION_CODE = 1;
+
+    private PairActivityViewModel pairActivityViewModel;
+
     private WifiManager wifiManager = null;
     private LocationManager locationManager = null;
     private FloatingActionButton fab = null;
@@ -52,13 +61,12 @@ public class ScanFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        parentActivity = (PairActivity) getActivity();
 
         this.wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         this.locationManager = (LocationManager)getContext().getSystemService(Context.LOCATION_SERVICE);
-
         this.uiHandler = new Handler(Looper.getMainLooper());
         scanning = false;
+        pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
     }
 
     @Override
@@ -76,6 +84,21 @@ public class ScanFragment extends Fragment {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
         getContext().registerReceiver(wifiScanReceiver, intentFilter);
+
+        checkWifiAndLocation();
+    }
+
+    private void checkWifiAndLocation() {
+        // Show an error message if wifi is not enabled
+        if (!AndroidUtils.isWifiEnabbled(getContext())) {
+            Snackbar.make(getView(), "Please enable Wifi network to perform the scan", Snackbar.LENGTH_LONG).show();
+            return;
+        }
+
+        if (!AndroidUtils.isLocationEnabled(getContext())) {
+            Snackbar.make(getView(), "Please enable Location services to perform the scan", Snackbar.LENGTH_LONG).show();
+            return;
+        }
     }
 
     @Override
@@ -98,7 +121,7 @@ public class ScanFragment extends Fragment {
             }
         });
 
-        RecyclerView recyclerView = view.findViewById(R.id.wifiList);
+        final RecyclerView recyclerView = view.findViewById(R.id.wifiList);
         LinearLayoutManager llm = new LinearLayoutManager(getContext());
         llm.setOrientation(LinearLayoutManager.VERTICAL);
         recyclerView.setLayoutManager(llm);
@@ -109,6 +132,18 @@ public class ScanFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 startScan();
+            }
+        });
+
+        final TextView enableWifiAndLocationTextView = view.findViewById(R.id.enableWifiAndLocationTextView);
+        pairActivityViewModel.getWifiLocationStatus().observe(requireActivity(), new Observer<WifiLocationStatus>() {
+            @Override
+            public void onChanged(WifiLocationStatus wifiLocationStatus) {
+                boolean wifiOk = wifiLocationStatus.getWifiEnabledOrEnabling()!=null && wifiLocationStatus.getWifiEnabledOrEnabling();
+                boolean locationOk = wifiLocationStatus.getLocationEnabledOrEnabling()!=null && wifiLocationStatus.getLocationEnabledOrEnabling();
+                enableWifiAndLocationTextView.setVisibility(wifiOk && locationOk ? View.GONE:View.VISIBLE);
+                recyclerView.setVisibility(wifiOk && locationOk ? View.VISIBLE : View.GONE);
+                fab.setEnabled(wifiOk && locationOk);
             }
         });
     }
@@ -133,10 +168,8 @@ public class ScanFragment extends Fragment {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                                           int[] grantResults) {
-        if (requestCode == LOCATION_PERMISSION_CODE
-                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == LOCATION_PERMISSION_CODE && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             // Do something with granted permission
             startScan();
         }
@@ -145,12 +178,10 @@ public class ScanFragment extends Fragment {
     private void startScan() {
         if (scanning) {
             Toast.makeText(ScanFragment.this.getContext(), "Scan already in progress.", Toast.LENGTH_SHORT).show();
-        }
-
-        if (!AndroidUtils.isLocationEnabled(getContext())) {
-            Snackbar.make(fab,  "Please enable location access to scan WIFI networks", Snackbar.LENGTH_LONG).show();
             return;
         }
+
+        checkWifiAndLocation();
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                 (getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
@@ -251,8 +282,8 @@ public class ScanFragment extends Fragment {
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    parentActivity.setDeviceApSSID(sr.SSID);
-                    parentActivity.setDeviceApBSSID(sr.BSSID);
+                    TargetWifiAp targetAp = new TargetWifiAp(sr.SSID,sr.BSSID);
+                    pairActivityViewModel.setTargetWifiAp(targetAp);
                     NavHostFragment
                             .findNavController(ScanFragment.this)
                             .navigate(R.id.scan_to_connect);

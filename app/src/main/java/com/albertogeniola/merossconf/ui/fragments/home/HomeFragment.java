@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.home;
+package com.albertogeniola.merossconf.ui.fragments.home;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
