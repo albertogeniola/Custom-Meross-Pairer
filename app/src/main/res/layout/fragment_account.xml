@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    tools:context=".ui.fragments.home.HomeFragment">
+    tools:context=".ui.fragments.account.AccountFragment">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/httpInfoCard"
@@ -90,7 +90,7 @@
                     android:text="N/A"/>
             </com.google.android.material.textfield.TextInputLayout>
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/httpLogoutButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -113,10 +113,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Please acquire an HTTP Token from the HTTP broker to start pairing devices. " />
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/httpLoginButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+
                 android:text="Login" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

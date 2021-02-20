@@ -7,9 +7,9 @@
 
     <fragment
         android:id="@+id/account_fragment"
-        android:name="com.albertogeniola.merossconf.ui.fragments.home.HomeFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.account.AccountFragment"
         android:label="@string/menu_account"
-        tools:layout="@layout/fragment_home">
+        tools:layout="@layout/fragment_account">
 
         <action
             android:id="@+id/action_nav_home_to_login_fragment"

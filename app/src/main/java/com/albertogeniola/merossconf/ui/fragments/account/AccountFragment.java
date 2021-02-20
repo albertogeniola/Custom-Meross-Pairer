@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.fragments.home;
+package com.albertogeniola.merossconf.ui.fragments.account;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -21,13 +21,11 @@ import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 
-public class HomeFragment extends Fragment {
-    public static final int LOGIN_REQUEST_CODE = 1;
-
+public class AccountFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         final MainActivityViewModel mainActivityViewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
-        View root = inflater.inflate(R.layout.fragment_home, container, false);
+        View root = inflater.inflate(R.layout.fragment_account, container, false);
         final CardView httpInfoCard = root.findViewById(R.id.httpInfoCard);
         final EditText httpUrlEditText = root.findViewById(R.id.httpUrlEditText);
         final EditText userIdEditText = root.findViewById(R.id.userIdEditText);
@@ -54,7 +52,7 @@ public class HomeFragment extends Fragment {
         httpLoginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NavHostFragment.findNavController(HomeFragment.this).navigate(R.id.login_fragment);
+                NavHostFragment.findNavController(AccountFragment.this).navigate(R.id.login_fragment);
             }
         });
 
@@ -64,7 +62,7 @@ public class HomeFragment extends Fragment {
                 AlertDialog dialog = new AlertDialog.Builder(getActivity()).setMessage("Are you sure you want to discard current HTTP credentials?").setTitle("Confirm").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        AndroidPreferencesManager.storeHttpCredentials(getActivity(), null);
+                        AndroidPreferencesManager.storeHttpCredentials(requireActivity(), null);
                         mainActivityViewModel.setCredentials(null);
                         dialog.dismiss();
                     }
@@ -74,6 +72,7 @@ public class HomeFragment extends Fragment {
                         dialog.dismiss();
                     }
                 }).create();
+                dialog.show();
             }
         });
 

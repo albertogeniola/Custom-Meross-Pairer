@@ -9,19 +9,19 @@
 
     <ImageView
         android:id="@+id/taskLine_taskIcon"
-        android:layout_width="wrap_content"
+        android:layout_width="15dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:visibility="gone"
-        android:src="@drawable/ic_done_black_24dp" />
+        android:src="@drawable/ic_done_black_24dp"
+        android:visibility="gone" />
 
     <ProgressBar
         android:id="@+id/taskLine_progressSpinner"
         style="?android:attr/progressBarStyle"
-        android:layout_width="0dp"
+        android:layout_width="15dp"
         android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:visibility="gone" />
 
     <TextView
         android:gravity="center_vertical"

@@ -2,6 +2,7 @@ package com.albertogeniola.merossconf;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -14,16 +15,26 @@ import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.albertogeniola.merossconf.Constants.LOG_TAG;
+
 public class AndroidPreferencesManager {
     private static String PREFS_CONFS = "com.albertogeniola.merossconf.shared_preferences";
     private static String KEY_MQTT_CONF = "mqtt";
     private static String KEY_HTTP_CONF = "http";
     private static final Gson g = new Gson();
 
-    public static void storeNewMqttConfiguration(Context c, MqttConfiguration conf) {
-        SharedPreferences settings = c.getSharedPreferences(PREFS_CONFS, Context.MODE_PRIVATE);
+    public static void storeNewMqttConfiguration(Context context, MqttConfiguration conf) {
+        List<MqttConfiguration> allConfs = loadAllMqttConfigurations(context);
+        for (MqttConfiguration c : allConfs) {
+            if (c.getName().toLowerCase().trim().compareTo(conf.getName().toLowerCase().trim())==0) {
+                allConfs.remove(c);
+            }
+        }
+        allConfs.add(conf);
+
+        SharedPreferences settings = context.getSharedPreferences(PREFS_CONFS, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
-        String json = g.toJson(conf);
+        String json = g.toJson(allConfs);
         editor.putString(KEY_MQTT_CONF, json);
         editor.apply();
     }
@@ -35,7 +46,7 @@ public class AndroidPreferencesManager {
             res = g.fromJson(settings.getString(KEY_MQTT_CONF, null), new TypeToken<List<MqttConfiguration>>() {}.getType());
         } catch (Exception e) {
             // Error while loading configurations
-            Toast.makeText(c, "Error while loading MQTT configurations", Toast.LENGTH_SHORT).show();
+            Log.e(LOG_TAG, "Error while loading stored MQTT Configurations. This error is ignored.");
         }
         if (res == null)
             return new ArrayList<>();

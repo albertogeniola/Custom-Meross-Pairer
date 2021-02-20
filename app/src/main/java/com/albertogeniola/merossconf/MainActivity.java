@@ -1,10 +1,19 @@
 package com.albertogeniola.merossconf;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.text.Layout;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -15,13 +24,21 @@ import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
+import com.albertogeniola.merossconf.model.WifiLocationStatus;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.google.android.material.navigation.NavigationView;
 
+import static android.location.LocationManager.PROVIDERS_CHANGED_ACTION;
+import static android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION;
+
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
+    private BroadcastReceiver mReceiver;
+    private TextView wifiTextView;
+    private TextView locationTextView;
+    private LinearLayout wifiLocationStatusLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         final TextView loggedUserTextView = navigationView.getHeaderView(0).findViewById(R.id.navigation_header_logged_email_textview);
         final TextView httpEndpointTextView = navigationView.getHeaderView(0).findViewById(R.id.navigation_header_http_endpoint_textview);
 
-        MainActivityViewModel mainActivityViewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
+        final MainActivityViewModel mainActivityViewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
         mainActivityViewModel.getCredentials().observe(this, new Observer<ApiCredentials>() {
             @Override
             public void onChanged(ApiCredentials apiCredentials) {
@@ -52,10 +69,55 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        wifiTextView = findViewById(R.id.wifiOffTextView);
+        locationTextView = findViewById(R.id.locationOffTextView);
+        wifiLocationStatusLayout = findViewById(R.id.wifiLocationStatusLayout);
+        this.mReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Boolean wifiEnabled = null;
+                Boolean locationEnabled = null;
+                if(intent.getAction().equals(NETWORK_STATE_CHANGED_ACTION) || intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+                    wifiEnabled = AndroidUtils.isWifiEnabbled(MainActivity.this);
+                } else if (intent.getAction().equals(PROVIDERS_CHANGED_ACTION)) {
+                    locationEnabled = AndroidUtils.isLocationEnabled(MainActivity.this);
+                }
+                updateWifiLocationStatusBar(wifiEnabled, locationEnabled);
+            }
+        };
+
         // Load the data into the view
         mainActivityViewModel.setCredentials(AndroidPreferencesManager.loadHttpCredentials(this));
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
+    }
+
+    private void updateWifiLocationStatusBar(@Nullable Boolean wifiEnabled, @Nullable Boolean locationEnabled) {
+        if (wifiEnabled != null)
+            wifiTextView.setVisibility(wifiEnabled ? View.GONE : View.VISIBLE);
+        if (locationEnabled!=null)
+            locationTextView.setVisibility(locationEnabled ? View.GONE : View.VISIBLE);
+        wifiLocationStatusLayout.setVisibility(wifiTextView.getVisibility()==View.VISIBLE || locationTextView.getVisibility()==View.VISIBLE ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        IntentFilter filter = new IntentFilter(NETWORK_STATE_CHANGED_ACTION);
+        filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        filter.addAction(PROVIDERS_CHANGED_ACTION);
+        this.registerReceiver(this.mReceiver, filter);
+
+        // Update wifi status bar
+        boolean wifiEnabled = AndroidUtils.isWifiEnabbled(MainActivity.this);
+        boolean locationEnabled = AndroidUtils.isLocationEnabled(MainActivity.this);
+        updateWifiLocationStatusBar(wifiEnabled, locationEnabled);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        this.unregisterReceiver(this.mReceiver);
     }
 
     @Override
