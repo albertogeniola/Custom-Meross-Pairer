@@ -33,7 +33,10 @@ import lombok.Setter;
 
 
 public class MerossDeviceAp implements Serializable {
+
+    @Getter
     private String ip;
+    @Getter
     private String cloudKey;
     private OkHttpClient client;
     private Gson g = new Gson();

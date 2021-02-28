@@ -1,19 +1,31 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
+import android.Manifest;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.MacAddress;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.net.NetworkRequest;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiNetworkSpecifier;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.ImageSwitcher;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.ViewSwitcher;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,16 +39,33 @@ import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.MqttConfiguration;
 import com.albertogeniola.merossconf.model.TargetWifiAp;
+import com.albertogeniola.merossconf.ssl.DummyTrustManager;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
+import com.albertogeniola.merossconf.ui.fragments.connect.ConnectFragment;
+import com.albertogeniola.merossconf.ui.views.TaskLine;
 import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
-import com.albertogeniola.merosslib.model.protocol.MessageSetConfigWifiResponse;
 import com.google.android.material.snackbar.Snackbar;
 
+import org.eclipse.paho.android.service.MqttAndroidClient;
+import org.eclipse.paho.client.mqttv3.IMqttActionListener;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.IMqttToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 
 
 public class PairFragment extends Fragment {
@@ -44,18 +73,15 @@ public class PairFragment extends Fragment {
     private static final String DEFAULT_USER_ID = "";
 
     private PairActivityViewModel pairActivityViewModel;
-
-    private ImageSwitcher imageSwitcher;
-    private TextView configureMqttTextView;
-    private TextView configureWifiTextView;
-
+    private TaskLine sendPairCommandTaskLine, connectLocalWifiTaskLine, testMqttBrokerTaskLine, currentTask;
     private Handler uiThreadHandler;
     private ScheduledExecutorService worker;
 
-    private int animationCounter = 0;
-    private boolean animateWifi = false;
     private State state = State.INIT;
     private String error = null;
+    private WifiManager mWifiManager;
+    private ConnectivityManager mConnectivityManager;
+    private WifiBroadcastReceiver mReceiver;
 
     public PairFragment() {
         worker = Executors.newSingleThreadScheduledExecutor();
@@ -66,20 +92,27 @@ public class PairFragment extends Fragment {
         switch(state) {
             case INIT:
                 if (signal == Signal.RESUMED) {
-                    state = State.CONFIGURING_MQTT;
+                    state = State.SENDING_PAIRING_COMMAND;
                     updateUi();
-                    preConfigureMqtt();
+                    startPairing();
                 }
                 break;
-            case CONFIGURING_MQTT:
-                if (signal == Signal.MQTT_CONFIGURED) {
-                    state = State.CONFIGURING_WIFI;
+            case SENDING_PAIRING_COMMAND:
+                if (signal == Signal.DEVICE_CONFIGURED) {
+                    state = State.CONNETING_LOCAL_WIFI;
                     updateUi();
-                    configureWifi();
+                    connectToLocalWifi();
                 }
                 break;
-            case CONFIGURING_WIFI:
-                if (signal == Signal.WIFI_CONFIGURED) {
+            case CONNETING_LOCAL_WIFI:
+                if (signal == Signal.WIFI_CONNECTED) {
+                    state = State.CONNECTING_TO_MQTT_BROKER;
+                    updateUi();
+                    connectToMqttBorker();
+                }
+                break;
+            case CONNECTING_TO_MQTT_BROKER:
+                if (signal == Signal.MQTT_CONNECTED) {
                     state = State.DONE;
                     updateUi();
                     completeActivityFragment();
@@ -93,7 +126,7 @@ public class PairFragment extends Fragment {
         }
     }
 
-    private void preConfigureMqtt() {
+    private void startPairing() {
         // Check if the user has logged in. In case he is not, show a warning message
         // telling that the userid and key will be populated with predefined defaults
         ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(getActivity());
@@ -106,7 +139,7 @@ public class PairFragment extends Fragment {
                     .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            configureMqtt(DEFAULT_USER_ID, DEFAULT_KEY);
+                            configureDevice(DEFAULT_USER_ID, DEFAULT_KEY);
                             dialog.dismiss();
                         }
                     })
@@ -121,22 +154,148 @@ public class PairFragment extends Fragment {
                     .create();
             alert.show();
         } else {
-            configureMqtt(creds.getUserId(), creds.getKey());
+            configureDevice(creds.getUserId(), creds.getKey());
         }
     }
 
-    private void configureMqtt(final String userId, final String key) {
+    private void connectToLocalWifi() {
+        // Register Wifi Broadcast Receiver
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        requireContext().getApplicationContext().registerReceiver(mReceiver, intentFilter);
+
+        String ssid = pairActivityViewModel.getLocalWifiAp().getValue().getSsid();
+        String bssid = pairActivityViewModel.getLocalWifiAp().getValue().getBssid();
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            WifiConfiguration conf = new WifiConfiguration();
+            conf.SSID = "\"" + ssid + "\"";
+            conf.BSSID = "\"" + bssid + "\"";
+            conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+            mWifiManager.addNetwork(conf);
+            List<WifiConfiguration> list = null;
+
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                    (getContext().checkSelfPermission(Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED)){
+                error = "User denied CHANGE_WIFI_STATE permission. Wifi cannot be enabled.";
+                stateMachine(PairFragment.Signal.ERROR);
+                return;
+            } else {
+                list = mWifiManager.getConfiguredNetworks();
+            }
+
+            for (WifiConfiguration i : list) {
+                if (i.SSID != null && i.SSID.equals("\"" + ssid + "\"")) {
+                    mWifiManager.disconnect();
+                    mWifiManager.enableNetwork(i.networkId, true);
+                    mWifiManager.reconnect();
+                    break;
+                }
+            }
+        } else {
+            NetworkRequest networkRequest = new NetworkRequest.Builder()
+                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .setNetworkSpecifier(
+                            new WifiNetworkSpecifier.Builder()
+                                    .setSsid(ssid)
+                                    .setBssid(MacAddress.fromString(bssid))
+                                    .build()
+                    )
+                    .build();
+            mConnectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
+
+                @Override
+                public void onUnavailable() {
+                    // TODO
+                }
+                @Override
+                public void onAvailable(Network network) {
+                    // TODO
+                }
+            });
+        }
+    }
+
+    private void connectToMqttBorker() {
+        String uri = "ssl://" + pairActivityViewModel.getTargetMqttConfig().getValue().getHostname() + ":" + pairActivityViewModel.getTargetMqttConfig().getValue().getPort();
+        MqttAndroidClient mqttAndroidClient = new MqttAndroidClient(
+                requireContext().getApplicationContext(),
+                uri,
+                "TEST"); // TODO: Change this
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setAutomaticReconnect(false);
+        options.setCleanSession(false);
+        options.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
+        options.setServerURIs(new String[] {uri});
+
+        // Disable SSL checks...
+        // TODO: parametrize this
+        TrustManager[] trustManagers = new DummyTrustManager[]{new DummyTrustManager()};
+        SSLContext sc = null;
+        try {
+            sc = SSLContext.getInstance ("SSL");
+            sc.init (null, trustManagers, new java.security.SecureRandom ());
+            options.setSocketFactory(sc.getSocketFactory());
+        } catch (KeyManagementException | NoSuchAlgorithmException e) {
+            e.printStackTrace ();
+            // TODO
+        }
+
+        mqttAndroidClient.setCallback(new MqttCallback() {
+            @Override
+            public void connectionLost(Throwable cause) {
+                // TODO
+                Log.i("TEST", "connection lost");
+            }
+
+            @Override
+            public void messageArrived(String topic, MqttMessage message) throws Exception {
+                // TODO
+                Log.i("TEST", "connection lost");
+            }
+
+            @Override
+            public void deliveryComplete(IMqttDeliveryToken token) {
+                // TODO
+                Log.i("TEST", "connection lost");
+            }
+        });
+
+        /* Establish an MQTT connection */
+        try {
+            mqttAndroidClient.connect(options, null, new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken asyncActionToken) {
+                    Log.i("TEST", "connect succeed");
+                    // TODO
+                }
+
+                @Override
+                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
+                    Log.i("TEST", "connect failed");
+                    // TODO
+                }
+            });
+
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void configureDevice(final String userId, final String key) {
         worker.schedule(new Runnable() {
             @Override
             public void run() {
+                MerossDeviceAp device = pairActivityViewModel.getDevice().getValue();
                 try {
                     LiveData<MqttConfiguration> mqttConfig = pairActivityViewModel.getTargetMqttConfig();
-                    pairActivityViewModel.getDevice().getValue().setConfigKey(
+                    device.setConfigKey(
                             mqttConfig.getValue().getHostname(),
                             mqttConfig.getValue().getPort(),
                                     key,
                                     userId);
-                    stateMachine(Signal.MQTT_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
                     uiThreadHandler.post(new Runnable() {
@@ -146,20 +305,13 @@ public class PairFragment extends Fragment {
                             stateMachine(Signal.ERROR);
                         }
                     });
+                    return;
                 }
-            }
-        },3, TimeUnit.SECONDS);
-    }
 
-    private void configureWifi() {
-        final MerossDeviceAp device = pairActivityViewModel.getDevice().getValue();
-        final TargetWifiAp credentials = pairActivityViewModel.getTargetWifiAp().getValue();
-        worker.execute(new Runnable() {
-            @Override
-            public void run() {
+                TargetWifiAp credentials = pairActivityViewModel.getLocalWifiAp().getValue();
                 try {
-                    MessageSetConfigWifiResponse response = device.setConfigWifi(credentials.getSsid(), credentials.getPassword());
-                    stateMachine(Signal.WIFI_CONFIGURED);
+                    device.setConfigWifi(credentials.getSsid(), credentials.getPassword());
+                    stateMachine(Signal.DEVICE_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
                     uiThreadHandler.post(new Runnable() {
@@ -169,10 +321,13 @@ public class PairFragment extends Fragment {
                             stateMachine(Signal.ERROR);
                         }
                     });
+                    return;
                 }
+
             }
-        });
+        },3, TimeUnit.SECONDS);
     }
+
 
     private void completeActivityFragment() {
         NavController ctrl = NavHostFragment.findNavController(this);
@@ -187,26 +342,34 @@ public class PairFragment extends Fragment {
             public void run() {
                 switch (state) {
                     case INIT:
-                        animateWifi = false;
-                        configureMqttTextView.setVisibility(View.INVISIBLE);
-                        configureWifiTextView.setVisibility(View.INVISIBLE);
+                        sendPairCommandTaskLine.setState(TaskLine.TaskState.not_started);
+                        connectLocalWifiTaskLine.setState(TaskLine.TaskState.not_started);
+                        testMqttBrokerTaskLine.setState(TaskLine.TaskState.not_started);
+                        currentTask = null;
                         break;
-                    case CONFIGURING_MQTT:
-                        animateWifi = true;
-                        startWifiAnimation();
-
-                        configureMqttTextView.setVisibility(View.VISIBLE);
+                    case SENDING_PAIRING_COMMAND:
+                        sendPairCommandTaskLine.setState(TaskLine.TaskState.running);
+                        currentTask = sendPairCommandTaskLine;
                         break;
-                    case CONFIGURING_WIFI:
-                        configureWifiTextView.setVisibility(View.VISIBLE);
+                    case CONNETING_LOCAL_WIFI:
+                        sendPairCommandTaskLine.setState(TaskLine.TaskState.completed);
+                        connectLocalWifiTaskLine.setState(TaskLine.TaskState.running);
+                        currentTask = connectLocalWifiTaskLine;
+                        break;
+                    case CONNECTING_TO_MQTT_BROKER:
+                        connectLocalWifiTaskLine.setState(TaskLine.TaskState.completed);
+                        testMqttBrokerTaskLine.setState(TaskLine.TaskState.running);
+                        currentTask = testMqttBrokerTaskLine;
                         break;
                     case DONE:
-                        animateWifi = false;
+                        testMqttBrokerTaskLine.setState(TaskLine.TaskState.completed);
+                        currentTask = null;
                         break;
                     case ERROR:
-                        animateWifi = false;
-                        imageSwitcher.setImageResource(R.drawable.ic_error_outline_black_24dp);
                         Snackbar.make(PairFragment.this.getView(), error, Snackbar.LENGTH_LONG).show();
+                        if (currentTask != null) {
+                            currentTask.setState(TaskLine.TaskState.failed);
+                        }
                         break;
                 }
             }
@@ -219,59 +382,15 @@ public class PairFragment extends Fragment {
         }
     }
 
-    private void setupAnimation() {
-        imageSwitcher = getView().findViewById(R.id.wifi_animation);
-        imageSwitcher.setFactory(new ViewSwitcher.ViewFactory() {
-            @Override
-            public View makeView() {
-                ImageView im = new ImageView(PairFragment.this.getActivity());
-                im.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                im.setAdjustViewBounds(true);
-                return im;
-            }
-        });
-        Animation in  = AnimationUtils.loadAnimation(this.getContext(), R.anim.fade_in);
-        Animation out  = AnimationUtils.loadAnimation(this.getContext(), R.anim.fade_out);
-        imageSwitcher.setInAnimation(in);
-        imageSwitcher.setOutAnimation(out);
-    }
-
-    private void startWifiAnimation() {
-        // Configure the animation
-        uiThreadHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (animateWifi) {
-                    switch (animationCounter++) {
-                        case 0:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_0_bar_black_24dp);
-                            break;
-                        case 1:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_1_bar_black_24dp);
-                            break;
-                        case 2:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_2_bar_black_24dp);
-                            break;
-                        case 3:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_3_bar_black_24dp);
-                            break;
-                        case 4:
-                            imageSwitcher.setImageResource(R.drawable.ic_signal_wifi_4_bar_black_24dp);
-                            break;
-                    }
-                    animationCounter %= 5;
-                    uiThreadHandler.postDelayed(this, 2000);
-                }
-            }
-        });
-    }
-
     // Android activity lifecycle
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         uiThreadHandler = new Handler(Looper.getMainLooper());
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
+        mWifiManager = (WifiManager) requireContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        mConnectivityManager = (ConnectivityManager) requireContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        mReceiver = new WifiBroadcastReceiver();
     }
 
 
@@ -286,9 +405,9 @@ public class PairFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        configureMqttTextView = view.findViewById(R.id.configure_mqtt);
-        configureWifiTextView = view.findViewById(R.id.configure_wifi);
-        setupAnimation();
+        sendPairCommandTaskLine = view.findViewById(R.id.sendPairCommandTaskLine);
+        connectLocalWifiTaskLine = view.findViewById(R.id.connectToBrokerWifi);
+        testMqttBrokerTaskLine  = view.findViewById(R.id.connectToMqttBrokerTaskLike);
     }
 
     @Override
@@ -302,16 +421,37 @@ public class PairFragment extends Fragment {
 
     enum State {
         INIT,
-        CONFIGURING_MQTT,
-        CONFIGURING_WIFI,
+        SENDING_PAIRING_COMMAND,
+        CONNETING_LOCAL_WIFI,
+        CONNECTING_TO_MQTT_BROKER,
         DONE,
         ERROR
     }
 
     enum Signal {
         RESUMED,
-        MQTT_CONFIGURED,
-        WIFI_CONFIGURED,
+        DEVICE_CONFIGURED,
+        WIFI_CONNECTED,
+        MQTT_CONNECTED,
         ERROR
+    }
+
+    class WifiBroadcastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (WifiManager.NETWORK_STATE_CHANGED_ACTION .equals(action)) {
+                NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+                if (networkInfo.isConnected()) {
+                    if (mWifiManager.getConnectionInfo() != null && mWifiManager.getConnectionInfo().getSSID() != null) {
+                        String targetSSID = "\"" + new String(Base64.decode(pairActivityViewModel.getLocalWifiAp().getValue().getSsid(), Base64.DEFAULT)) + "\"" ;
+                        if (targetSSID.compareTo(mWifiManager.getConnectionInfo().getSSID()) == 0) {
+                            PairFragment.this.requireContext().getApplicationContext().unregisterReceiver(this);
+                            stateMachine(Signal.WIFI_CONNECTED);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

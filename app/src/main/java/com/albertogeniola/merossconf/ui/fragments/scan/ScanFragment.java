@@ -19,6 +19,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,7 +35,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.MerossUtils;
-import com.albertogeniola.merossconf.ProgressableActivity;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.TargetWifiAp;
 import com.albertogeniola.merossconf.model.WifiLocationStatus;
@@ -52,7 +52,8 @@ public class ScanFragment extends Fragment {
 
     private WifiManager wifiManager = null;
     private LocationManager locationManager = null;
-    private FloatingActionButton fab = null;
+    private ProgressBar scanningProgressBar;
+    private FloatingActionButton fab;
     private MerossWifiScanAdapter adapter = new MerossWifiScanAdapter();
     private SwipeRefreshLayout swipeContainer;
     private Handler uiHandler;
@@ -88,17 +89,19 @@ public class ScanFragment extends Fragment {
         checkWifiAndLocation();
     }
 
-    private void checkWifiAndLocation() {
+    private boolean checkWifiAndLocation() {
         // Show an error message if wifi is not enabled
         if (!AndroidUtils.isWifiEnabbled(getContext())) {
             Snackbar.make(getView(), "Please enable Wifi network to perform the scan", Snackbar.LENGTH_LONG).show();
-            return;
+            return false;
         }
 
         if (!AndroidUtils.isLocationEnabled(getContext())) {
             Snackbar.make(getView(), "Please enable Location services to perform the scan", Snackbar.LENGTH_LONG).show();
-            return;
+            return false;
         }
+
+        return true;
     }
 
     @Override
@@ -121,6 +124,7 @@ public class ScanFragment extends Fragment {
             }
         });
 
+        scanningProgressBar = view.findViewById(R.id.scanningProgressSpinner);
         final RecyclerView recyclerView = view.findViewById(R.id.wifiList);
         LinearLayoutManager llm = new LinearLayoutManager(getContext());
         llm.setOrientation(LinearLayoutManager.VERTICAL);
@@ -181,7 +185,9 @@ public class ScanFragment extends Fragment {
             return;
         }
 
-        checkWifiAndLocation();
+        if (!checkWifiAndLocation()) {
+            return;
+        }
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                 (getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
@@ -203,21 +209,20 @@ public class ScanFragment extends Fragment {
                     Toast.makeText(getContext(), "Aborted Wifi scan: permissions denied.", Toast.LENGTH_SHORT).show();
                 }
             });
+            permissionAlert.show();
 
         } else {
             fab.hide();
-            ((ProgressableActivity)getActivity()).setProgressIndeterminate();
             scanning = true;
+            scanningProgressBar.setVisibility(View.VISIBLE);
             boolean success = wifiManager.startScan();
             // Setup a timer
             uiHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     scanning = false;
+                    scanningProgressBar.setVisibility(View.GONE);
                     fab.show();
-                    ProgressableActivity activity = ((ProgressableActivity)getActivity());
-                    if (activity != null)
-                        activity.setProgressDone();
                 }
             }, 10000);
 
@@ -236,8 +241,8 @@ public class ScanFragment extends Fragment {
         }
 
         adapter.updateData(data);
-        ((ProgressableActivity)getActivity()).setProgressDone();
         fab.show();
+        scanningProgressBar.setVisibility(View.GONE);
         this.scanning = false;
     }
 
@@ -249,8 +254,8 @@ public class ScanFragment extends Fragment {
         // handle failure: new scan did NOT succeed
         // consider using old scan results: these are the OLD results!
         updateScanData(wifiManager.getScanResults());
-        ((ProgressableActivity)getActivity()).setProgressDone();
         fab.show();
+        scanningProgressBar.setVisibility(View.GONE);
         Toast.makeText(getContext(), "Scan failed wifi networks", Toast.LENGTH_SHORT).show();
         this.scanning = false;
     }
@@ -283,7 +288,7 @@ public class ScanFragment extends Fragment {
                 @Override
                 public void onClick(View v) {
                     TargetWifiAp targetAp = new TargetWifiAp(sr.SSID,sr.BSSID);
-                    pairActivityViewModel.setTargetWifiAp(targetAp);
+                    pairActivityViewModel.setMerossDeviceAp(targetAp);
                     NavHostFragment
                             .findNavController(ScanFragment.this)
                             .navigate(R.id.scan_to_connect);

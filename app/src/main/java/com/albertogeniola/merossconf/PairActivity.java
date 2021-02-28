@@ -8,8 +8,11 @@ import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
@@ -20,10 +23,12 @@ import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import static android.location.LocationManager.PROVIDERS_CHANGED_ACTION;
 import static android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION;
 
-public class PairActivity extends AppCompatActivity implements ProgressableActivity {
-    private ProgressBar progressBar;
+public class PairActivity extends AppCompatActivity {
     private PairActivityViewModel viewModel;
     private BroadcastReceiver mReceiver;
+    private TextView wifiTextView;
+    private TextView locationTextView;
+    private LinearLayout wifiLocationStatusLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +37,10 @@ public class PairActivity extends AppCompatActivity implements ProgressableActiv
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        wifiTextView = findViewById(R.id.pairWifiOffTextView);
+        locationTextView = findViewById(R.id.pairLocationOffTextView);
+        wifiLocationStatusLayout = findViewById(R.id.pairWifiLocationStatusLayout);
         this.viewModel = new ViewModelProvider(this).get(PairActivityViewModel.class);
-        this.progressBar = findViewById(R.id.progressBar);
         this.mReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -41,7 +48,6 @@ public class PairActivity extends AppCompatActivity implements ProgressableActiv
                 if (status == null) {
                     status = new WifiLocationStatus(null, null);
                 }
-
                 if(intent.getAction().equals(NETWORK_STATE_CHANGED_ACTION) || intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
                     status.setWifiEnabledOrEnabling(AndroidUtils.isWifiEnabbled(PairActivity.this));
                     viewModel.setWifiLocationStatus(status);
@@ -49,6 +55,7 @@ public class PairActivity extends AppCompatActivity implements ProgressableActiv
                     status.setLocationEnabledOrEnabling(AndroidUtils.isLocationEnabled(PairActivity.this));
                     viewModel.setWifiLocationStatus(status);
                 }
+                updateWifiLocationStatusBar(status.getWifiEnabledOrEnabling(), status.getLocationEnabledOrEnabling());
             }
         };
 
@@ -64,6 +71,19 @@ public class PairActivity extends AppCompatActivity implements ProgressableActiv
         filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         filter.addAction(PROVIDERS_CHANGED_ACTION);
         this.registerReceiver(this.mReceiver, filter);
+
+        // Update wifi status bar
+        boolean wifiEnabled = AndroidUtils.isWifiEnabbled(PairActivity.this);
+        boolean locationEnabled = AndroidUtils.isLocationEnabled(PairActivity.this);
+        updateWifiLocationStatusBar(wifiEnabled, locationEnabled);
+    }
+
+    private void updateWifiLocationStatusBar(@Nullable Boolean wifiEnabled, @Nullable Boolean locationEnabled) {
+        if (wifiEnabled != null)
+            wifiTextView.setVisibility(wifiEnabled ? View.GONE : View.VISIBLE);
+        if (locationEnabled!=null)
+            locationTextView.setVisibility(locationEnabled ? View.GONE : View.VISIBLE);
+        wifiLocationStatusLayout.setVisibility(wifiTextView.getVisibility()==View.VISIBLE || locationTextView.getVisibility()==View.VISIBLE ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -75,17 +95,5 @@ public class PairActivity extends AppCompatActivity implements ProgressableActiv
     protected void onPause() {
         super.onPause();
         this.unregisterReceiver(this.mReceiver);
-    }
-
-    @Override
-    public void setProgressIndeterminate() {
-        this.progressBar.setIndeterminate(true);
-        this.progressBar.setVisibility(View.VISIBLE);
-    }
-
-    @Override
-    public void setProgressDone() {
-        this.progressBar.setIndeterminate(true);
-        this.progressBar.setVisibility(View.INVISIBLE);
     }
 }

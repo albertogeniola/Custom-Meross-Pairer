@@ -149,8 +149,8 @@ public class ConnectFragment extends Fragment {
     }
 
     private void connectAp() {
-        String ssid = pairActivityViewModel.getTargetWifiAp().getValue().getSsid();
-        String bssid = pairActivityViewModel.getTargetWifiAp().getValue().getBssid();
+        String ssid = pairActivityViewModel.getMerossDeviceWifiAp().getValue().getSsid();
+        String bssid = pairActivityViewModel.getMerossDeviceWifiAp().getValue().getBssid();
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             WifiConfiguration conf = new WifiConfiguration();
@@ -359,7 +359,7 @@ public class ConnectFragment extends Fragment {
                 if (networkInfo.isConnected()) {
                     if (wifiManager.getConnectionInfo() != null &&
                             wifiManager.getConnectionInfo().getBSSID() != null &&
-                            wifiManager.getConnectionInfo().getBSSID().compareTo(pairActivityViewModel.getTargetWifiAp().getValue().getBssid()) == 0) {
+                            wifiManager.getConnectionInfo().getBSSID().compareTo(pairActivityViewModel.getMerossDeviceWifiAp().getValue().getBssid()) == 0) {
                         // Connected!
                         int tmp = wifiManager.getDhcpInfo().gateway;
                         gatewayIp = String.format("%d.%d.%d.%d", (tmp & 0xff), (tmp >> 8 & 0xff), (tmp >> 16 & 0xff), (tmp >> 24 & 0xff));

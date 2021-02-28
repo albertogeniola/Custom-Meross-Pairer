@@ -6,40 +6,6 @@
     android:layout_height="match_parent"
     tools:context=".ui.fragments.connect.ConnectFragment">
 
-    <ImageSwitcher
-        android:id="@+id/wifi_animation"
-        android:layout_width="187dp"
-        android:layout_height="218dp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView4"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <TextView
-        android:id="@+id/configure_mqtt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/configuring_mqtt"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/wifi_animation" />
-
-    <TextView
-        android:id="@+id/configure_wifi"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/configuring_wifi"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.501"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/configure_mqtt" />
-
     <TextView
         android:id="@+id/textView4"
         android:layout_width="match_parent"
@@ -53,5 +19,43 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <com.albertogeniola.merossconf.ui.views.TaskLine
+        android:id="@+id/sendPairCommandTaskLine"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView4"
+        app:state="not_started"
+        app:title="Send pair command" />
+
+    <com.albertogeniola.merossconf.ui.views.TaskLine
+        android:id="@+id/connectToBrokerWifi"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        app:layout_constraintEnd_toEndOf="@+id/sendPairCommandTaskLine"
+        app:layout_constraintStart_toStartOf="@+id/sendPairCommandTaskLine"
+        app:layout_constraintTop_toBottomOf="@+id/sendPairCommandTaskLine"
+        app:state="not_started"
+        app:title="Connect to target wifi" />
+
+    <com.albertogeniola.merossconf.ui.views.TaskLine
+        android:id="@+id/connectToMqttBrokerTaskLike"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        app:layout_constraintEnd_toEndOf="@+id/connectToBrokerWifi"
+        app:layout_constraintStart_toStartOf="@+id/connectToBrokerWifi"
+        app:layout_constraintTop_toBottomOf="@+id/connectToBrokerWifi"
+        app:state="not_started"
+        app:title="Connect to mqtt broker" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

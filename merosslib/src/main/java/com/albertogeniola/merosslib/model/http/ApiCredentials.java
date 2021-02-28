@@ -12,5 +12,6 @@ public class ApiCredentials {
     private String token;
     private String userId;
     private String userEmail;
+    private String key;
     private Date issuedOn;
 }

@@ -14,7 +14,8 @@ import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 public class PairActivityViewModel extends ViewModel {
     // Wrapper around the Meross AP
     private MutableLiveData<MerossDeviceAp> apDevice;
-    private MutableLiveData<TargetWifiAp> targetWifiAp;
+    private MutableLiveData<TargetWifiAp> merossDeviceWifiAp;
+    private MutableLiveData<TargetWifiAp> localWifiNetwork;
     private MutableLiveData<MessageGetConfigWifiListResponse> deviceAvailableWifis;
     private MutableLiveData<MqttConfiguration> targetMqttConfig;
     private MutableLiveData<MessageGetSystemAllResponse> deviceInfo;
@@ -23,7 +24,8 @@ public class PairActivityViewModel extends ViewModel {
 
     public PairActivityViewModel() {
         apDevice = new MutableLiveData<>(null);
-        targetWifiAp = new MutableLiveData<>(null);
+        merossDeviceWifiAp = new MutableLiveData<>(null);
+        localWifiNetwork = new MutableLiveData<>(null);
         targetMqttConfig = new MutableLiveData<>(null);
         deviceInfo = new MutableLiveData<>(null);
         deviceAvailableWifis = new MutableLiveData<>(null);
@@ -37,11 +39,18 @@ public class PairActivityViewModel extends ViewModel {
         this.apDevice.setValue(device);
     }
 
-    public LiveData<TargetWifiAp> getTargetWifiAp() {
-        return this.targetWifiAp;
+    public LiveData<TargetWifiAp> getMerossDeviceWifiAp() {
+        return this.merossDeviceWifiAp;
     }
-    public void setTargetWifiAp(TargetWifiAp apInfo) {
-        this.targetWifiAp.setValue(apInfo);
+    public void setMerossDeviceAp(TargetWifiAp apInfo) {
+        this.merossDeviceWifiAp.setValue(apInfo);
+    }
+
+    public LiveData<TargetWifiAp> getLocalWifiAp() {
+        return this.localWifiNetwork;
+    }
+    public void setLocalWifiAp(TargetWifiAp apInfo) {
+        this.localWifiNetwork.setValue(apInfo);
     }
 
     public LiveData<MessageGetSystemAllResponse> getDeviceInfo() {

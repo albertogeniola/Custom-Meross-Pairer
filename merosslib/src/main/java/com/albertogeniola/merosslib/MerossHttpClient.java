@@ -64,6 +64,7 @@ public class MerossHttpClient implements Serializable {
                 result.get("token").toString(),
                 result.get("userid").toString(),
                 result.get("email").toString(),
+                result.get("key").toString(),
                 new Date()
         );
         return new MerossHttpClient(creds, client);

@@ -23,6 +23,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.albertogeniola.merossconf.MerossUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.TargetWifiAp;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
@@ -103,7 +104,7 @@ public class WifiConfigFragment extends Fragment {
             TargetWifiAp wifiInfo = new TargetWifiAp(selectedWifi.getSsid(), selectedWifi.getBssid());
             try {
                 wifiInfo.setPassword(Base64.encodeToString(wifiPasswordTextView.getEditText().getText().toString().getBytes("utf8"),Base64.NO_WRAP));
-                pairActivityViewModel.setTargetWifiAp(wifiInfo);
+                pairActivityViewModel.setLocalWifiAp(wifiInfo);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 throw new RuntimeException("UTF8 unsupported");
@@ -120,7 +121,11 @@ public class WifiConfigFragment extends Fragment {
 
         public WifiSpinnerAdapter(Context context, List<GetConfigWifiListEntry> values) {
             super(context, R.layout.wifi_dropdown_item, R.id.wifi_name);
-            this.values = new ArrayList<>(values);
+            this.values = new ArrayList<>();
+            for (GetConfigWifiListEntry entry : values) {
+                if (! MerossUtils.isMerossAp(entry.getSsid()))
+                    this.values.add(entry);
+            }
         }
 
         @Override
