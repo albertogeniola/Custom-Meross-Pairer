@@ -8,6 +8,7 @@ import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -23,6 +24,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.MerossUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.TargetWifiAp;
@@ -42,6 +44,7 @@ public class WifiConfigFragment extends Fragment {
     private Spinner wifiSpinner;
     private TextInputLayout wifiPasswordTextView;
     private WifiSpinnerAdapter adapter;
+    private boolean mSavePassword;
 
 
     @Override
@@ -81,6 +84,32 @@ public class WifiConfigFragment extends Fragment {
             }
         });
 
+        CheckBox saveWifiPasswordCheckBox = view.findViewById(R.id.saveWifiPasswordCheckBox);
+        saveWifiPasswordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                mSavePassword = isChecked;
+            }
+        });
+        mSavePassword = saveWifiPasswordCheckBox.isChecked();
+
+        wifiSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                GetConfigWifiListEntry selection = adapter.getItem(position);
+                String savedPassword = AndroidPreferencesManager.getWifiStoredPassword(requireContext(), selection.getBssid());
+                if (savedPassword != null)
+                    wifiPasswordTextView.getEditText().setText(savedPassword);
+                else
+                    wifiPasswordTextView.getEditText().setText("");
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
     }
 
     private View.OnClickListener pairButtonClick = new View.OnClickListener() {
@@ -102,13 +131,18 @@ public class WifiConfigFragment extends Fragment {
             }
 
             TargetWifiAp wifiInfo = new TargetWifiAp(selectedWifi.getSsid(), selectedWifi.getBssid());
+            String clearPassword = wifiPasswordTextView.getEditText().getText().toString();
             try {
-                wifiInfo.setPassword(Base64.encodeToString(wifiPasswordTextView.getEditText().getText().toString().getBytes("utf8"),Base64.NO_WRAP));
+                wifiInfo.setPassword(Base64.encodeToString(clearPassword.toString().getBytes("utf8"),Base64.NO_WRAP));
                 pairActivityViewModel.setLocalWifiAp(wifiInfo);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 throw new RuntimeException("UTF8 unsupported");
             }
+
+            // Save the password
+            if (mSavePassword)
+                AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), wifiInfo.getBssid(), clearPassword);
 
             // Navigate to the next fragment
             NavHostFragment.findNavController(WifiConfigFragment.this)

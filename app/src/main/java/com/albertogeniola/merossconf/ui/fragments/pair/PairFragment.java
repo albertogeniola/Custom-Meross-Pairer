@@ -26,6 +26,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -57,12 +58,16 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.security.KeyManagementException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -77,6 +82,7 @@ public class PairFragment extends Fragment {
     private Handler uiThreadHandler;
     private ScheduledExecutorService worker;
 
+    private TextView errorDetailsTextView;
     private State state = State.INIT;
     private String error = null;
     private WifiManager mWifiManager;
@@ -89,41 +95,30 @@ public class PairFragment extends Fragment {
 
     // Logic methods
     private void stateMachine(Signal signal) {
-        switch(state) {
-            case INIT:
-                if (signal == Signal.RESUMED) {
-                    state = State.SENDING_PAIRING_COMMAND;
-                    updateUi();
-                    startPairing();
-                }
-                break;
-            case SENDING_PAIRING_COMMAND:
-                if (signal == Signal.DEVICE_CONFIGURED) {
-                    state = State.CONNETING_LOCAL_WIFI;
-                    updateUi();
-                    connectToLocalWifi();
-                }
-                break;
-            case CONNETING_LOCAL_WIFI:
-                if (signal == Signal.WIFI_CONNECTED) {
-                    state = State.CONNECTING_TO_MQTT_BROKER;
-                    updateUi();
-                    connectToMqttBorker();
-                }
-                break;
-            case CONNECTING_TO_MQTT_BROKER:
-                if (signal == Signal.MQTT_CONNECTED) {
-                    state = State.DONE;
-                    updateUi();
-                    completeActivityFragment();
-                }
-                break;
-        }
+        updateUi();
 
         if (signal == Signal.ERROR) {
             state = State.ERROR;
             updateUi();
+            return;
         }
+
+        switch(state) {
+            case INIT:
+                if (signal == Signal.RESUMED) {startPairing();}
+                break;
+            case SENDING_PAIRING_COMMAND:
+                if (signal == Signal.DEVICE_CONFIGURED) {connectToLocalWifi();}
+                break;
+            case CONNETING_LOCAL_WIFI:
+                if (signal == Signal.WIFI_CONNECTED) {connectToMqttBorker();}
+                break;
+            case CONNECTING_TO_MQTT_BROKER:
+                if (signal == Signal.MQTT_CONNECTED) {completeActivityFragment();}
+                break;
+        }
+
+        updateUi();
     }
 
     private void startPairing() {
@@ -159,6 +154,8 @@ public class PairFragment extends Fragment {
     }
 
     private void connectToLocalWifi() {
+        state = State.CONNETING_LOCAL_WIFI;
+
         // Register Wifi Broadcast Receiver
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
@@ -218,12 +215,20 @@ public class PairFragment extends Fragment {
     }
 
     private void connectToMqttBorker() {
+        state = State.CONNECTING_TO_MQTT_BROKER;
         String uri = "ssl://" + pairActivityViewModel.getTargetMqttConfig().getValue().getHostname() + ":" + pairActivityViewModel.getTargetMqttConfig().getValue().getPort();
-        MqttAndroidClient mqttAndroidClient = new MqttAndroidClient(
+        final MqttAndroidClient mqttAndroidClient = new MqttAndroidClient(
                 requireContext().getApplicationContext(),
                 uri,
-                "TEST"); // TODO: Change this
+                "app:check"); // TODO: Change this
         MqttConnectOptions options = new MqttConnectOptions();
+        String fake_mac = "00:00:00:00:00:00";
+        ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(requireContext());
+        String userId = creds.getUserId();
+        String key = creds.getKey();
+        options.setUserName(fake_mac);
+        String password = calculateMQttPassword(userId, fake_mac, key);
+        options.setPassword(password.toCharArray());
         options.setAutomaticReconnect(false);
         options.setCleanSession(false);
         options.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
@@ -239,52 +244,67 @@ public class PairFragment extends Fragment {
             options.setSocketFactory(sc.getSocketFactory());
         } catch (KeyManagementException | NoSuchAlgorithmException e) {
             e.printStackTrace ();
-            // TODO
+            error = "Error occurred while connecting to remote broker";
+            stateMachine(Signal.ERROR);
         }
-
-        mqttAndroidClient.setCallback(new MqttCallback() {
-            @Override
-            public void connectionLost(Throwable cause) {
-                // TODO
-                Log.i("TEST", "connection lost");
-            }
-
-            @Override
-            public void messageArrived(String topic, MqttMessage message) throws Exception {
-                // TODO
-                Log.i("TEST", "connection lost");
-            }
-
-            @Override
-            public void deliveryComplete(IMqttDeliveryToken token) {
-                // TODO
-                Log.i("TEST", "connection lost");
-            }
-        });
 
         /* Establish an MQTT connection */
         try {
             mqttAndroidClient.connect(options, null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
-                    Log.i("TEST", "connect succeed");
-                    // TODO
+                    try {
+                        mqttAndroidClient.disconnect();
+                    } catch (MqttException e) {
+                        e.printStackTrace();
+                    }
+
+                    stateMachine(Signal.MQTT_CONNECTED);
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    Log.i("TEST", "connect failed");
-                    // TODO
+                    error = "Failed MQTT Connection: " + exception.getMessage();
+                    stateMachine(Signal.ERROR);
                 }
             });
 
         } catch (MqttException e) {
             e.printStackTrace();
+            error = "Failed MQTT Connection: " + e.getMessage();
+            stateMachine(Signal.ERROR);
         }
 
     }
 
+    private String calculateMQttPassword(String userId, String fake_mac, String key) {
+        StringBuilder sb = new StringBuilder();
+        String md5pwd = md5(fake_mac+key);
+        sb.append(userId);
+        sb.append("_");
+        sb.append(md5pwd);
+        return sb.toString();
+    }
+
+    public static String md5(String message) {
+        String digest = null;
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] hash = md.digest(message.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder(2*hash.length);
+            for(byte b : hash){
+                sb.append(String.format("%02x", b&0xff));
+            } digest = sb.toString();
+        } catch (Exception ex) {
+            throw new RuntimeException("MD5 error");
+        }
+
+        return digest;
+    }
+
+
     private void configureDevice(final String userId, final String key) {
+        state = State.SENDING_PAIRING_COMMAND;
         worker.schedule(new Runnable() {
             @Override
             public void run() {
@@ -330,6 +350,7 @@ public class PairFragment extends Fragment {
 
 
     private void completeActivityFragment() {
+        state = State.DONE;
         NavController ctrl = NavHostFragment.findNavController(this);
         ctrl.popBackStack(R.id.ScanFragment, false);
         ctrl.navigate(R.id.PairDone);
@@ -342,31 +363,38 @@ public class PairFragment extends Fragment {
             public void run() {
                 switch (state) {
                     case INIT:
+                        errorDetailsTextView.setText("");
+                        errorDetailsTextView.setVisibility(View.GONE);
                         sendPairCommandTaskLine.setState(TaskLine.TaskState.not_started);
                         connectLocalWifiTaskLine.setState(TaskLine.TaskState.not_started);
                         testMqttBrokerTaskLine.setState(TaskLine.TaskState.not_started);
                         currentTask = null;
                         break;
                     case SENDING_PAIRING_COMMAND:
+                        errorDetailsTextView.setVisibility(View.GONE);
                         sendPairCommandTaskLine.setState(TaskLine.TaskState.running);
                         currentTask = sendPairCommandTaskLine;
                         break;
                     case CONNETING_LOCAL_WIFI:
+                        errorDetailsTextView.setVisibility(View.GONE);
                         sendPairCommandTaskLine.setState(TaskLine.TaskState.completed);
                         connectLocalWifiTaskLine.setState(TaskLine.TaskState.running);
                         currentTask = connectLocalWifiTaskLine;
                         break;
                     case CONNECTING_TO_MQTT_BROKER:
+                        errorDetailsTextView.setVisibility(View.GONE);
                         connectLocalWifiTaskLine.setState(TaskLine.TaskState.completed);
                         testMqttBrokerTaskLine.setState(TaskLine.TaskState.running);
                         currentTask = testMqttBrokerTaskLine;
                         break;
                     case DONE:
+                        errorDetailsTextView.setVisibility(View.GONE);
                         testMqttBrokerTaskLine.setState(TaskLine.TaskState.completed);
                         currentTask = null;
                         break;
                     case ERROR:
-                        Snackbar.make(PairFragment.this.getView(), error, Snackbar.LENGTH_LONG).show();
+                        errorDetailsTextView.setText(error);
+                        errorDetailsTextView.setVisibility(View.VISIBLE);
                         if (currentTask != null) {
                             currentTask.setState(TaskLine.TaskState.failed);
                         }
@@ -408,6 +436,7 @@ public class PairFragment extends Fragment {
         sendPairCommandTaskLine = view.findViewById(R.id.sendPairCommandTaskLine);
         connectLocalWifiTaskLine = view.findViewById(R.id.connectToBrokerWifi);
         testMqttBrokerTaskLine  = view.findViewById(R.id.connectToMqttBrokerTaskLike);
+        errorDetailsTextView = view.findViewById(R.id.errorDetailTextView);
     }
 
     @Override

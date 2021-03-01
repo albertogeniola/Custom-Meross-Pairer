@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.albertogeniola.merossconf.model.MqttConfiguration;
@@ -14,6 +15,8 @@ import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import de.adorsys.android.securestoragelibrary.SecurePreferences;
 
 import static com.albertogeniola.merossconf.Constants.LOG_TAG;
 
@@ -61,6 +64,15 @@ public class AndroidPreferencesManager {
         String json = g.toJson(httpCredentials);
         editor.putString(KEY_HTTP_CONF, json);
         editor.apply();
+    }
+
+    @Nullable
+    public static String getWifiStoredPassword(@NonNull Context c, @NonNull String bssid) {
+        return SecurePreferences.getStringValue(bssid.trim().toLowerCase(), c, null);
+    }
+
+    public static void storeWifiStoredPassword(@NonNull Context c, @NonNull String bssid, @NonNull String password) {
+        SecurePreferences.setValue(bssid.trim().toLowerCase(), password, c);
     }
 
     @Nullable

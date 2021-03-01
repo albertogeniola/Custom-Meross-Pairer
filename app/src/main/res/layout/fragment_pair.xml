@@ -58,4 +58,19 @@
         app:state="not_started"
         app:title="Connect to mqtt broker" />
 
+    <TextView
+        android:id="@+id/errorDetailTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_error_outline_black_24dp"
+        android:drawablePadding="10dp"
+        android:text="TextView"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/connectToMqttBrokerTaskLike"
+        app:layout_constraintStart_toStartOf="@+id/connectToMqttBrokerTaskLike"
+        app:layout_constraintTop_toBottomOf="@+id/connectToMqttBrokerTaskLike"
+        app:layout_constraintVertical_bias="0.32"
+        tools:text="UNKNOWN ERROR" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
