@@ -3,13 +3,17 @@ package com.albertogeniola.merossconf.ui.fragments.pair;
 import android.app.TaskStackBuilder;
 import android.app.job.JobInfo;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.R;
 
@@ -24,8 +28,11 @@ import cdflynn.android.library.checkview.CheckView;
 public class PairDoneFragment extends Fragment {
     private CheckView mCheckView;
     private Timer mTimer;
+    private Handler mHandler;
+    private Button pairDoneButton;
 
     public PairDoneFragment() {
+        mHandler = new Handler();
         mTimer = new Timer();
     }
 
@@ -44,12 +51,27 @@ public class PairDoneFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        pairDoneButton = view.findViewById(R.id.pairDoneButton);
+        pairDoneButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                NavController ctrl = NavHostFragment.findNavController(PairDoneFragment.this);
+                ctrl.popBackStack(R.id.ScanFragment, false);
+                //ctrl.navigate(R.id.PairDone);
+            }
+        });
+
         mCheckView = view.findViewById(R.id.pairDoneCheckView);
         mTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                mCheckView.check();
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mCheckView.check();
+                    }
+                });
             }
-        }, 1500);
+        }, 1000);
     }
 }

@@ -11,6 +11,7 @@
         android:id="@+id/taskLine_taskIcon"
         android:layout_width="15dp"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
         android:layout_weight="1"
         android:src="@drawable/ic_done_black_24dp"
         android:visibility="gone" />
@@ -20,6 +21,7 @@
         style="?android:attr/progressBarStyle"
         android:layout_width="15dp"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
         android:layout_weight="1"
         android:visibility="gone" />
 
@@ -27,6 +29,7 @@
         android:id="@+id/taskLine_taskTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
         android:layout_weight="3"
         android:gravity="center_vertical"
         android:text="Task Title"
