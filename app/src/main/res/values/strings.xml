@@ -35,7 +35,7 @@
     <string name="configuring_wifi">Configuring WiFi...</string>
     <string name="pair_fragment_text">"Please be patient while the app connects to the Meross Device. "</string>
     <string name="paring_done_title">PAIRING COMPLETED!</string>
-    <string name="pairing_done_text">The device should now reboot itself and connect to the specific Wifi/MQTT broker. \n\nWhen the connection succeeds, the device LED will turn solid green. Incase that does not happen, please make sure the following conditions are met:\n - The wifi SSID / password is correct\n- The Wifi has internet access or there is an NTP server available locally</string>
+    <string name="pairing_done_text">The device should now reboot itself and connect to the specific Wifi/MQTT broker. \n\nWhen the connection succeeds, the device LED will turn solid green. That means the device has paired successfully.</string>
     <string name="scan_fragment_text2">Put your Meross device in Pairing mode and then tap on the update button.\n\nBe sure to enable both Wifi and Location (GPS) access on your device. Some devices also require to turn off HotSpot in case it\'s active.</string>
     <string name="fargment_wifi_title">Wifi Connection</string>
     <string name="fargment_wifi_text">Please select the WiFi AP where the Meross device should connect to.</string>
@@ -66,8 +66,6 @@
     <string name="title_activity_login">HTTP Broker Login</string>
     <string name="login_intro_text">Please input the HTTP broker to use. If using the HomeAssistant addon, refer to its configuration page to determine the values to be inputted here.</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="user_key">User Key</string>
 
 </resources>

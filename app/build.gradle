@@ -48,4 +48,5 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
 
     implementation "de.adorsys.android:securestoragelibrary:0.0.2"
+    implementation 'com.github.cdflynn:checkview:v1.1'
 }
