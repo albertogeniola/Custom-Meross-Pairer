@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Custom Meross Pairer</string>
+    <string name="app_name">Custom Pairer</string>
     <string name="scan">Scan WiFi</string>
     <string name="title_activity_pair">Pair new device</string>
     <string name="enabling_wifi">Enabling Wifi...</string>
