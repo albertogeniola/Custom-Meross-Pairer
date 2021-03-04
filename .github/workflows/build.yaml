@@ -15,17 +15,17 @@ jobs:
       - name: Build the APK
         run: ./gradlew assembleRelease
       - name: Upload APK
-          uses: actions/upload-artifact@v1
-          with:
-            name: apk
-            path: app/build/outputs/apk/release/app-release-unsigned.apk
+        uses: actions/upload-artifact@v1
+        with:
+          name: apk
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
       - name: Build the APP Bundle
-          run: ./gradlew app:bundleRelease
+        run: ./gradlew app:bundleRelease
       - name: Upload APP Bundle
-          uses: actions/upload-artifact@v1
-          with:
-            name: bundle
-            path: app/build/outputs/bundle/release/app-release.aab
+        uses: actions/upload-artifact@v1
+        with:
+          name: bundle
+          path: app/build/outputs/bundle/release/app-release.aab
   release:
     name: Release APK
     needs: build
