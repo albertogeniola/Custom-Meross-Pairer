@@ -1,7 +1,7 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.Manifest;
-import android.app.AlertDialog;
+import androidx.appcompat.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -74,9 +74,6 @@ import javax.net.ssl.TrustManager;
 
 
 public class PairFragment extends Fragment {
-    private static final String DEFAULT_KEY = "";
-    private static final String DEFAULT_USER_ID = "";
-
     private PairActivityViewModel pairActivityViewModel;
     private TaskLine sendPairCommandTaskLine, connectLocalWifiTaskLine, testMqttBrokerTaskLine, currentTask;
     private Handler uiThreadHandler;
@@ -88,6 +85,8 @@ public class PairFragment extends Fragment {
     private WifiManager mWifiManager;
     private ConnectivityManager mConnectivityManager;
     private WifiBroadcastReceiver mReceiver;
+
+    private ApiCredentials mCreds;
 
     public PairFragment() {
         worker = Executors.newSingleThreadScheduledExecutor();
@@ -105,7 +104,7 @@ public class PairFragment extends Fragment {
 
         switch(state) {
             case INIT:
-                if (signal == Signal.RESUMED) {startPairing();}
+                if (signal == Signal.RESUMED) {configureDevice(mCreds.getUserId(), mCreds.getKey());}
                 break;
             case SENDING_PAIRING_COMMAND:
                 if (signal == Signal.DEVICE_CONFIGURED) {connectToLocalWifi();}
@@ -119,38 +118,6 @@ public class PairFragment extends Fragment {
         }
 
         updateUi();
-    }
-
-    private void startPairing() {
-        // Check if the user has logged in. In case he is not, show a warning message
-        // telling that the userid and key will be populated with predefined defaults
-        ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(getActivity());
-        if (creds == null) {
-            final AlertDialog alert = new AlertDialog.Builder(getActivity())
-                    .setMessage("You have are not logged in to any HTTP API. " +
-                            "The pairing process will therefore send the following defaults:" +
-                            "\nKey: '"+DEFAULT_KEY+"' (empty)" +
-                            "\nuserId: '"+DEFAULT_USER_ID+"' (empty)")
-                    .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            configureDevice(DEFAULT_USER_ID, DEFAULT_KEY);
-                            dialog.dismiss();
-                        }
-                    })
-                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            error = "Operation aborted.";
-                            stateMachine(Signal.ERROR);
-                            dialog.dismiss();
-                        }
-                    })
-                    .create();
-            alert.show();
-        } else {
-            configureDevice(creds.getUserId(), creds.getKey());
-        }
     }
 
     private void connectToLocalWifi() {
@@ -223,9 +190,8 @@ public class PairFragment extends Fragment {
                 "app:check"); // TODO: Change this
         MqttConnectOptions options = new MqttConnectOptions();
         String fake_mac = "00:00:00:00:00:00";
-        ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(requireContext());
-        String userId = creds.getUserId();
-        String key = creds.getKey();
+        String userId = mCreds.getUserId();
+        String key = mCreds.getKey();
         options.setUserName(fake_mac);
         String password = calculateMQttPassword(userId, fake_mac, key);
         options.setPassword(password.toCharArray());
@@ -442,6 +408,8 @@ public class PairFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+
+        mCreds = AndroidPreferencesManager.loadHttpCredentials(requireContext());
 
         // As soon as we resume, connect to the given WiFi
         stateMachine(Signal.RESUMED);

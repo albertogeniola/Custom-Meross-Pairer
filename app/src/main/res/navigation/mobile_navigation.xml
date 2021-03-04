@@ -16,14 +16,14 @@
             app:destination="@id/login_fragment" />
         <action
             android:id="@+id/action_account_fragment_to_pairActivity"
-            app:destination="@id/pairActivity" />
+            app:destination="@id/pair_activity" />
     </fragment>
     <fragment
         android:id="@+id/login_fragment"
         android:name="com.albertogeniola.merossconf.ui.fragments.login.LoginFragment"
         android:label="@string/title_activity_login" />
     <activity
-        android:id="@+id/pairActivity"
+        android:id="@+id/pair_activity"
         android:name="com.albertogeniola.merossconf.PairActivity"
         android:label="activity_pair"
         tools:layout="@layout/activity_pair" />

@@ -12,20 +12,28 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AlertDialogLayout;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.albertogeniola.merossconf.model.WifiLocationStatus;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
+import com.albertogeniola.merossconf.ui.fragments.info.InfoFragment;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.google.android.material.navigation.NavigationView;
 
@@ -40,6 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView locationTextView;
     private LinearLayout wifiLocationStatusLayout;
 
+    private MenuItem mPairMenuItem;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,11 +58,12 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
+        final NavigationView navigationView = findViewById(R.id.nav_view);
+        mPairMenuItem = navigationView.getMenu().findItem(R.id.pair_activity);
 
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
+        final NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         mAppBarConfiguration = new AppBarConfiguration.Builder(
                 navController.getGraph())
                 .setDrawerLayout(drawer)
@@ -90,6 +101,14 @@ public class MainActivity extends AppCompatActivity {
         mainActivityViewModel.setCredentials(AndroidPreferencesManager.loadHttpCredentials(this));
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
+                ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(MainActivity.this);
+                NavigationUI.onNavDestinationSelected(menuItem, navController);
+                return true;
+            }
+        });
     }
 
     private void updateWifiLocationStatusBar(@Nullable Boolean wifiEnabled, @Nullable Boolean locationEnabled) {
@@ -136,6 +155,15 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(MainActivity.this);
+        if (creds == null) {
+            mPairMenuItem.setEnabled(false);
+            mPairMenuItem.setTitle("Pair (Login required)");
+        } else {
+            mPairMenuItem.setEnabled(true);
+            mPairMenuItem.setTitle("Pair");
+        }
+
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         return NavigationUI.onNavDestinationSelected(item, navController)
                 || super.onOptionsItemSelected(item);
