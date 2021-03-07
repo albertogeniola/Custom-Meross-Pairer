@@ -131,8 +131,9 @@ public class LoginFragment extends Fragment {
             @Override
             public void run() {
                 try {
-                    final MerossHttpClient client = MerossHttpClient.getByUserAndPassword(strurl, username, password);
-                    AndroidPreferencesManager.storeHttpCredentials(getContext(), client.getCreds());
+                    final MerossHttpClient client = MerossHttpClient.getInstance();
+                    client.login(strurl, username, password);
+                    AndroidPreferencesManager.storeHttpCredentials(getContext(), client.getCredentials());
                     dialog.dismiss();
 
                     uiHandler.post(new Runnable() {
@@ -140,7 +141,7 @@ public class LoginFragment extends Fragment {
                         public void run() {
                             // Return the httpClient
                             MainActivityViewModel mainActivityViewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
-                            mainActivityViewModel.setCredentials(client.getCreds());
+                            mainActivityViewModel.setCredentials(client.getCredentials());
                             NavHostFragment.findNavController(LoginFragment.this).popBackStack();
                         }
                     });

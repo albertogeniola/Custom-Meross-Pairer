@@ -59,8 +59,9 @@
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
 
-    <string name="menu_account">Home</string>
+    <string name="menu_account">Account</string>
     <string name="menu_pair">Pair</string>
+    <string name="menu_devices">Devices</string>
     <string name="drawer_open">DRAWER OPEN</string>
     <string name="drawer_close">DRAWER CLOSE</string>
     <string name="title_activity_login">HTTP Broker Login</string>

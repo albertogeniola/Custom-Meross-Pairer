@@ -6,34 +6,25 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
-import android.text.Layout;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AlertDialogLayout;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
-import androidx.navigation.NavDestination;
 import androidx.navigation.Navigation;
-import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
-import com.albertogeniola.merossconf.model.WifiLocationStatus;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
-import com.albertogeniola.merossconf.ui.fragments.info.InfoFragment;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.google.android.material.navigation.NavigationView;
 
@@ -48,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView locationTextView;
     private LinearLayout wifiLocationStatusLayout;
 
-    private MenuItem mPairMenuItem;
+    private MenuItem mPairMenuItem, mDeviceMenuItem;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         final NavigationView navigationView = findViewById(R.id.nav_view);
         mPairMenuItem = navigationView.getMenu().findItem(R.id.pair_activity);
+        mDeviceMenuItem = navigationView.getMenu().findItem(R.id.devices_fragment);
 
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
@@ -156,12 +148,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(MainActivity.this);
+
         if (creds == null) {
             mPairMenuItem.setEnabled(false);
             mPairMenuItem.setTitle("Pair (Login required)");
+            mDeviceMenuItem.setEnabled(false);
+            mDeviceMenuItem.setTitle("Devices (Login required)");
         } else {
             mPairMenuItem.setEnabled(true);
             mPairMenuItem.setTitle("Pair");
+            mDeviceMenuItem.setEnabled(true);
+            mDeviceMenuItem.setTitle("Devices");
         }
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);

@@ -7,6 +7,9 @@ import android.view.View;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.albertogeniola.merosslib.MerossHttpClient;
+import com.albertogeniola.merosslib.model.http.ApiCredentials;
+
 public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,8 +30,17 @@ public class SplashActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         hideSystemUI();
+        init();
         startActivity(new Intent(SplashActivity.this, MainActivity.class));
         finish();
+    }
+
+    private void init() {
+        // Load credentials
+        MerossHttpClient instance = MerossHttpClient.getInstance();
+        ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(this);
+        if (creds != null)
+            instance.login(creds);
     }
 
     private void hideSystemUI() {

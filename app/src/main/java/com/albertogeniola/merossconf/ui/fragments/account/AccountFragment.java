@@ -1,27 +1,43 @@
 package com.albertogeniola.merossconf.ui.fragments.account;
 
 import android.content.DialogInterface;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.cardview.widget.CardView;
+import androidx.core.os.HandlerCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
+import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
+import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpInvalidCredentials;
+
+import java.io.IOException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class AccountFragment extends Fragment {
+    private Executor mExecutor = Executors.newSingleThreadExecutor();
+    private Handler uiHandler = HandlerCompat.createAsync(Looper.getMainLooper());
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         final MainActivityViewModel mainActivityViewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
@@ -61,10 +77,34 @@ public class AccountFragment extends Fragment {
             public void onClick(View v) {
                 AlertDialog dialog = new AlertDialog.Builder(getActivity()).setMessage("Are you sure you want to discard current HTTP credentials?").setTitle("Confirm").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        AndroidPreferencesManager.storeHttpCredentials(requireActivity(), null);
-                        mainActivityViewModel.setCredentials(null);
-                        dialog.dismiss();
+                    public void onClick(final DialogInterface dialog, int which) {
+                        new AsyncTask<Void, Void, String>() {
+
+                            @Override
+                            protected String doInBackground(Void... voids) {
+                                try {
+                                    MerossHttpClient.getInstance().logout();
+                                    return null;
+                                } catch (HttpInvalidCredentials e) {
+                                    e.printStackTrace();
+                                    return "Invalid Credentials";
+                                } catch (HttpApiException | IOException e) {
+                                    e.printStackTrace();
+                                    return "An error occurred";
+                                }
+                            }
+
+                            @Override
+                            protected void onPostExecute(String err) {
+                                if (err != null) {
+                                    Toast.makeText(requireContext(), err, Toast.LENGTH_SHORT).show();
+                                }
+
+                                mainActivityViewModel.setCredentials(null);
+                                AndroidPreferencesManager.removeHttpCredentials(requireContext());
+                                dialog.dismiss();
+                            }
+                        }.execute();
                     }
                 }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                     @Override

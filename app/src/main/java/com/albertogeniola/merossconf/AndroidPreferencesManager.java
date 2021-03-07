@@ -66,6 +66,13 @@ public class AndroidPreferencesManager {
         editor.apply();
     }
 
+    public static void removeHttpCredentials(Context c) {
+        SharedPreferences settings = c.getSharedPreferences(PREFS_CONFS, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.remove(KEY_HTTP_CONF);
+        editor.apply();
+    }
+
     @Nullable
     public static String getWifiStoredPassword(@NonNull Context c, @NonNull String bssid) {
         return SecurePreferences.getStringValue(bssid.trim().toLowerCase(), c, null);
