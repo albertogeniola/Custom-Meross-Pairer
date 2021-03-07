@@ -2,11 +2,10 @@ package com.albertogeniola.merosslib;
 
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.albertogeniola.merosslib.model.http.ApiResponse;
-import com.albertogeniola.merosslib.model.http.ErrorCodes;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpInvalidCredentials;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -18,7 +17,6 @@ import org.apache.commons.codec.binary.Base64;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
@@ -26,40 +24,54 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import javax.xml.bind.DatatypeConverter;
 
-import lombok.Getter;
+import lombok.NonNull;
 import lombok.SneakyThrows;
+
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
+
 
 
 public class MerossHttpClient implements Serializable {
-    private OkHttpClient client;
+    // Static attributes
+    private final static Logger l = Logger.getLogger(MerossHttpClient.class.getName());
 
-    @Getter
-    private ApiCredentials creds;
-
-    private static final Gson g = new Gson();
+    private static final Gson g = new GsonBuilder().disableHtmlEscaping().create();
     private static final String NOONCE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final String LOGIN_PATH = "/v1/Auth/Login";
+    private static final String LOGOUT_PATH = "/v1/Profile/logout";
     private static final String SECRET = "23x17ahWarFH6w29";
+    private static final HashMap<String, Object> DEFAULT_PARAMS = new HashMap<>();
+
+    // Class attributes
+    private ApiCredentials mCredentials;
+    private OkHttpClient mClient;
+
+    public MerossHttpClient() {
+        this(null, new OkHttpClient());
+    }
+    public MerossHttpClient(ApiCredentials creds) {
+        this(creds, new OkHttpClient());
+    }
 
     private MerossHttpClient(ApiCredentials creds, OkHttpClient client) {
-        this.creds = creds;
-        this.client = client;
-        this.client.setConnectTimeout(10, TimeUnit.SECONDS);
-        this.client.setReadTimeout(10, TimeUnit.SECONDS);
+        this.mCredentials = creds;
+        this.mClient = client;
+        this.mClient.setConnectTimeout(10, TimeUnit.SECONDS);
+        this.mClient.setReadTimeout(10, TimeUnit.SECONDS);
     }
 
     @SneakyThrows(UnsupportedEncodingException.class)
-    public static MerossHttpClient getByUserAndPassword(String apiUrl, String username, String password) throws IOException, HttpApiException, HttpInvalidCredentials {
-        Gson g = new Gson();
-        OkHttpClient client = new OkHttpClient();
+    public void login(String apiUrl, String username, String password) throws IOException, HttpApiException, HttpInvalidCredentials {
         HashMap<String, Object> data = new HashMap<>();
         data.put("email", username);
         data.put("password", password);
-        Map<String, Object> result = authenticatedPost(client, apiUrl+LOGIN_PATH, data, null);
+        Map<String, Object> result = authenticatedPost( apiUrl+LOGIN_PATH, data, null);
 
-        ApiCredentials creds = new ApiCredentials(
+        this.mCredentials = new ApiCredentials(
                 apiUrl,
                 result.get("token").toString(),
                 result.get("userid").toString(),
@@ -67,7 +79,13 @@ public class MerossHttpClient implements Serializable {
                 result.get("key").toString(),
                 new Date()
         );
-        return new MerossHttpClient(creds, client);
+    }
+
+    public void logout() throws HttpInvalidCredentials, HttpApiException, IOException {
+        if (mCredentials == null) {
+            throw new IllegalStateException("Invalid logout operation: this client is not logged in.");
+        }
+        authenticatedPost(mCredentials.getApiServer()+LOGOUT_PATH, null, mCredentials.getToken());
     }
 
     private static String generateNonce(int targetStringLength) {
@@ -95,11 +113,11 @@ public class MerossHttpClient implements Serializable {
     }
 
     @SneakyThrows({UnsupportedEncodingException.class, NoSuchAlgorithmException.class})
-    private static Map<String, Object> authenticatedPost(OkHttpClient client, String url, HashMap<String, Object> data, String httpToken) throws IOException, HttpApiException, HttpInvalidCredentials {
+    private Map<String, Object> authenticatedPost(@NonNull String url, HashMap<String, Object> data, String httpToken) throws IOException, HttpApiException, HttpInvalidCredentials {
 
         String nonce = generateNonce(16);
         long timestampMillis = new Date().getTime();
-        String params = new String(Base64.encodeBase64(g.toJson(data).getBytes("utf8")), "utf8");
+        String params = new String(Base64.encodeBase64(g.toJson(data == null ? DEFAULT_PARAMS : data ).getBytes("utf8")), "utf8");
 
         // Generate the md5-hash (called signature)
         MessageDigest m = MessageDigest.getInstance("md5");
@@ -113,23 +131,27 @@ public class MerossHttpClient implements Serializable {
         payload.put("timestamp", timestampMillis);
         payload.put("nonce", nonce);
 
+        String requestData = g.toJson(payload);
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Content-Type", "application/json")
+                .addHeader("Content-Type", "application/json; charset=utf-8")
                 .addHeader("Authorization",  httpToken == null ? "Basic" : "Basic " + httpToken)
                 .addHeader("vender", "Meross")
                 .addHeader("AppVersion", "1.3.0")
                 .addHeader("AppLanguage", "EN")
                 .addHeader("User-Agent", "okhttp/3.6.0")
-                .post(RequestBody.create(MediaType.parse("application/json; charset=utf-8"), g.toJson(payload).getBytes("utf8")))
+                .post(RequestBody.create(MediaType.parse("application/json; charset=utf-8"), requestData.getBytes("utf8")))
                 .build();
-        Response response = client.newCall(request).execute();
+
+        l.fine("HTTP Request, METHOD:" + request.method().toString() +", URL: " + request.urlString() + ", HEADERS: "+ request.headers() +", DATA:" +requestData);
+        Response response = mClient.newCall(request).execute();
+        String strdata = response.body().string();
+        l.fine("HTTP Response, STATUS_CODE: "+response.code()+", HEADERS: "+response.headers() + ", BODY: "+strdata);
         if (response.code() != 200) {
-            String responseString = response.body().string();
-            throw new IOException("Failed request to API. Response code: " + response.code() + ". Response data: "+ responseString);
+            l.severe("Bad HTTP Response code: " + response.code() );
+            throw new IOException("Failed request to API. Response code: " + response.code() + ". Response data: "+ strdata);
         }
 
-        String strdata = response.body().string();
         ApiResponse responseData = g.fromJson(strdata, ApiResponse.class);
 
         switch (responseData.getApiStatus()) {
@@ -143,5 +165,7 @@ public class MerossHttpClient implements Serializable {
         }
     }
 
-
+    public ApiCredentials getCredentials() {
+        return mCredentials;
+    }
 }
