@@ -14,4 +14,9 @@ public class ApiCredentials {
     private String userEmail;
     private String key;
     private Date issuedOn;
+
+    public boolean isExpired() {
+        // TODO: for now, tokens never expire
+        return false;
+    }
 }
