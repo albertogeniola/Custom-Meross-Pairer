@@ -22,10 +22,8 @@ import android.widget.EditText;
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.R;
-import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.MerossHttpClient;
-import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpInvalidCredentials;
 import com.google.android.material.snackbar.Snackbar;
@@ -41,6 +39,8 @@ public class LoginFragment extends Fragment {
     private EditText httpUsernameEditText;
     private EditText httpPasswordEditText;
     private Button loginButton;
+    private ScheduledExecutorService loginWorker = Executors.newSingleThreadScheduledExecutor();
+    private Handler uiHandler = new Handler(Looper.getMainLooper());
 
     public LoginFragment() {
         // Required empty public constructor
@@ -127,21 +127,52 @@ public class LoginFragment extends Fragment {
         dialog.setCancelable(false);
         dialog.setMessage("Please wait while logging in...");
         dialog.show();
-
-        HttpClientManager.getInstance().asyncLogin(strurl, username, password, new HttpClientManager.Callback<ApiCredentials>() {
+        loginWorker.execute(new Runnable() {
             @Override
-            public void onSuccess(ApiCredentials creds) {
-                AndroidPreferencesManager.storeHttpCredentials(requireContext(), creds);
-                dialog.dismiss();
-                MainActivityViewModel mainActivityViewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
-                mainActivityViewModel.setCredentials(creds);
-                NavHostFragment.findNavController(LoginFragment.this).popBackStack();
-            }
+            public void run() {
+                try {
+                    final MerossHttpClient client = MerossHttpClient.getInstance();
+                    client.login(strurl, username, password);
+                    AndroidPreferencesManager.storeHttpCredentials(getContext(), client.getCredentials());
+                    dialog.dismiss();
 
-            @Override
-            public void onFailure(Exception result) {
-                dialog.dismiss();
-                Snackbar.make(loginButton, "An error while executing the request.", Snackbar.LENGTH_LONG).show();
+                    uiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Return the httpClient
+                            MainActivityViewModel mainActivityViewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
+                            mainActivityViewModel.setCredentials(client.getCredentials());
+                            NavHostFragment.findNavController(LoginFragment.this).popBackStack();
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    uiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            dialog.dismiss();
+                            Snackbar.make(loginButton, "A network error occurred while executing the request. Make sure you are connected to the correct WiFi network.", Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+                } catch (final HttpApiException e) {
+                    e.printStackTrace();
+                    uiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            dialog.dismiss();
+                            Snackbar.make(loginButton, "The remote HTTP Api returned Error Code " + e.getCode().name(), Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+                } catch (HttpInvalidCredentials e) {
+                    e.printStackTrace();
+                    uiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            dialog.dismiss();
+                            Snackbar.make(loginButton, "Invalid username/password combination.", Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+                }
             }
         });
     }

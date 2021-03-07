@@ -2,20 +2,13 @@ package com.albertogeniola.merossconf;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
-
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class SplashActivity extends AppCompatActivity {
     @Override
@@ -43,20 +36,11 @@ public class SplashActivity extends AppCompatActivity {
     }
 
     private void init() {
-        // Configure logging
-        if (BuildConfig.DEBUG) {
-            ConsoleHandler handler = new ConsoleHandler();
-            handler.setLevel(Level.ALL);
-            Logger logger = Logger.getLogger("com.albertogeniola.merosslib");
-            logger.setLevel(Level.ALL);
-            logger.addHandler(handler);
-        }
-
         // Load credentials
-        HttpClientManager instance = HttpClientManager.getInstance();
+        MerossHttpClient instance = MerossHttpClient.getInstance();
         ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(this);
         if (creds != null)
-            instance.loadFromCredentials(creds);
+            instance.login(creds);
     }
 
     private void hideSystemUI() {

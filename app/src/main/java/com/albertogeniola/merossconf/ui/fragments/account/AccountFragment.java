@@ -5,7 +5,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,7 +24,6 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.R;
-import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
@@ -37,6 +35,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class AccountFragment extends Fragment {
+    private Executor mExecutor = Executors.newSingleThreadExecutor();
+    private Handler uiHandler = HandlerCompat.createAsync(Looper.getMainLooper());
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         final MainActivityViewModel mainActivityViewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
@@ -77,20 +78,33 @@ public class AccountFragment extends Fragment {
                 AlertDialog dialog = new AlertDialog.Builder(getActivity()).setMessage("Are you sure you want to discard current HTTP credentials?").setTitle("Confirm").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialog, int which) {
-                        HttpClientManager.getInstance().asyncLogout(new HttpClientManager.Callback<Void>() {
+                        new AsyncTask<Void, Void, String>() {
+
                             @Override
-                            public void onSuccess(Void result) {
+                            protected String doInBackground(Void... voids) {
+                                try {
+                                    MerossHttpClient.getInstance().logout();
+                                    return null;
+                                } catch (HttpInvalidCredentials e) {
+                                    e.printStackTrace();
+                                    return "Invalid Credentials";
+                                } catch (HttpApiException | IOException e) {
+                                    e.printStackTrace();
+                                    return "An error occurred";
+                                }
+                            }
+
+                            @Override
+                            protected void onPostExecute(String err) {
+                                if (err != null) {
+                                    Toast.makeText(requireContext(), err, Toast.LENGTH_SHORT).show();
+                                }
+
                                 mainActivityViewModel.setCredentials(null);
                                 AndroidPreferencesManager.removeHttpCredentials(requireContext());
                                 dialog.dismiss();
                             }
-
-                            @Override
-                            public void onFailure(Exception result) {
-                                Toast.makeText(requireContext(),"An error occurred while logging out", Toast.LENGTH_SHORT).show();
-                                dialog.dismiss();
-                            }
-                        });
+                        }.execute();
                     }
                 }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                     @Override
