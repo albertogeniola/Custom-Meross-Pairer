@@ -1,10 +1,7 @@
 package com.albertogeniola.merossconf.model;
 
 import android.content.Context;
-import android.net.wifi.hotspot2.pps.Credential;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.telecom.Call;
 
 import androidx.annotation.Nullable;
 
@@ -12,11 +9,7 @@ import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.model.exception.MissingHttpCredentials;
 import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
-import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
-import com.albertogeniola.merosslib.model.http.exceptions.HttpInvalidCredentials;
 
-import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.util.concurrent.Executor;
 
 public class HttpClientManager {

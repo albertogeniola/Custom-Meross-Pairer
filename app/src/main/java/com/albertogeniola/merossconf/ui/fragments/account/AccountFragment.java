@@ -1,11 +1,7 @@
 package com.albertogeniola.merossconf.ui.fragments.account;
 
 import android.content.DialogInterface;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,25 +12,19 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.cardview.widget.CardView;
-import androidx.core.os.HandlerCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
-import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
-import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
+import com.albertogeniola.merosslib.model.http.ErrorCodes;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
-import com.albertogeniola.merosslib.model.http.exceptions.HttpInvalidCredentials;
-
-import java.io.IOException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiTokenException;
 
 public class AccountFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -86,8 +76,14 @@ public class AccountFragment extends Fragment {
                             }
 
                             @Override
-                            public void onFailure(Exception result) {
-                                Toast.makeText(requireContext(),"An error occurred while logging out", Toast.LENGTH_SHORT).show();
+                            public void onFailure(Exception ex) {
+                                // If the failure depends on a invalid/expired token, simply
+                                // remove it from local storage
+                                if (ex instanceof HttpApiTokenException) {
+                                    AndroidPreferencesManager.removeHttpCredentials(requireContext());
+                                    mainActivityViewModel.setCredentials(null);
+                                }
+                                Toast.makeText(requireContext(),"An error occurred while logging out: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
                                 dialog.dismiss();
                             }
                         });

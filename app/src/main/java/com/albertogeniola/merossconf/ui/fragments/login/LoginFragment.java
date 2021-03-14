@@ -7,8 +7,6 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
-import android.os.Handler;
-import android.os.Looper;
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.method.PasswordTransformationMethod;
 import android.view.LayoutInflater;
@@ -24,16 +22,9 @@ import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
-import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
-import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
-import com.albertogeniola.merosslib.model.http.exceptions.HttpInvalidCredentials;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
-
-import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class LoginFragment extends Fragment {
 

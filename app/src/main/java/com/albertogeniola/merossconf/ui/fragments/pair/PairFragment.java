@@ -184,7 +184,7 @@ public class PairFragment extends Fragment {
     private void connectToMqttBorker() {
         state = State.CONNECTING_TO_MQTT_BROKER;
         String uri = "ssl://" + pairActivityViewModel.getTargetMqttConfig().getValue().getHostname() + ":" + pairActivityViewModel.getTargetMqttConfig().getValue().getPort();
-        final MqttAndroidClient mqttAndroidClient = new MqttAndroidClient(
+        MqttAndroidClient mqttAndroidClient = new MqttAndroidClient(
                 requireContext().getApplicationContext(),
                 uri,
                 "app:check"); // TODO: Change this
@@ -205,10 +205,12 @@ public class PairFragment extends Fragment {
         TrustManager[] trustManagers = new DummyTrustManager[]{new DummyTrustManager()};
         SSLContext sc = null;
         try {
+            // FIXME: wait a bit so that the underlying network becomes available.
+            Thread.sleep(3000);
             sc = SSLContext.getInstance ("SSL");
             sc.init (null, trustManagers, new java.security.SecureRandom ());
             options.setSocketFactory(sc.getSocketFactory());
-        } catch (KeyManagementException | NoSuchAlgorithmException e) {
+        } catch (KeyManagementException | NoSuchAlgorithmException | InterruptedException e) {
             e.printStackTrace ();
             error = "Error occurred while connecting to remote broker";
             stateMachine(Signal.ERROR);
@@ -220,7 +222,7 @@ public class PairFragment extends Fragment {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     try {
-                        mqttAndroidClient.disconnect();
+                        asyncActionToken.getClient().disconnect();
                     } catch (MqttException e) {
                         e.printStackTrace();
                     }
