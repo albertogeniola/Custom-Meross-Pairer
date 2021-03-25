@@ -33,8 +33,14 @@ public enum ErrorCodes {
     @SerializedName("1200")
     CODE_TOKEN_EXPIRED (1200),
 
+    @SerializedName("1022")
+    CODE_TOKEN_ERROR (1022),
+
     @SerializedName("1301")
-    CODE_TOO_MANY_TOKENS(1301);
+    CODE_TOO_MANY_TOKENS(1301),
+
+    @SerializedName("5000")
+    CODE_ERROR_GENERIC(5000);
 
     private int value;
     ErrorCodes(int val) {

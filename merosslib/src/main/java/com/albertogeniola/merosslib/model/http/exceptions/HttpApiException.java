@@ -8,7 +8,11 @@ import lombok.Getter;
 public class HttpApiException extends Exception {
     private ErrorCodes code;
     public HttpApiException(ErrorCodes code) {
-        super("HTTP Api returned status code " + code.getCode());
+        this(code, "HTTP Api returned status code " + code.getCode());
+    }
+
+    public HttpApiException(ErrorCodes code, String message) {
+        super(message);
         this.code = code;
     }
 }

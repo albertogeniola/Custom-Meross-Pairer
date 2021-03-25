@@ -2,8 +2,10 @@ package com.albertogeniola.merosslib;
 
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.albertogeniola.merosslib.model.http.ApiResponse;
+import com.albertogeniola.merosslib.model.http.ErrorCodes;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
-import com.albertogeniola.merosslib.model.http.exceptions.HttpInvalidCredentials;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiInvalidCredentialsException;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiTokenException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.okhttp.MediaType;
@@ -28,9 +30,6 @@ import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 
@@ -65,7 +64,7 @@ public class MerossHttpClient implements Serializable {
     }
 
     @SneakyThrows(UnsupportedEncodingException.class)
-    public void login(String apiUrl, String username, String password) throws IOException, HttpApiException, HttpInvalidCredentials {
+    public void login(String apiUrl, String username, String password) throws IOException, HttpApiException, HttpApiInvalidCredentialsException {
         HashMap<String, Object> data = new HashMap<>();
         data.put("email", username);
         data.put("password", password);
@@ -81,7 +80,7 @@ public class MerossHttpClient implements Serializable {
         );
     }
 
-    public void logout() throws HttpInvalidCredentials, HttpApiException, IOException {
+    public void logout() throws HttpApiInvalidCredentialsException, HttpApiException, IOException {
         if (mCredentials == null) {
             throw new IllegalStateException("Invalid logout operation: this client is not logged in.");
         }
@@ -113,7 +112,7 @@ public class MerossHttpClient implements Serializable {
     }
 
     @SneakyThrows({UnsupportedEncodingException.class, NoSuchAlgorithmException.class})
-    private Map<String, Object> authenticatedPost(@NonNull String url, HashMap<String, Object> data, String httpToken) throws IOException, HttpApiException, HttpInvalidCredentials {
+    private Map<String, Object> authenticatedPost(@NonNull String url, HashMap<String, Object> data, String httpToken) throws IOException, HttpApiException, HttpApiInvalidCredentialsException {
 
         String nonce = generateNonce(16);
         long timestampMillis = new Date().getTime();
@@ -149,7 +148,6 @@ public class MerossHttpClient implements Serializable {
         l.fine("HTTP Response, STATUS_CODE: "+response.code()+", HEADERS: "+response.headers() + ", BODY: "+strdata);
         if (response.code() != 200) {
             l.severe("Bad HTTP Response code: " + response.code() );
-            throw new IOException("Failed request to API. Response code: " + response.code() + ". Response data: "+ strdata);
         }
 
         ApiResponse responseData = g.fromJson(strdata, ApiResponse.class);
@@ -159,9 +157,15 @@ public class MerossHttpClient implements Serializable {
                 return responseData.getData();
             case CODE_WRONG_CREDENTIALS:
             case CODE_UNEXISTING_ACCOUNT:
-                throw new HttpInvalidCredentials();
+                throw new HttpApiInvalidCredentialsException(responseData.getApiStatus());
+            case CODE_TOKEN_ERROR:
+            case CODE_TOKEN_EXPIRED:
+            case CODE_TOKEN_INVALID:
+            case CODE_TOO_MANY_TOKENS:
+                throw new HttpApiTokenException(responseData.getApiStatus());
             default:
-                throw new HttpApiException(responseData.getApiStatus());
+                l.severe("API Code was unknown. Passing CODE_ERROR_GENERIC to the handler.");
+                throw new HttpApiException(responseData.getApiStatus() == null ? ErrorCodes.CODE_ERROR_GENERIC : responseData.getApiStatus());
         }
     }
 
