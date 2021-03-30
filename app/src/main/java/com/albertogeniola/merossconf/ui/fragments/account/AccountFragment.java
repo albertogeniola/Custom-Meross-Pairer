@@ -77,13 +77,9 @@ public class AccountFragment extends Fragment {
 
                             @Override
                             public void onFailure(Exception ex) {
-                                // If the failure depends on a invalid/expired token, simply
-                                // remove it from local storage
-                                if (ex instanceof HttpApiTokenException) {
-                                    AndroidPreferencesManager.removeHttpCredentials(requireContext());
-                                    mainActivityViewModel.setCredentials(null);
-                                }
                                 Toast.makeText(requireContext(),"An error occurred while logging out: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
+                                AndroidPreferencesManager.removeHttpCredentials(requireContext());
+                                mainActivityViewModel.setCredentials(null);
                                 dialog.dismiss();
                             }
                         });
