@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.albertogeniola.merossconf.model.MqttConfiguration;
+import com.albertogeniola.merosslib.Utils;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -24,7 +25,7 @@ public class AndroidPreferencesManager {
     private static String PREFS_CONFS = "com.albertogeniola.merossconf.shared_preferences";
     private static String KEY_MQTT_CONF = "mqtt";
     private static String KEY_HTTP_CONF = "http";
-    private static final Gson g = new Gson();
+    private static Gson g = Utils.getGson();
 
     public static void storeNewMqttConfiguration(Context context, MqttConfiguration conf) {
         List<MqttConfiguration> allConfs = loadAllMqttConfigurations(context);

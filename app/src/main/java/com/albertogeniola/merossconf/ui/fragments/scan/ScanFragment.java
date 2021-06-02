@@ -36,7 +36,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.MerossUtils;
 import com.albertogeniola.merossconf.R;
-import com.albertogeniola.merossconf.model.TargetWifiAp;
+import com.albertogeniola.merossconf.model.MerossDeviceAp;
 import com.albertogeniola.merossconf.model.WifiLocationStatus;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -287,8 +287,8 @@ public class ScanFragment extends Fragment {
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    TargetWifiAp targetAp = new TargetWifiAp(sr.SSID,sr.BSSID);
-                    pairActivityViewModel.setMerossDeviceAp(targetAp);
+                    MerossDeviceAp targetAp = new MerossDeviceAp(sr.SSID,sr.BSSID);
+                    pairActivityViewModel.setMerossPairingAp(targetAp);
                     NavHostFragment
                             .findNavController(ScanFragment.this)
                             .navigate(R.id.scan_to_connect);

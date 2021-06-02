@@ -5,8 +5,11 @@ import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
-import android.service.autofill.RegexValidator;
-import android.util.Patterns;
+
+import com.albertogeniola.merosslib.model.Cipher;
+import com.albertogeniola.merosslib.model.Encryption;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.util.regex.Pattern;
 
@@ -35,4 +38,5 @@ public class AndroidUtils {
     public static boolean validateBaseUrl(String url) {
         return Pattern.matches("^(http|https)\\:\\/\\/([\\_\\-a-zA-Z0-9\\.]+)(\\:[0-9]+)?$", url);
     }
+
 }

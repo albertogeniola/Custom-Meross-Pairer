@@ -5,17 +5,18 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.albertogeniola.merossconf.model.MqttConfiguration;
-import com.albertogeniola.merossconf.model.TargetWifiAp;
+import com.albertogeniola.merossconf.model.MerossDeviceAp;
+import com.albertogeniola.merossconf.model.WifiConfiguration;
 import com.albertogeniola.merossconf.model.WifiLocationStatus;
-import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
+import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 
 public class PairActivityViewModel extends ViewModel {
     // Wrapper around the Meross AP
-    private MutableLiveData<MerossDeviceAp> apDevice;
-    private MutableLiveData<TargetWifiAp> merossDeviceWifiAp;
-    private MutableLiveData<TargetWifiAp> localWifiNetwork;
+    private MutableLiveData<com.albertogeniola.merosslib.MerossDeviceAp> apDevice;
+    private MutableLiveData<MerossDeviceAp> merossDeviceWifiAp;
+    private MutableLiveData<WifiConfiguration> localWifiNetwork;
     private MutableLiveData<MessageGetConfigWifiListResponse> deviceAvailableWifis;
     private MutableLiveData<MqttConfiguration> targetMqttConfig;
     private MutableLiveData<MessageGetSystemAllResponse> deviceInfo;
@@ -32,25 +33,25 @@ public class PairActivityViewModel extends ViewModel {
         wifiLocationStatus = new MutableLiveData<>(null);
     }
 
-    public LiveData<MerossDeviceAp> getDevice() {
+    public LiveData<com.albertogeniola.merosslib.MerossDeviceAp> getDevice() {
         return apDevice;
     }
-    public void setApDevice(MerossDeviceAp device) {
+    public void setApDevice(com.albertogeniola.merosslib.MerossDeviceAp device) {
         this.apDevice.setValue(device);
     }
 
-    public LiveData<TargetWifiAp> getMerossDeviceWifiAp() {
+    public LiveData<MerossDeviceAp> getMerossPairingAp() {
         return this.merossDeviceWifiAp;
     }
-    public void setMerossDeviceAp(TargetWifiAp apInfo) {
+    public void setMerossPairingAp(MerossDeviceAp apInfo) {
         this.merossDeviceWifiAp.setValue(apInfo);
     }
 
-    public LiveData<TargetWifiAp> getLocalWifiAp() {
+    public LiveData<WifiConfiguration> getMerossConfiguredWifi() {
         return this.localWifiNetwork;
     }
-    public void setLocalWifiAp(TargetWifiAp apInfo) {
-        this.localWifiNetwork.setValue(apInfo);
+    public void setMerossWifiConfiguration(WifiConfiguration wifiConfiguration) {
+        this.localWifiNetwork.setValue(wifiConfiguration);
     }
 
     public LiveData<MessageGetSystemAllResponse> getDeviceInfo() {

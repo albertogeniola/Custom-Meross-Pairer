@@ -1,10 +1,8 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.Manifest;
-import androidx.appcompat.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -22,7 +20,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,26 +36,20 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.MqttConfiguration;
-import com.albertogeniola.merossconf.model.TargetWifiAp;
+import com.albertogeniola.merossconf.model.MerossDeviceAp;
 import com.albertogeniola.merossconf.ssl.DummyTrustManager;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
-import com.albertogeniola.merossconf.ui.fragments.connect.ConnectFragment;
 import com.albertogeniola.merossconf.ui.views.TaskLine;
-import com.albertogeniola.merosslib.MerossDeviceAp;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
-import com.google.android.material.snackbar.Snackbar;
+import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -66,8 +57,6 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -128,8 +117,8 @@ public class PairFragment extends Fragment {
         intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         requireContext().getApplicationContext().registerReceiver(mReceiver, intentFilter);
 
-        String ssid = pairActivityViewModel.getLocalWifiAp().getValue().getSsid();
-        String bssid = pairActivityViewModel.getLocalWifiAp().getValue().getBssid();
+        String ssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
+        String bssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getBssid();
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             WifiConfiguration conf = new WifiConfiguration();
@@ -276,7 +265,7 @@ public class PairFragment extends Fragment {
         worker.schedule(new Runnable() {
             @Override
             public void run() {
-                MerossDeviceAp device = pairActivityViewModel.getDevice().getValue();
+                com.albertogeniola.merosslib.MerossDeviceAp device = pairActivityViewModel.getDevice().getValue();
                 try {
                     LiveData<MqttConfiguration> mqttConfig = pairActivityViewModel.getTargetMqttConfig();
                     device.setConfigKey(
@@ -296,9 +285,9 @@ public class PairFragment extends Fragment {
                     return;
                 }
 
-                TargetWifiAp credentials = pairActivityViewModel.getLocalWifiAp().getValue();
+                com.albertogeniola.merossconf.model.WifiConfiguration credentials = pairActivityViewModel.getMerossConfiguredWifi().getValue();
                 try {
-                    device.setConfigWifi(credentials.getSsid(), credentials.getPassword());
+                    device.setConfigWifi(credentials.getScannedWifi(), credentials.getWifiPasswordBase64());
                     stateMachine(Signal.DEVICE_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -309,7 +298,6 @@ public class PairFragment extends Fragment {
                             stateMachine(Signal.ERROR);
                         }
                     });
-                    return;
                 }
 
             }
@@ -443,7 +431,7 @@ public class PairFragment extends Fragment {
                 NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (networkInfo.isConnected()) {
                     if (mWifiManager.getConnectionInfo() != null && mWifiManager.getConnectionInfo().getSSID() != null) {
-                        String targetSSID = "\"" + new String(Base64.decode(pairActivityViewModel.getLocalWifiAp().getValue().getSsid(), Base64.DEFAULT)) + "\"" ;
+                        String targetSSID = "\"" + new String(Base64.decode(pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid(), Base64.DEFAULT)) + "\"" ;
                         if (targetSSID.compareTo(mWifiManager.getConnectionInfo().getSSID()) == 0) {
                             PairFragment.this.requireContext().getApplicationContext().unregisterReceiver(this);
                             stateMachine(Signal.WIFI_CONNECTED);

@@ -23,11 +23,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.ImageSwitcher;
-import android.widget.ImageView;
-import android.widget.ViewSwitcher;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -149,8 +144,8 @@ public class ConnectFragment extends Fragment {
     }
 
     private void connectAp() {
-        String ssid = pairActivityViewModel.getMerossDeviceWifiAp().getValue().getSsid();
-        String bssid = pairActivityViewModel.getMerossDeviceWifiAp().getValue().getBssid();
+        String ssid = pairActivityViewModel.getMerossPairingAp().getValue().getSsid();
+        String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             WifiConfiguration conf = new WifiConfiguration();
@@ -359,7 +354,7 @@ public class ConnectFragment extends Fragment {
                 if (networkInfo.isConnected()) {
                     if (wifiManager.getConnectionInfo() != null &&
                             wifiManager.getConnectionInfo().getBSSID() != null &&
-                            wifiManager.getConnectionInfo().getBSSID().compareTo(pairActivityViewModel.getMerossDeviceWifiAp().getValue().getBssid()) == 0) {
+                            wifiManager.getConnectionInfo().getBSSID().compareTo(pairActivityViewModel.getMerossPairingAp().getValue().getBssid()) == 0) {
                         // Connected!
                         int tmp = wifiManager.getDhcpInfo().gateway;
                         gatewayIp = String.format("%d.%d.%d.%d", (tmp & 0xff), (tmp >> 8 & 0xff), (tmp >> 16 & 0xff), (tmp >> 24 & 0xff));

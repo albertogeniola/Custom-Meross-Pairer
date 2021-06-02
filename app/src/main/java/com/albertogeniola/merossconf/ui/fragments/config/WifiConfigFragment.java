@@ -27,7 +27,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.MerossUtils;
 import com.albertogeniola.merossconf.R;
-import com.albertogeniola.merossconf.model.TargetWifiAp;
+import com.albertogeniola.merossconf.model.WifiConfiguration;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
@@ -130,19 +130,13 @@ public class WifiConfigFragment extends Fragment {
                 wifiPasswordTextView.setError(null);
             }
 
-            TargetWifiAp wifiInfo = new TargetWifiAp(selectedWifi.getSsid(), selectedWifi.getBssid());
             String clearPassword = wifiPasswordTextView.getEditText().getText().toString();
-            try {
-                wifiInfo.setPassword(Base64.encodeToString(clearPassword.toString().getBytes("utf8"),Base64.NO_WRAP));
-                pairActivityViewModel.setLocalWifiAp(wifiInfo);
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-                throw new RuntimeException("UTF8 unsupported");
-            }
+            WifiConfiguration conf = new WifiConfiguration(selectedWifi, clearPassword);
+            pairActivityViewModel.setMerossWifiConfiguration(conf);
 
             // Save the password
             if (mSavePassword)
-                AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), wifiInfo.getBssid(), clearPassword);
+                AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), selectedWifi.getBssid(), clearPassword);
 
             // Navigate to the next fragment
             NavHostFragment.findNavController(WifiConfigFragment.this)
