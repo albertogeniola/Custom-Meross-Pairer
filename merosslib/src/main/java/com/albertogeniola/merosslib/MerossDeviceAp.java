@@ -9,27 +9,18 @@ import com.albertogeniola.merosslib.model.protocol.MessageSetConfigKey;
 import com.albertogeniola.merosslib.model.protocol.MessageSetConfigKeyResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageSetConfigWifi;
 import com.albertogeniola.merosslib.model.protocol.MessageSetConfigWifiResponse;
+import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 import com.google.gson.Gson;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
-
-import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.io.IOUtils;
-
 import javax.net.SocketFactory;
-
 import lombok.Getter;
-import lombok.Setter;
 
 
 public class MerossDeviceAp implements Serializable {
@@ -39,7 +30,7 @@ public class MerossDeviceAp implements Serializable {
     @Getter
     private String cloudKey;
     private OkHttpClient client;
-    private Gson g = new Gson();
+    private Gson g = Utils.getGson();
 
     public void setSocketFactory(SocketFactory factory) {
         client.setSocketFactory(factory);
@@ -72,8 +63,8 @@ public class MerossDeviceAp implements Serializable {
         return this.sendMessage(message, MessageSetConfigKeyResponse.class);
     }
 
-    public MessageSetConfigWifiResponse setConfigWifi(String base64ssid, String base64password) throws IOException {
-        Message message = MessageSetConfigWifi.BuildNew(base64ssid, base64password);
+    public MessageSetConfigWifiResponse setConfigWifi(GetConfigWifiListEntry wifiConfig, String base64password) throws IOException {
+        Message message = MessageSetConfigWifi.BuildNew(wifiConfig.getBase64ssid(), base64password, wifiConfig.getBssid(), wifiConfig.getChannel(), wifiConfig.getCipher(), wifiConfig.getEncryption());
         return this.sendMessage(message, MessageSetConfigWifiResponse.class);
     }
 
