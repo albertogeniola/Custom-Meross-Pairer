@@ -14,7 +14,8 @@
         android:layout_height="wrap_content"
         android:background="#FF424242"
         android:orientation="horizontal"
-        android:padding="10dp">
+        android:padding="10dp"
+        android:visibility="gone">
 
         <TextView
             android:id="@+id/wifiOffTextView"
@@ -24,7 +25,19 @@
             android:drawableLeft="@drawable/ic_signal_wifi_off_black_24dp"
             android:drawablePadding="5dp"
             android:text="Wifi is OFF. \nPlease enable it."
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/wifiMerossWarning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableLeft="@android:drawable/stat_sys_warning"
+            android:drawablePadding="5dp"
+            android:text="You are connected to a Meross AP. Connect to your WIFI instead."
+            android:textColor="#FFFFFF"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/locationOffTextView"
@@ -34,7 +47,8 @@
             android:drawableLeft="@drawable/ic_location_off_black_24dp"
             android:drawablePadding="5dp"
             android:text="Location is OFF. \nPlease enable it."
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF"
+            android:visibility="gone" />
 
     </LinearLayout>
 

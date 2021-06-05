@@ -3,60 +3,66 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph2"
-    app:startDestination="@id/ScanFragment">
+    app:startDestination="@id/ScanDeviceFragment">
 
     <fragment
-        android:id="@+id/ScanFragment"
-        android:name="com.albertogeniola.merossconf.ui.fragments.scan.ScanFragment"
+        android:id="@+id/ScanDeviceFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.ScanDevicesFragment"
+        android:label="Scan Meross Devices"
         tools:layout="@layout/fragment_scan">
 
         <action
             android:id="@+id/scan_to_connect"
-            app:destination="@id/ConnectFragment"
+            app:destination="@id/FetchDeviceInfoFragment"
             app:popUpToInclusive="false" />
     </fragment>
     <fragment
-        android:id="@+id/ConnectFragment"
-        android:name="com.albertogeniola.merossconf.ui.fragments.connect.ConnectFragment"
+        android:id="@+id/FetchDeviceInfoFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.FetchDeviceInfoFragment"
+        android:label="Fetching device info"
         tools:layout="@layout/fragment_connect">
         <action
             android:id="@+id/action_ConnectFragment_to_configureFragment"
-            app:destination="@id/InfoFragment"
+            app:destination="@id/ShowDeviceInfoFragment"
             app:popUpToInclusive="false" />
     </fragment>
     <fragment
-        android:id="@+id/InfoFragment"
-        android:name="com.albertogeniola.merossconf.ui.fragments.info.InfoFragment">
+        android:id="@+id/ShowDeviceInfoFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.ShowDeviceInfoFragment"
+        android:label="Device Info">
         <action
             android:id="@+id/action_InfoFragment_to_configFragment"
-            app:destination="@id/ConfigFragment"
+            app:destination="@id/ConfigureWifiFragment"
             app:popUpToInclusive="false" />
     </fragment>
     <fragment
-        android:id="@+id/ConfigFragment"
-        android:name="com.albertogeniola.merossconf.ui.fragments.config.WifiConfigFragment"
-        tools:layout="@layout/fragment_wifi_config" >
+        android:id="@+id/ConfigureWifiFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.ConfigureWifiFragment"
+        android:label="Setup Wifi"
+        tools:layout="@layout/fragment_wifi_config">
         <action
             android:id="@+id/action_ConfigFragment_to_mqttConfigFragment"
-            app:destination="@id/mqtt_config_fragment" />
+            app:destination="@id/ConfigureMqttFragment" />
     </fragment>
     <fragment
-        android:id="@+id/PairFragment"
-        android:name="com.albertogeniola.merossconf.ui.fragments.pair.PairFragment">
+        android:id="@+id/ExecutePairingFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.ExecutePairingFragment"
+        android:label="Pairing...">
         <action
             android:id="@+id/action_PairFragment_to_PairDone"
-            app:destination="@id/PairDone"
+            app:destination="@id/PairCompletedFragment"
             app:popUpToInclusive="false" />
     </fragment>
     <fragment
-        android:id="@+id/PairDone"
-        android:name="com.albertogeniola.merossconf.ui.fragments.pair.PairDoneFragment"/>
+        android:id="@+id/PairCompletedFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.PairCompletedFragment"
+        android:label="Done" />
     <fragment
-        android:id="@+id/mqtt_config_fragment"
-        android:name="com.albertogeniola.merossconf.ui.fragments.config.MqttConfigFragment"
-        android:label="MqttConfigFragment" >
+        android:id="@+id/ConfigureMqttFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.ConfigureMqttFragment"
+        android:label="Setup MQTT">
         <action
             android:id="@+id/action_mqttConfigFragment_to_PairFragment"
-            app:destination="@id/PairFragment" />
+            app:destination="@id/ExecutePairingFragment" />
     </fragment>
 </navigation>

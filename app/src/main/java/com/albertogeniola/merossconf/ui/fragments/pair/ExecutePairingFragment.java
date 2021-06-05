@@ -36,12 +36,10 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.MqttConfiguration;
-import com.albertogeniola.merossconf.model.MerossDeviceAp;
 import com.albertogeniola.merossconf.ssl.DummyTrustManager;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merossconf.ui.views.TaskLine;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
-import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -62,7 +60,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 
-public class PairFragment extends Fragment {
+public class ExecutePairingFragment extends Fragment {
     private PairActivityViewModel pairActivityViewModel;
     private TaskLine sendPairCommandTaskLine, connectLocalWifiTaskLine, testMqttBrokerTaskLine, currentTask;
     private Handler uiThreadHandler;
@@ -77,7 +75,7 @@ public class PairFragment extends Fragment {
 
     private ApiCredentials mCreds;
 
-    public PairFragment() {
+    public ExecutePairingFragment() {
         worker = Executors.newSingleThreadScheduledExecutor();
     }
 
@@ -119,6 +117,7 @@ public class PairFragment extends Fragment {
 
         String ssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
         String bssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getBssid();
+        bssid = bssid.replace("-", ":");
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             WifiConfiguration conf = new WifiConfiguration();
@@ -131,7 +130,7 @@ public class PairFragment extends Fragment {
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                     (getContext().checkSelfPermission(Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED)){
                 error = "User denied CHANGE_WIFI_STATE permission. Wifi cannot be enabled.";
-                stateMachine(PairFragment.Signal.ERROR);
+                stateMachine(ExecutePairingFragment.Signal.ERROR);
                 return;
             } else {
                 list = mWifiManager.getConfiguredNetworks();
@@ -308,8 +307,8 @@ public class PairFragment extends Fragment {
     private void completeActivityFragment() {
         state = State.DONE;
         NavController ctrl = NavHostFragment.findNavController(this);
-        ctrl.popBackStack(R.id.ScanFragment, false);
-        ctrl.navigate(R.id.PairDone);
+        ctrl.popBackStack(R.id.ScanDeviceFragment, false);
+        ctrl.navigate(R.id.PairCompletedFragment);
     }
 
     // UI
@@ -433,7 +432,7 @@ public class PairFragment extends Fragment {
                     if (mWifiManager.getConnectionInfo() != null && mWifiManager.getConnectionInfo().getSSID() != null) {
                         String targetSSID = "\"" + new String(Base64.decode(pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid(), Base64.DEFAULT)) + "\"" ;
                         if (targetSSID.compareTo(mWifiManager.getConnectionInfo().getSSID()) == 0) {
-                            PairFragment.this.requireContext().getApplicationContext().unregisterReceiver(this);
+                            ExecutePairingFragment.this.requireContext().getApplicationContext().unregisterReceiver(this);
                             stateMachine(Signal.WIFI_CONNECTED);
                         }
                     }

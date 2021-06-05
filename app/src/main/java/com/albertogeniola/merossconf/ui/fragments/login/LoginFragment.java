@@ -1,6 +1,15 @@
 package com.albertogeniola.merossconf.ui.fragments.login;
 
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.NetworkInfo;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -9,6 +18,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.method.PasswordTransformationMethod;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,11 +37,18 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class LoginFragment extends Fragment {
+    // Constants
+    private static final String SERVICE_TYPE = "_meross-lan-broker._tcp.";
+    private static final  String TAG = "Login";
 
-    private EditText httpHostnameEditText;
-    private EditText httpUsernameEditText;
-    private EditText httpPasswordEditText;
-    private Button loginButton;
+    // Instance attributes
+    private NsdManager mNsdManager;
+    private WifiManager mWifiManager;
+    private EditText mHttpHostnameEditText;
+    private EditText mHttpUsernameEditText;
+    private EditText mHttpPasswordEditText;
+    private Button mLoginButton;
+
 
     public LoginFragment() {
         // Required empty public constructor
@@ -40,6 +57,8 @@ public class LoginFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mNsdManager = (NsdManager) requireContext().getSystemService(Context.NSD_SERVICE);
+        mWifiManager = (WifiManager) requireContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
     }
 
     @Override
@@ -50,24 +69,24 @@ public class LoginFragment extends Fragment {
 
         // Bind views
         CheckBox showPasswordCheckBox = view.findViewById(R.id.showPasswordCheckBox);
-        httpPasswordEditText = ((TextInputLayout)view.findViewById(R.id.httpPasswordEditText)).getEditText();
-        httpHostnameEditText = ((TextInputLayout)view.findViewById(R.id.httpHostnameEditText)).getEditText();
-        httpUsernameEditText = ((TextInputLayout)view.findViewById(R.id.httpUsernameEditText)).getEditText();
-        loginButton = view.findViewById(R.id.loginButton);
+        mHttpPasswordEditText = ((TextInputLayout)view.findViewById(R.id.httpPasswordEditText)).getEditText();
+        mHttpHostnameEditText = ((TextInputLayout)view.findViewById(R.id.httpHostnameEditText)).getEditText();
+        mHttpUsernameEditText = ((TextInputLayout)view.findViewById(R.id.httpUsernameEditText)).getEditText();
+        mLoginButton = view.findViewById(R.id.loginButton);
         // Show/Hide password logic
         showPasswordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (httpPasswordEditText.getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
-                    httpPasswordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
+                if (mHttpPasswordEditText.getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
+                    mHttpPasswordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
                 } else {
-                    httpPasswordEditText.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                    mHttpPasswordEditText.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
                 }
             }
         });
 
         // Login button logic
-        loginButton.setOnClickListener(new View.OnClickListener() {
+        mLoginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 performLogin();
@@ -76,40 +95,56 @@ public class LoginFragment extends Fragment {
 
         // Setup the edit-text to hide the password characters
         showPasswordCheckBox.setChecked(false);
-        httpPasswordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
+        mHttpPasswordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        try {
+            mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to stop service discovery");
+        }
     }
 
     private void performLogin() {
         // Validate inputs.
         // Validate HOSTNAME/URL
-        final String strurl = httpHostnameEditText.getText().toString().trim();
+        final String strurl = mHttpHostnameEditText.getText().toString().trim();
         if (strurl.isEmpty()) {
-            httpHostnameEditText.setError("Please input the HTTP API url");
+            mHttpHostnameEditText.setError("Please input the HTTP API url");
             return;
         }
         if (!AndroidUtils.validateBaseUrl(strurl)) {
-            httpHostnameEditText.setError("The provided HTTP API URL is invalid");
+            mHttpHostnameEditText.setError("The provided HTTP API URL is invalid");
             return;
         }
-        httpHostnameEditText.setError(null);
+        mHttpHostnameEditText.setError(null);
 
         // Validate username
-        final String username = httpUsernameEditText.getText().toString().trim();
+        final String username = mHttpUsernameEditText.getText().toString().trim();
         if (username.isEmpty()) {
-            httpUsernameEditText.setError("Please input your username/email");
+            mHttpUsernameEditText.setError("Please input your username/email");
             return;
         }
-        httpUsernameEditText.setError(null);
+        mHttpUsernameEditText.setError(null);
 
         // Validate password
-        final String password = httpPasswordEditText.getText().toString().trim();
+        final String password = mHttpPasswordEditText.getText().toString().trim();
         if (password.isEmpty()) {
-            httpPasswordEditText.setError("Please input your password");
+            mHttpPasswordEditText.setError("Please input your password");
             return;
         }
-        httpPasswordEditText.setError(null);
+        mHttpPasswordEditText.setError(null);
 
         // Execute the login.
         final ProgressDialog dialog = new ProgressDialog(getContext());
@@ -132,8 +167,49 @@ public class LoginFragment extends Fragment {
             @Override
             public void onFailure(Exception result) {
                 dialog.dismiss();
-                Snackbar.make(loginButton, "An error while executing the request.", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(mLoginButton, "An error while executing the request.", Snackbar.LENGTH_LONG).show();
             }
         });
     }
+
+    // mDNS discovery listener
+    private final NsdManager.DiscoveryListener mDiscoveryListener = new NsdManager.DiscoveryListener() {
+        // Called as soon as service discovery begins.
+        @Override
+        public void onDiscoveryStarted(String serviceType) {
+            Log.d(TAG, "Service discovery started");
+        }
+
+        @Override
+        public void onServiceFound(NsdServiceInfo service) {
+            Log.d(TAG, "Service discovery success" + service);
+            if (!service.getServiceType().equals(SERVICE_TYPE)) {
+                Log.d(TAG, "Unknown Service Type: " + service.getServiceType());
+            }
+        }
+
+        @Override
+        public void onStartDiscoveryFailed(String serviceType, int errorCode) {
+            Log.e(TAG, "Discovery failed: Error code:" + errorCode);
+            mNsdManager.stopServiceDiscovery(this);
+        }
+
+        @Override
+        public void onStopDiscoveryFailed(String serviceType, int errorCode) {
+            Log.e(TAG, "Discovery failed: Error code:" + errorCode);
+            mNsdManager.stopServiceDiscovery(this);
+        }
+
+        @Override
+        public void onDiscoveryStopped(String serviceType) {
+            Log.i(TAG, "Discovery stopped: " + serviceType);
+        }
+
+        @Override
+        public void onServiceLost(NsdServiceInfo serviceInfo) {
+            // When the network service is no longer available.
+            // Internal bookkeeping code goes here.
+            Log.e(TAG, "service lost: " + serviceInfo.getServiceType());
+        }
+    };
 }

@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.fragments.config;
+package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -26,7 +26,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import java.util.List;
 
 
-public class MqttConfigFragment extends Fragment {
+public class ConfigureMqttFragment extends Fragment {
     private PairActivityViewModel pairActivityViewModel;
     private TextInputLayout mqttConfigurationNameEditText;
     private TextInputLayout mqttHostEditText;
@@ -160,7 +160,7 @@ public class MqttConfigFragment extends Fragment {
                 }
 
                 NavHostFragment
-                        .findNavController(MqttConfigFragment.this)
+                        .findNavController(ConfigureMqttFragment.this)
                         .navigate(R.id.action_mqttConfigFragment_to_PairFragment);
             }
         });

@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.fragments.connect;
+package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
@@ -46,7 +46,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
-public class ConnectFragment extends Fragment {
+public class FetchDeviceInfoFragment extends Fragment {
 
     private static final int WIFI_STATE_CHANGE_PERMISSION = 1;
 
@@ -70,7 +70,7 @@ public class ConnectFragment extends Fragment {
 
     private PairActivityViewModel pairActivityViewModel;
 
-    public ConnectFragment() {
+    public FetchDeviceInfoFragment() {
         worker = Executors.newSingleThreadScheduledExecutor();
     }
 
@@ -243,9 +243,9 @@ public class ConnectFragment extends Fragment {
                 pairActivityViewModel.setApDevice(device);
                 pairActivityViewModel.setDeviceInfo(deviceInfo);
                 pairActivityViewModel.setDeviceAvailableWifis(deviceAvailableWifis);
-                NavController ctrl = NavHostFragment.findNavController(ConnectFragment.this);
+                NavController ctrl = NavHostFragment.findNavController(FetchDeviceInfoFragment.this);
                 ctrl.popBackStack();
-                ctrl.navigate(R.id.InfoFragment);
+                ctrl.navigate(R.id.ShowDeviceInfoFragment);
             }
         });
     }
@@ -285,7 +285,7 @@ public class ConnectFragment extends Fragment {
                         scanWifiTask.setState(TaskLine.TaskState.completed);
                         break;
                     case ERROR:
-                        Snackbar.make(ConnectFragment.this.getView(), error, Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(FetchDeviceInfoFragment.this.getView(), error, Snackbar.LENGTH_LONG).show();
                         if (currentTask != null) {
                             currentTask.setState(TaskLine.TaskState.failed);
                         }

@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration mAppBarConfiguration;
     private BroadcastReceiver mReceiver;
     private TextView wifiTextView;
+    private TextView wifiMerossWarning;
     private TextView locationTextView;
     private LinearLayout wifiLocationStatusLayout;
 
@@ -73,19 +74,20 @@ public class MainActivity extends AppCompatActivity {
         });
 
         wifiTextView = findViewById(R.id.wifiOffTextView);
+        wifiMerossWarning = findViewById(R.id.wifiMerossWarning);
         locationTextView = findViewById(R.id.locationOffTextView);
         wifiLocationStatusLayout = findViewById(R.id.wifiLocationStatusLayout);
         this.mReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Boolean wifiEnabled = null;
-                Boolean locationEnabled = null;
                 if(intent.getAction().equals(NETWORK_STATE_CHANGED_ACTION) || intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
-                    wifiEnabled = AndroidUtils.isWifiEnabbled(MainActivity.this);
+                    String connectedSsid = null;
+                    connectedSsid = AndroidUtils.getConnectedWifi(MainActivity.this);
+                    updateWifiStatus(connectedSsid!=null, connectedSsid);
                 } else if (intent.getAction().equals(PROVIDERS_CHANGED_ACTION)) {
-                    locationEnabled = AndroidUtils.isLocationEnabled(MainActivity.this);
+                    Boolean locationEnabled = null;
+                    updateLocationStatus(AndroidUtils.isLocationEnabled(MainActivity.this));
                 }
-                updateWifiLocationStatusBar(wifiEnabled, locationEnabled);
             }
         };
 
@@ -103,12 +105,22 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void updateWifiLocationStatusBar(@Nullable Boolean wifiEnabled, @Nullable Boolean locationEnabled) {
-        if (wifiEnabled != null)
-            wifiTextView.setVisibility(wifiEnabled ? View.GONE : View.VISIBLE);
-        if (locationEnabled!=null)
-            locationTextView.setVisibility(locationEnabled ? View.GONE : View.VISIBLE);
-        wifiLocationStatusLayout.setVisibility(wifiTextView.getVisibility()==View.VISIBLE || locationTextView.getVisibility()==View.VISIBLE ? View.VISIBLE : View.GONE);
+    private void updateWifiStatus(boolean wifiEnabled, @Nullable String connctedSsid) {
+        wifiTextView.setVisibility(wifiEnabled ? View.GONE : View.VISIBLE);
+        wifiMerossWarning.setVisibility(MerossUtils.isMerossAp(connctedSsid) ? View.VISIBLE : View.GONE);
+        updateStatusBarVisibility();
+    }
+
+    private void updateLocationStatus(boolean locationEnabled) {
+        locationTextView.setVisibility(locationEnabled ? View.GONE : View.VISIBLE);
+        updateStatusBarVisibility();
+    }
+
+    private void updateStatusBarVisibility() {
+        wifiLocationStatusLayout.setVisibility(
+                wifiTextView.getVisibility()==View.VISIBLE ||
+                locationTextView.getVisibility()==View.VISIBLE ||
+                wifiMerossWarning.getVisibility()==View.VISIBLE ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -119,10 +131,11 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(PROVIDERS_CHANGED_ACTION);
         this.registerReceiver(this.mReceiver, filter);
 
-        // Update wifi status bar
-        boolean wifiEnabled = AndroidUtils.isWifiEnabbled(MainActivity.this);
+        // Update wifi/location status
+        String connectedWifi = AndroidUtils.getConnectedWifi(MainActivity.this);
         boolean locationEnabled = AndroidUtils.isLocationEnabled(MainActivity.this);
-        updateWifiLocationStatusBar(wifiEnabled, locationEnabled);
+        updateWifiStatus(connectedWifi!=null, connectedWifi);
+        updateLocationStatus(locationEnabled);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.fragments.config;
+package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class WifiConfigFragment extends Fragment {
+public class ConfigureWifiFragment extends Fragment {
     private PairActivityViewModel pairActivityViewModel;
 
     private Spinner wifiSpinner;
@@ -65,7 +65,7 @@ public class WifiConfigFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         wifiSpinner = view.findViewById(R.id.wifiListSpinner);
-        adapter = new WifiSpinnerAdapter(WifiConfigFragment.this.getContext(), pairActivityViewModel.getDeviceAvailableWifis().getValue().getPayload().getWifiList());
+        adapter = new WifiSpinnerAdapter(ConfigureWifiFragment.this.getContext(), pairActivityViewModel.getDeviceAvailableWifis().getValue().getPayload().getWifiList());
         wifiSpinner.setAdapter(adapter);
 
         wifiPasswordTextView = view.findViewById(R.id.wifi_password);
@@ -139,8 +139,8 @@ public class WifiConfigFragment extends Fragment {
                 AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), selectedWifi.getBssid(), clearPassword);
 
             // Navigate to the next fragment
-            NavHostFragment.findNavController(WifiConfigFragment.this)
-                    .navigate(R.id.mqtt_config_fragment);
+            NavHostFragment.findNavController(ConfigureWifiFragment.this)
+                    .navigate(R.id.ConfigureMqttFragment);
         }
     };
 
@@ -188,11 +188,7 @@ public class WifiConfigFragment extends Fragment {
             GetConfigWifiListEntry value = values.get(position);
             double quality = value.getSignal();
 
-            try {
-                wifiName.setText(new String(Base64.decode(value.getSsid(), Base64.DEFAULT), "utf8"));
-            } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
-            }
+            wifiName.setText(value.getSsid());
             bssid.setText(value.getBssid());
             channel.setText("" + value.getChannel());
             signal.setIndeterminate(false);

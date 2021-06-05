@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.fragments.info;
+package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -21,7 +21,7 @@ import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadA
 import com.albertogeniola.merosslib.model.protocol.payloads.GetSystemAllPayloadAllHardrware;
 
 
-public class InfoFragment extends Fragment {
+public class ShowDeviceInfoFragment extends Fragment {
     private TextView discoveredType;
     private TextView discoveredVersion;
     private TextView discoveredChip;
@@ -77,8 +77,8 @@ public class InfoFragment extends Fragment {
     }
 
     private void launchConfigFragment() {
-        NavController ctrl = NavHostFragment.findNavController(InfoFragment.this);
-        ctrl.navigate(R.id.ConfigFragment);
+        NavController ctrl = NavHostFragment.findNavController(ShowDeviceInfoFragment.this);
+        ctrl.navigate(R.id.ConfigureWifiFragment);
     }
 
     private void loadUiInfo() {

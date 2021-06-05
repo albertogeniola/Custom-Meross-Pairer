@@ -4,12 +4,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -49,7 +47,7 @@ public class PairActivity extends AppCompatActivity {
                     status = new WifiLocationStatus(null, null);
                 }
                 if(intent.getAction().equals(NETWORK_STATE_CHANGED_ACTION) || intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
-                    status.setWifiEnabledOrEnabling(AndroidUtils.isWifiEnabbled(PairActivity.this));
+                    status.setWifiEnabledOrEnabling(AndroidUtils.isWifiEnabled(PairActivity.this));
                     viewModel.setWifiLocationStatus(status);
                 } else if (intent.getAction().equals(PROVIDERS_CHANGED_ACTION)) {
                     status.setLocationEnabledOrEnabling(AndroidUtils.isLocationEnabled(PairActivity.this));
@@ -59,7 +57,7 @@ public class PairActivity extends AppCompatActivity {
             }
         };
 
-        boolean wifiOk = AndroidUtils.isWifiEnabbled(this);
+        boolean wifiOk = AndroidUtils.isWifiEnabled(this);
         boolean positionOk = AndroidUtils.isLocationEnabled(this);
         viewModel.setWifiLocationStatus(new WifiLocationStatus(wifiOk, positionOk));
     }
@@ -73,7 +71,7 @@ public class PairActivity extends AppCompatActivity {
         this.registerReceiver(this.mReceiver, filter);
 
         // Update wifi status bar
-        boolean wifiEnabled = AndroidUtils.isWifiEnabbled(PairActivity.this);
+        boolean wifiEnabled = AndroidUtils.isWifiEnabled(PairActivity.this);
         boolean locationEnabled = AndroidUtils.isLocationEnabled(PairActivity.this);
         updateWifiLocationStatusBar(wifiEnabled, locationEnabled);
     }

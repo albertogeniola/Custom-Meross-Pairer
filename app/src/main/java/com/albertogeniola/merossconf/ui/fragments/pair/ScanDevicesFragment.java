@@ -1,4 +1,4 @@
-package com.albertogeniola.merossconf.ui.fragments.scan;
+package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.Manifest;
 import androidx.appcompat.app.AlertDialog;
@@ -45,7 +45,7 @@ import com.google.android.material.snackbar.Snackbar;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ScanFragment extends Fragment {
+public class ScanDevicesFragment extends Fragment {
     private static final int LOCATION_PERMISSION_CODE = 1;
 
     private PairActivityViewModel pairActivityViewModel;
@@ -91,7 +91,7 @@ public class ScanFragment extends Fragment {
 
     private boolean checkWifiAndLocation() {
         // Show an error message if wifi is not enabled
-        if (!AndroidUtils.isWifiEnabbled(getContext())) {
+        if (!AndroidUtils.isWifiEnabled(getContext())) {
             Snackbar.make(getView(), "Please enable Wifi network to perform the scan", Snackbar.LENGTH_LONG).show();
             return false;
         }
@@ -181,7 +181,7 @@ public class ScanFragment extends Fragment {
 
     private void startScan() {
         if (scanning) {
-            Toast.makeText(ScanFragment.this.getContext(), "Scan already in progress.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(ScanDevicesFragment.this.getContext(), "Scan already in progress.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -290,7 +290,7 @@ public class ScanFragment extends Fragment {
                     MerossDeviceAp targetAp = new MerossDeviceAp(sr.SSID,sr.BSSID);
                     pairActivityViewModel.setMerossPairingAp(targetAp);
                     NavHostFragment
-                            .findNavController(ScanFragment.this)
+                            .findNavController(ScanDevicesFragment.this)
                             .navigate(R.id.scan_to_connect);
                 }
             });

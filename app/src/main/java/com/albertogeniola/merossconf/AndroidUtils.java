@@ -30,8 +30,15 @@ public class AndroidUtils {
         }
     }
 
-    public static boolean isWifiEnabbled(Context context) {
-        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+    public static String getConnectedWifi(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (!wifiManager.isWifiEnabled())
+            return null;
+        return wifiManager.getConnectionInfo().getSSID().replaceAll("\"","");
+    }
+
+    public static Boolean isWifiEnabled(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         return wifiManager.isWifiEnabled();
     }
 

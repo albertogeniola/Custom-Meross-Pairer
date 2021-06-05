@@ -1,7 +1,5 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
-import android.app.TaskStackBuilder;
-import android.app.job.JobInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.LayoutInflater;
@@ -19,19 +17,17 @@ import com.albertogeniola.merossconf.R;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import cdflynn.android.library.checkview.CheckView;
 
 
-public class PairDoneFragment extends Fragment {
+public class PairCompletedFragment extends Fragment {
     private CheckView mCheckView;
     private Timer mTimer;
     private Handler mHandler;
     private Button pairDoneButton;
 
-    public PairDoneFragment() {
+    public PairCompletedFragment() {
         mHandler = new Handler();
         mTimer = new Timer();
     }
@@ -55,8 +51,8 @@ public class PairDoneFragment extends Fragment {
         pairDoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NavController ctrl = NavHostFragment.findNavController(PairDoneFragment.this);
-                ctrl.popBackStack(R.id.ScanFragment, false);
+                NavController ctrl = NavHostFragment.findNavController(PairCompletedFragment.this);
+                ctrl.popBackStack(R.id.ScanDeviceFragment, false);
                 //ctrl.navigate(R.id.PairDone);
             }
         });
