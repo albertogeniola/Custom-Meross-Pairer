@@ -133,7 +133,8 @@ public class ExecutePairingFragment extends Fragment {
     private void connectToDeviceWifiAp() {
         state = State.CONNECTING_DEVICE_WIFI_AP;
 
-        String targetSsid = "\""+pairActivityViewModel.getMerossPairingAp().getValue().getSsid()+"\"";
+        String ssid = pairActivityViewModel.getMerossPairingAp().getValue().getSsid();
+        String targetSsid = "\""+ssid+"\"";
         String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
 
         // Check if we are already connected to such wifi
@@ -142,7 +143,7 @@ public class ExecutePairingFragment extends Fragment {
                 connectedWifi.getSSID() == null ||
                 connectedWifi.getSSID().compareTo(targetSsid)!=0 ||
                 connectedWifi.getBSSID().compareTo(bssid)!=0)
-            connectToKnownWifi(targetSsid, bssid);
+            connectToKnownWifi(ssid, bssid);
         else
             stateMachine(Signal.DEVICE_WIFI_CONNECTED);
     }
@@ -150,7 +151,8 @@ public class ExecutePairingFragment extends Fragment {
     private void connectToLocalWifi() {
         state = State.CONNETING_LOCAL_WIFI;
 
-        String targetSsid = "\""+pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid()+"\"";
+        String ssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
+        String targetSsid = "\""+ssid+"\"";
         String bssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getBssid();
 
         // Check if we are already connected to such wifi
@@ -159,7 +161,7 @@ public class ExecutePairingFragment extends Fragment {
                 connectedWifi.getSSID() == null ||
                 connectedWifi.getSSID().compareTo(targetSsid)!=0 ||
                 connectedWifi.getBSSID().compareTo(bssid)!=0)
-            connectToKnownWifi(targetSsid, bssid);
+            connectToKnownWifi(ssid, bssid);
         else
             stateMachine(Signal.LOCAL_WIFI_CONNECTED);
     }
