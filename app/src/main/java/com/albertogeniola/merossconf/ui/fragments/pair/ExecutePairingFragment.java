@@ -13,6 +13,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Build;
@@ -20,6 +21,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,11 +36,15 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
+import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.MqttConfiguration;
 import com.albertogeniola.merossconf.ssl.DummyTrustManager;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merossconf.ui.views.TaskLine;
+import com.albertogeniola.merosslib.MerossDeviceAp;
+import com.albertogeniola.merosslib.model.Cipher;
+import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
@@ -61,18 +67,22 @@ import javax.net.ssl.TrustManager;
 
 
 public class ExecutePairingFragment extends Fragment {
-    private PairActivityViewModel pairActivityViewModel;
-    private TaskLine sendPairCommandTaskLine, connectLocalWifiTaskLine, testMqttBrokerTaskLine, currentTask;
-    private Handler uiThreadHandler;
-    private ScheduledExecutorService worker;
+    private static final String TAG = "PairingFragment";
 
-    private TextView errorDetailsTextView;
-    private State state = State.INIT;
-    private String error = null;
     private WifiManager mWifiManager;
     private ConnectivityManager mConnectivityManager;
+    private ScheduledExecutorService worker;
+
+    private PairActivityViewModel pairActivityViewModel;
+    private TextView errorDetailsTextView;
+    private TaskLine connectWifiTaskLine, sendPairCommandTaskLine, connectLocalWifiTaskLine, testMqttBrokerTaskLine, currentTask;
+    private Handler uiThreadHandler;
+
+    private State state = State.INIT;
+    private String error = null;
     private WifiBroadcastReceiver mReceiver;
 
+    private MerossDeviceAp mApDevice;
     private ApiCredentials mCreds;
 
     public ExecutePairingFragment() {
@@ -91,13 +101,16 @@ public class ExecutePairingFragment extends Fragment {
 
         switch(state) {
             case INIT:
-                if (signal == Signal.RESUMED) {configureDevice(mCreds.getUserId(), mCreds.getKey());}
+                if (signal == Signal.RESUMED) {connectToDeviceWifiAp();}
+                break;
+            case CONNECTING_DEVICE_WIFI_AP:
+                if (signal == Signal.DEVICE_WIFI_CONNECTED) {configureDevice(mCreds.getUserId(), mCreds.getKey());}
                 break;
             case SENDING_PAIRING_COMMAND:
                 if (signal == Signal.DEVICE_CONFIGURED) {connectToLocalWifi();}
                 break;
             case CONNETING_LOCAL_WIFI:
-                if (signal == Signal.WIFI_CONNECTED) {connectToMqttBorker();}
+                if (signal == Signal.LOCAL_WIFI_CONNECTED) {connectToMqttBorker();}
                 break;
             case CONNECTING_TO_MQTT_BROKER:
                 if (signal == Signal.MQTT_CONNECTED) {completeActivityFragment();}
@@ -107,63 +120,114 @@ public class ExecutePairingFragment extends Fragment {
         updateUi();
     }
 
-    private void connectToLocalWifi() {
-        state = State.CONNETING_LOCAL_WIFI;
-
-        // Register Wifi Broadcast Receiver
+    private void registerForWifiChanges() {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
         requireContext().getApplicationContext().registerReceiver(mReceiver, intentFilter);
+    }
 
-        String ssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
+    private void unregisterWifiChanges() {
+        requireContext().getApplicationContext().unregisterReceiver(mReceiver);
+    }
+
+    private void connectToDeviceWifiAp() {
+        state = State.CONNECTING_DEVICE_WIFI_AP;
+
+        String targetSsid = "\""+pairActivityViewModel.getMerossPairingAp().getValue().getSsid()+"\"";
+        String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
+
+        // Check if we are already connected to such wifi
+        WifiInfo connectedWifi = mWifiManager.getConnectionInfo();
+        if (connectedWifi == null ||
+                connectedWifi.getSSID() == null ||
+                connectedWifi.getSSID().compareTo(targetSsid)!=0 ||
+                connectedWifi.getBSSID().compareTo(bssid)!=0)
+            connectToKnownWifi(targetSsid, bssid);
+        else
+            stateMachine(Signal.DEVICE_WIFI_CONNECTED);
+    }
+
+    private void connectToLocalWifi() {
+        state = State.CONNETING_LOCAL_WIFI;
+
+        String targetSsid = "\""+pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid()+"\"";
         String bssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getBssid();
+
+        // Check if we are already connected to such wifi
+        WifiInfo connectedWifi = mWifiManager.getConnectionInfo();
+        if (connectedWifi == null ||
+                connectedWifi.getSSID() == null ||
+                connectedWifi.getSSID().compareTo(targetSsid)!=0 ||
+                connectedWifi.getBSSID().compareTo(bssid)!=0)
+            connectToKnownWifi(targetSsid, bssid);
+        else
+            stateMachine(Signal.LOCAL_WIFI_CONNECTED);
+    }
+
+    private void connectToKnownWifi(String ssid, String bssid) {
         bssid = bssid.replace("-", ":");
+        // Check Wifi permissions
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                (getContext().checkSelfPermission(Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED)){
+            error = "User denied CHANGE_WIFI_STATE permission. Wifi cannot be enabled.";
+            stateMachine(ExecutePairingFragment.Signal.ERROR);
+            return;
+        }
 
+        // In case the device is "old", we rely on the classic WifiManager API
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            WifiConfiguration conf = new WifiConfiguration();
-            conf.SSID = "\"" + ssid + "\"";
-            conf.BSSID = "\"" + bssid + "\"";
-            conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
-            mWifiManager.addNetwork(conf);
-            List<WifiConfiguration> list = null;
+            WifiConfiguration targetWifiConf = null;
 
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                    (getContext().checkSelfPermission(Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED)){
-                error = "User denied CHANGE_WIFI_STATE permission. Wifi cannot be enabled.";
-                stateMachine(ExecutePairingFragment.Signal.ERROR);
-                return;
-            } else {
-                list = mWifiManager.getConfiguredNetworks();
-            }
+            String targetSsid = "\"" + ssid +"\"";
 
-            for (WifiConfiguration i : list) {
-                if (i.SSID != null && i.SSID.equals("\"" + ssid + "\"")) {
-                    mWifiManager.disconnect();
-                    mWifiManager.enableNetwork(i.networkId, true);
-                    mWifiManager.reconnect();
+            // Locate the existing network configuration entry.
+            // We assume it is existing: the user either created it during the discovery session
+            // or when it has logged in to the HTTP API
+            for (WifiConfiguration conf : mWifiManager.getConfiguredNetworks()) {
+                if (conf.BSSID.toLowerCase().compareTo(bssid.toLowerCase())==0
+                    && conf.SSID.compareTo(targetSsid)==0) {
+
+                    // Found a matching configuration.
+                    targetWifiConf = conf;
                     break;
                 }
             }
-        } else {
+
+            if (targetWifiConf == null) {
+                error = "Could not find a known network named '"+ssid+"' with bssid '"+bssid+"'.";
+                stateMachine(ExecutePairingFragment.Signal.ERROR);
+                return;
+            } else {
+                Log.i(TAG, "Issuing wifi connection against network "+targetWifiConf);
+                mWifiManager.disconnect();
+                mWifiManager.enableNetwork(targetWifiConf.networkId, true);
+                mWifiManager.reconnect();
+            }
+        }
+
+        // If the device is recent, we rely on Network Request API
+        else {
             NetworkRequest networkRequest = new NetworkRequest.Builder()
                     .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) // The wifi does not necessarily need Internet Connection
                     .setNetworkSpecifier(
-                            new WifiNetworkSpecifier.Builder()
-                                    .setSsid(ssid)
-                                    .setBssid(MacAddress.fromString(bssid))
-                                    .build()
+                        new WifiNetworkSpecifier.Builder()
+                                .setSsid(ssid)
+                                .setBssid(MacAddress.fromString(bssid))
+                                .build()
                     )
                     .build();
             mConnectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
-
                 @Override
                 public void onUnavailable() {
-                    // TODO
+                    error = "Wifi network unavailable";
+                    stateMachine(Signal.ERROR);
+                    Log.i(TAG, "Network unavailable");
                 }
                 @Override
                 public void onAvailable(Network network) {
-                    // TODO
+                    Log.i(TAG, "Found network " + network);
+                    mApDevice.setSocketFactory(network.getSocketFactory());
                 }
             });
         }
@@ -258,16 +322,14 @@ public class ExecutePairingFragment extends Fragment {
         return digest;
     }
 
-
     private void configureDevice(final String userId, final String key) {
         state = State.SENDING_PAIRING_COMMAND;
         worker.schedule(new Runnable() {
             @Override
             public void run() {
-                com.albertogeniola.merosslib.MerossDeviceAp device = pairActivityViewModel.getDevice().getValue();
                 try {
                     LiveData<MqttConfiguration> mqttConfig = pairActivityViewModel.getTargetMqttConfig();
-                    device.setConfigKey(
+                    mApDevice.setConfigKey(
                             mqttConfig.getValue().getHostname(),
                             mqttConfig.getValue().getPort(),
                                     key,
@@ -286,7 +348,7 @@ public class ExecutePairingFragment extends Fragment {
 
                 com.albertogeniola.merossconf.model.WifiConfiguration credentials = pairActivityViewModel.getMerossConfiguredWifi().getValue();
                 try {
-                    device.setConfigWifi(credentials.getScannedWifi(), credentials.getWifiPasswordBase64());
+                    mApDevice.setConfigWifi(credentials.getScannedWifi(), credentials.getWifiPasswordBase64());
                     stateMachine(Signal.DEVICE_CONFIGURED);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -302,7 +364,6 @@ public class ExecutePairingFragment extends Fragment {
             }
         },3, TimeUnit.SECONDS);
     }
-
 
     private void completeActivityFragment() {
         state = State.DONE;
@@ -320,13 +381,20 @@ public class ExecutePairingFragment extends Fragment {
                     case INIT:
                         errorDetailsTextView.setText("");
                         errorDetailsTextView.setVisibility(View.GONE);
+                        connectWifiTaskLine.setState(TaskLine.TaskState.not_started);
                         sendPairCommandTaskLine.setState(TaskLine.TaskState.not_started);
                         connectLocalWifiTaskLine.setState(TaskLine.TaskState.not_started);
                         testMqttBrokerTaskLine.setState(TaskLine.TaskState.not_started);
                         currentTask = null;
                         break;
+                    case CONNECTING_DEVICE_WIFI_AP:
+                        errorDetailsTextView.setVisibility(View.GONE);
+                        connectWifiTaskLine.setState(TaskLine.TaskState.running);
+                        currentTask = connectWifiTaskLine;
+                        break;
                     case SENDING_PAIRING_COMMAND:
                         errorDetailsTextView.setVisibility(View.GONE);
+                        connectWifiTaskLine.setState(TaskLine.TaskState.completed);
                         sendPairCommandTaskLine.setState(TaskLine.TaskState.running);
                         currentTask = sendPairCommandTaskLine;
                         break;
@@ -376,7 +444,6 @@ public class ExecutePairingFragment extends Fragment {
         mReceiver = new WifiBroadcastReceiver();
     }
 
-
     @Override
     public View onCreateView(
             LayoutInflater inflater, ViewGroup container,
@@ -388,6 +455,7 @@ public class ExecutePairingFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        connectWifiTaskLine = view.findViewById(R.id.connectApWifiTaskLine);
         sendPairCommandTaskLine = view.findViewById(R.id.sendPairCommandTaskLine);
         connectLocalWifiTaskLine = view.findViewById(R.id.connectToBrokerWifi);
         testMqttBrokerTaskLine  = view.findViewById(R.id.connectToMqttBrokerTaskLike);
@@ -397,16 +465,24 @@ public class ExecutePairingFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-
         mCreds = AndroidPreferencesManager.loadHttpCredentials(requireContext());
+        mApDevice = pairActivityViewModel.getDevice().getValue();
 
+        // Register for Wifi changes
+        registerForWifiChanges();
         // As soon as we resume, connect to the given WiFi
         stateMachine(Signal.RESUMED);
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        unregisterWifiChanges();
+    }
 
     enum State {
         INIT,
+        CONNECTING_DEVICE_WIFI_AP,
         SENDING_PAIRING_COMMAND,
         CONNETING_LOCAL_WIFI,
         CONNECTING_TO_MQTT_BROKER,
@@ -416,8 +492,9 @@ public class ExecutePairingFragment extends Fragment {
 
     enum Signal {
         RESUMED,
+        DEVICE_WIFI_CONNECTED,
         DEVICE_CONFIGURED,
-        WIFI_CONNECTED,
+        LOCAL_WIFI_CONNECTED,
         MQTT_CONNECTED,
         ERROR
     }
@@ -429,11 +506,14 @@ public class ExecutePairingFragment extends Fragment {
             if (WifiManager.NETWORK_STATE_CHANGED_ACTION .equals(action)) {
                 NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (networkInfo.isConnected()) {
-                    if (mWifiManager.getConnectionInfo() != null && mWifiManager.getConnectionInfo().getSSID() != null) {
-                        String targetSSID = "\"" + new String(Base64.decode(pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid(), Base64.DEFAULT)) + "\"" ;
-                        if (targetSSID.compareTo(mWifiManager.getConnectionInfo().getSSID()) == 0) {
-                            ExecutePairingFragment.this.requireContext().getApplicationContext().unregisterReceiver(this);
-                            stateMachine(Signal.WIFI_CONNECTED);
+                    String currentSsid = mWifiManager.getConnectionInfo().getSSID();
+                    if (mWifiManager.getConnectionInfo() != null && currentSsid != null) {
+                        String targetLocalSSID = "\"" + pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid() + "\"" ;
+                        String targetApSSID = "\"" + pairActivityViewModel.getMerossPairingAp().getValue().getSsid() + "\"" ;
+                        if (targetLocalSSID.compareTo(currentSsid) == 0) {
+                            stateMachine(Signal.LOCAL_WIFI_CONNECTED);
+                        } else if (targetApSSID.compareTo(currentSsid) == 0) {
+                            stateMachine(Signal.DEVICE_WIFI_CONNECTED);
                         }
                     }
                 }

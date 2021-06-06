@@ -24,7 +24,7 @@
             android:layout_weight="1"
             android:drawableLeft="@drawable/ic_signal_wifi_off_black_24dp"
             android:drawablePadding="5dp"
-            android:text="Wifi is OFF. \nPlease enable it."
+            android:text="Wifi is OFF or unconnected. \nPlease connect to your Local Wifi."
             android:textColor="#FFFFFF"
             android:visibility="gone" />
 
