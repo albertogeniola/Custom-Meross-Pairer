@@ -143,7 +143,7 @@ public class ExecutePairingFragment extends Fragment {
                 connectedWifi.getSSID() == null ||
                 connectedWifi.getSSID().compareTo(targetSsid)!=0 ||
                 connectedWifi.getBSSID().compareTo(bssid)!=0)
-            connectToKnownWifi(ssid, bssid);
+            connectToKnownWifi(ssid, bssid, null);
         else
             stateMachine(Signal.DEVICE_WIFI_CONNECTED);
     }
@@ -154,6 +154,7 @@ public class ExecutePairingFragment extends Fragment {
         String ssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
         String targetSsid = "\""+ssid+"\"";
         String bssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getBssid();
+        String passphrase = pairActivityViewModel.getMerossConfiguredWifi().getValue().getClearWifiPassword();
 
         // Check if we are already connected to such wifi
         WifiInfo connectedWifi = mWifiManager.getConnectionInfo();
@@ -161,12 +162,12 @@ public class ExecutePairingFragment extends Fragment {
                 connectedWifi.getSSID() == null ||
                 connectedWifi.getSSID().compareTo(targetSsid)!=0 ||
                 connectedWifi.getBSSID().compareTo(bssid)!=0)
-            connectToKnownWifi(ssid, bssid);
+            connectToKnownWifi(ssid, bssid, passphrase);
         else
             stateMachine(Signal.LOCAL_WIFI_CONNECTED);
     }
 
-    private void connectToKnownWifi(String ssid, String bssid) {
+    private void connectToKnownWifi(String ssid, String bssid, @Nullable String wpa2passphrase) {
         bssid = bssid.replace("-", ":");
         // Check Wifi permissions
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
@@ -209,15 +210,16 @@ public class ExecutePairingFragment extends Fragment {
 
         // If the device is recent, we rely on Network Request API
         else {
+            WifiNetworkSpecifier.Builder specifierBuilder = new WifiNetworkSpecifier.Builder()
+                    .setSsid(ssid)
+                    .setBssid(MacAddress.fromString(bssid));
+            if (wpa2passphrase != null)
+                specifierBuilder.setWpa2Passphrase(wpa2passphrase);
+            WifiNetworkSpecifier specifier = specifierBuilder.build();
             NetworkRequest networkRequest = new NetworkRequest.Builder()
                     .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) // The wifi does not necessarily need Internet Connection
-                    .setNetworkSpecifier(
-                        new WifiNetworkSpecifier.Builder()
-                                .setSsid(ssid)
-                                .setBssid(MacAddress.fromString(bssid))
-                                .build()
-                    )
+                    .setNetworkSpecifier(specifier)
                     .build();
             mConnectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
                 @Override
@@ -241,7 +243,7 @@ public class ExecutePairingFragment extends Fragment {
         MqttAndroidClient mqttAndroidClient = new MqttAndroidClient(
                 requireContext().getApplicationContext(),
                 uri,
-                "app:check"); // TODO: Change this
+                "app:check"); // TODO: Change this check; let the app connect as the real Meross App does
         MqttConnectOptions options = new MqttConnectOptions();
         String fake_mac = "00:00:00:00:00:00";
         String userId = mCreds.getUserId();
@@ -296,7 +298,6 @@ public class ExecutePairingFragment extends Fragment {
             error = "Failed MQTT Connection: " + e.getMessage();
             stateMachine(Signal.ERROR);
         }
-
     }
 
     private String calculateMQttPassword(String userId, String fake_mac, String key) {
