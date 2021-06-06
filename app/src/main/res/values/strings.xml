@@ -64,8 +64,8 @@
     <string name="menu_devices">Devices</string>
     <string name="drawer_open">DRAWER OPEN</string>
     <string name="drawer_close">DRAWER CLOSE</string>
-    <string name="title_activity_login">HTTP Broker Login</string>
-    <string name="login_intro_text">Please input the HTTP broker to use. If using the HomeAssistant addon, refer to its configuration page to determine the values to be inputted here.</string>
+    <string name="title_activity_login">Local API Login</string>
+    <string name="login_intro_text">Log-in to the Local API broker. Make sure your HomeAssistant addon is running (started) and double check the credentials from within the Addon configuration page.</string>
 
     <string name="user_key">User Key</string>
 

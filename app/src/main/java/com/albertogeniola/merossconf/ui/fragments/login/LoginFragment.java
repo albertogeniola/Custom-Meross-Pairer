@@ -1,21 +1,13 @@
 package com.albertogeniola.merossconf.ui.fragments.login;
 
 import android.app.ProgressDialog;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.net.NetworkInfo;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.fragment.NavHostFragment;
-
+import android.os.Handler;
+import android.os.Looper;
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
@@ -27,27 +19,43 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
+
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
+import com.google.android.material.progressindicator.CircularProgressIndicatorSpec;
+import com.google.android.material.progressindicator.IndeterminateDrawable;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
+import static com.albertogeniola.merossconf.AndroidUtils.dpToPx;
+
+
 public class LoginFragment extends Fragment {
     // Constants
-    private static final String SERVICE_TYPE = "_meross-lan-broker._tcp.";
+    private static final String SERVICE_TYPE = "_meross-local-api._tcp.";
     private static final  String TAG = "Login";
 
     // Instance attributes
     private NsdManager mNsdManager;
     private WifiManager mWifiManager;
+    private TextInputLayout mHttpHostnameInput;
     private EditText mHttpHostnameEditText;
     private EditText mHttpUsernameEditText;
     private EditText mHttpPasswordEditText;
     private Button mLoginButton;
+
+    private Handler uiHandler;
+
+    private CircularProgressIndicator mSearchProgress;
 
 
     public LoginFragment() {
@@ -59,6 +67,7 @@ public class LoginFragment extends Fragment {
         super.onCreate(savedInstanceState);
         mNsdManager = (NsdManager) requireContext().getSystemService(Context.NSD_SERVICE);
         mWifiManager = (WifiManager) requireContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        uiHandler = new Handler(this.getContext().getMainLooper());
     }
 
     @Override
@@ -69,10 +78,17 @@ public class LoginFragment extends Fragment {
 
         // Bind views
         CheckBox showPasswordCheckBox = view.findViewById(R.id.showPasswordCheckBox);
-        mHttpPasswordEditText = ((TextInputLayout)view.findViewById(R.id.httpPasswordEditText)).getEditText();
+        mHttpHostnameInput = (TextInputLayout)view.findViewById(R.id.httpHostnameEditText);
         mHttpHostnameEditText = ((TextInputLayout)view.findViewById(R.id.httpHostnameEditText)).getEditText();
+        mHttpPasswordEditText = ((TextInputLayout)view.findViewById(R.id.httpPasswordEditText)).getEditText();
         mHttpUsernameEditText = ((TextInputLayout)view.findViewById(R.id.httpUsernameEditText)).getEditText();
         mLoginButton = view.findViewById(R.id.loginButton);
+
+        // Configure HostEditText for progress showing
+        mSearchProgress = new CircularProgressIndicator(this.requireActivity(), null);
+        mSearchProgress.setIndicatorSize((int)dpToPx(requireContext(), 15));
+        mSearchProgress.setIndeterminate(true);
+
         // Show/Hide password logic
         showPasswordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -100,10 +116,47 @@ public class LoginFragment extends Fragment {
         return view;
     }
 
+    private void notifyDiscoveryEnded(@Nullable final String result, @Nullable final String message) {
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                mHttpHostnameInput.setEndIconMode(TextInputLayout.END_ICON_NONE);
+                mHttpHostnameInput.setEndIconDrawable(null);
+                mHttpHostnameEditText.setText(result == null ? "" : result);
+                mHttpHostnameEditText.setEnabled(true);
+
+                if (result!=null && message==null) {
+                    Snackbar.make(getView(),"Local Meross HTTP service found!", Snackbar.LENGTH_SHORT)
+                            .setAnchorView(mHttpHostnameInput)
+                            .show();
+                } else if (message != null) {
+                    Snackbar.make(getView(), message, Snackbar.LENGTH_SHORT).show();
+                }
+            }
+        };
+
+        if (Looper.myLooper() == Looper.getMainLooper())
+            r.run();
+        else
+            uiHandler.post(r);
+    }
+
+    private void startApiDiscovery() {
+        // Setup UI
+        IndeterminateDrawable<CircularProgressIndicatorSpec> progressIndicatorDrawable = mSearchProgress.getIndeterminateDrawable();
+        mHttpHostnameInput.setEndIconMode(TextInputLayout.END_ICON_CUSTOM);
+        mHttpHostnameInput.setEndIconDrawable(progressIndicatorDrawable);
+        mHttpHostnameEditText.setText("Searching...");
+        mHttpHostnameEditText.setEnabled(false);
+
+        // Start mDNS discovery
+        mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+    }
+
     @Override
     public void onResume() {
         super.onResume();
-        mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+        startApiDiscovery();
     }
 
     @Override
@@ -183,26 +236,25 @@ public class LoginFragment extends Fragment {
         @Override
         public void onServiceFound(NsdServiceInfo service) {
             Log.d(TAG, "Service discovery success" + service);
-            if (!service.getServiceType().equals(SERVICE_TYPE)) {
-                Log.d(TAG, "Unknown Service Type: " + service.getServiceType());
-            }
+            mNsdManager.resolveService(service, mResolveListener);
         }
 
         @Override
         public void onStartDiscoveryFailed(String serviceType, int errorCode) {
             Log.e(TAG, "Discovery failed: Error code:" + errorCode);
-            mNsdManager.stopServiceDiscovery(this);
+            LoginFragment.this.notifyDiscoveryEnded(null, "Automatic discovery failed");
         }
 
         @Override
         public void onStopDiscoveryFailed(String serviceType, int errorCode) {
             Log.e(TAG, "Discovery failed: Error code:" + errorCode);
-            mNsdManager.stopServiceDiscovery(this);
+            LoginFragment.this.notifyDiscoveryEnded(null, null);
         }
 
         @Override
         public void onDiscoveryStopped(String serviceType) {
             Log.i(TAG, "Discovery stopped: " + serviceType);
+            LoginFragment.this.notifyDiscoveryEnded(null, null);
         }
 
         @Override
@@ -210,6 +262,20 @@ public class LoginFragment extends Fragment {
             // When the network service is no longer available.
             // Internal bookkeeping code goes here.
             Log.e(TAG, "service lost: " + serviceInfo.getServiceType());
+        }
+    };
+
+    // mDNS resolver
+    private final NsdManager.ResolveListener mResolveListener = new NsdManager.ResolveListener() {
+        @Override
+        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+            Log.e(TAG, "Resolve failed" + errorCode);
+            LoginFragment.this.notifyDiscoveryEnded(null, "Automatic discovery failed");
+        }
+        @Override
+        public void onServiceResolved(final NsdServiceInfo serviceInfo) {
+            Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
+            notifyDiscoveryEnded("http://" + serviceInfo.getHost().getHostName()+":"+serviceInfo.getPort(), null);
         }
     };
 }

@@ -5,6 +5,7 @@ import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.DisplayMetrics;
 
 import com.albertogeniola.merosslib.model.Cipher;
 import com.albertogeniola.merosslib.model.Encryption;
@@ -46,4 +47,9 @@ public class AndroidUtils {
         return Pattern.matches("^(http|https)\\:\\/\\/([\\_\\-a-zA-Z0-9\\.]+)(\\:[0-9]+)?$", url);
     }
 
+
+    public static int dpToPx(Context ctx, int dp) {
+        DisplayMetrics displayMetrics = ctx.getResources().getDisplayMetrics();
+        return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+    }
 }

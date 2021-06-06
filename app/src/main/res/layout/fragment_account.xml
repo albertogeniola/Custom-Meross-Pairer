@@ -113,6 +113,15 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Please acquire an HTTP Token from the HTTP broker to start pairing devices. " />
+
+            <ImageView
+                android:layout_margin="5dp"
+                android:layout_gravity="center_horizontal"
+                android:id="@+id/imageView4"
+                android:layout_width="203dp"
+                android:layout_height="145dp"
+                android:src="@drawable/login_icon" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/httpLoginButton"
                 android:layout_width="match_parent"
