@@ -7,7 +7,7 @@ import java.util.Map;
 import lombok.Getter;
 
 @Getter
-public class ApiResponse {
+public class ApiResponse<T> {
     @SerializedName("apiStatus")
     private ErrorCodes apiStatus;
 
@@ -15,5 +15,5 @@ public class ApiResponse {
     private String info;
 
     @SerializedName("data")
-    private Map<String, Object> data;
+    private T data;
 }

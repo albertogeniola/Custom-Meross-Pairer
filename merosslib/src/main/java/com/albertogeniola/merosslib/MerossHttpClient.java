@@ -2,12 +2,15 @@ package com.albertogeniola.merosslib;
 
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.albertogeniola.merosslib.model.http.ApiResponse;
+import com.albertogeniola.merosslib.model.http.DeviceInfo;
 import com.albertogeniola.merosslib.model.http.ErrorCodes;
+import com.albertogeniola.merosslib.model.http.LoginResponseData;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiInvalidCredentialsException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiTokenException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -19,14 +22,17 @@ import org.apache.commons.codec.binary.Base64;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import jdk.nashorn.internal.parser.TokenType;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
@@ -41,6 +47,7 @@ public class MerossHttpClient implements Serializable {
     private static final Gson g = new GsonBuilder().disableHtmlEscaping().create();
     private static final String NOONCE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final String LOGIN_PATH = "/v1/Auth/Login";
+    private static final String DEVICE_LIST = "/v1/Device/devList";
     private static final String LOGOUT_PATH = "/v1/Profile/logout";
     private static final String SECRET = "23x17ahWarFH6w29";
     private static final HashMap<String, Object> DEFAULT_PARAMS = new HashMap<>();
@@ -68,23 +75,30 @@ public class MerossHttpClient implements Serializable {
         HashMap<String, Object> data = new HashMap<>();
         data.put("email", username);
         data.put("password", password);
-        Map<String, Object> result = authenticatedPost( apiUrl+LOGIN_PATH, data, null);
+        LoginResponseData result = authenticatedPost( apiUrl+LOGIN_PATH, data, null, LoginResponseData.class);
 
         this.mCredentials = new ApiCredentials(
                 apiUrl,
-                result.get("token").toString(),
-                result.get("userid").toString(),
-                result.get("email").toString(),
-                result.get("key").toString(),
+                result.getToken(),
+                result.getUserId(),
+                result.getEmail(),
+                result.getKey(),
                 new Date()
         );
+    }
+
+    public List<DeviceInfo> listDevices() throws IOException, HttpApiException, HttpApiInvalidCredentialsException {
+        HashMap<String, Object> data = new HashMap<>();
+        TypeToken<?> typeToken = TypeToken.getParameterized(List.class, DeviceInfo.class);
+        List<DeviceInfo> devices = authenticatedPost( mCredentials.getApiServer()+DEVICE_LIST, data, this.mCredentials.getToken(), typeToken.getType());
+        return devices;
     }
 
     public void logout() throws HttpApiInvalidCredentialsException, HttpApiException, IOException {
         if (mCredentials == null) {
             throw new IllegalStateException("Invalid logout operation: this client is not logged in.");
         }
-        authenticatedPost(mCredentials.getApiServer()+LOGOUT_PATH, null, mCredentials.getToken());
+        authenticatedPost(mCredentials.getApiServer()+LOGOUT_PATH, null, mCredentials.getToken(), Object.class);
     }
 
     private static String generateNonce(int targetStringLength) {
@@ -112,7 +126,7 @@ public class MerossHttpClient implements Serializable {
     }
 
     @SneakyThrows({UnsupportedEncodingException.class, NoSuchAlgorithmException.class})
-    private Map<String, Object> authenticatedPost(@NonNull String url, HashMap<String, Object> data, String httpToken) throws IOException, HttpApiException, HttpApiInvalidCredentialsException {
+    private <T> T authenticatedPost(@NonNull String url, HashMap<String, Object> data, String httpToken, Type dataType) throws IOException, HttpApiException, HttpApiInvalidCredentialsException {
 
         String nonce = generateNonce(16);
         long timestampMillis = new Date().getTime();
@@ -150,7 +164,8 @@ public class MerossHttpClient implements Serializable {
             l.severe("Bad HTTP Response code: " + response.code() );
         }
 
-        ApiResponse responseData = g.fromJson(strdata, ApiResponse.class);
+        TypeToken<?> token = TypeToken.getParameterized(ApiResponse.class, dataType);
+        ApiResponse<T> responseData = g.fromJson(strdata, token.getType());
 
         switch (responseData.getApiStatus()) {
             case CODE_NO_ERROR:

@@ -20,7 +20,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,34 +35,26 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
-import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.MqttConfiguration;
-import com.albertogeniola.merossconf.ssl.DummyTrustManager;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merossconf.ui.views.TaskLine;
 import com.albertogeniola.merosslib.MerossDeviceAp;
-import com.albertogeniola.merosslib.model.Cipher;
-import com.albertogeniola.merosslib.model.Encryption;
+import com.albertogeniola.merosslib.MerossHttpClient;
+import com.albertogeniola.merosslib.model.OnlineStatus;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
-
-import org.eclipse.paho.android.service.MqttAndroidClient;
-import org.eclipse.paho.client.mqttv3.IMqttActionListener;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
+import com.albertogeniola.merosslib.model.http.DeviceInfo;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 
 import java.io.IOException;
-import java.security.KeyManagementException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
 
 
 public class ExecutePairingFragment extends Fragment {
@@ -110,10 +101,11 @@ public class ExecutePairingFragment extends Fragment {
                 if (signal == Signal.DEVICE_CONFIGURED) {connectToLocalWifi();}
                 break;
             case CONNETING_LOCAL_WIFI:
-                if (signal == Signal.LOCAL_WIFI_CONNECTED) {connectToMqttBorker();}
+                if (signal == Signal.LOCAL_WIFI_CONNECTED) {
+                    pollDeviceList();}
                 break;
-            case CONNECTING_TO_MQTT_BROKER:
-                if (signal == Signal.MQTT_CONNECTED) {completeActivityFragment();}
+            case VERIFYING_PAIRING_SUCCEEDED:
+                if (signal == Signal.DEVICE_PAIRED) {completeActivityFragment();}
                 break;
         }
 
@@ -237,67 +229,62 @@ public class ExecutePairingFragment extends Fragment {
         }
     }
 
-    private void connectToMqttBorker() {
-        state = State.CONNECTING_TO_MQTT_BROKER;
-        String uri = "ssl://" + pairActivityViewModel.getTargetMqttConfig().getValue().getHostname() + ":" + pairActivityViewModel.getTargetMqttConfig().getValue().getPort();
-        MqttAndroidClient mqttAndroidClient = new MqttAndroidClient(
-                requireContext().getApplicationContext(),
-                uri,
-                "app:check"); // TODO: Change this check; let the app connect as the real Meross App does
-        MqttConnectOptions options = new MqttConnectOptions();
-        String fake_mac = "00:00:00:00:00:00";
-        String userId = mCreds.getUserId();
-        String key = mCreds.getKey();
-        options.setUserName(fake_mac);
-        String password = calculateMQttPassword(userId, fake_mac, key);
-        options.setPassword(password.toCharArray());
-        options.setAutomaticReconnect(false);
-        options.setCleanSession(false);
-        options.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
-        options.setServerURIs(new String[] {uri});
+    private void pollDeviceList() {
+        state = State.VERIFYING_PAIRING_SUCCEEDED;
+        final long timeout = GregorianCalendar.getInstance().getTimeInMillis() + 30000; // 30 seconds timeout
+        ScheduledFuture<?> future = worker.schedule(new Runnable() {
+            private @Nullable DeviceInfo findDevice(Collection<DeviceInfo> devices, String deviceUuid) {
+                for (DeviceInfo d : devices) {
+                    Log.d(TAG, "Device " + d.getUuid() + " has been found with status: " + d.getOnlineStatus());
+                    if (d.getUuid().compareTo(deviceUuid) == 0) {
+                        return d;
+                    }
+                }
+                return null;
+            }
 
-        // Disable SSL checks...
-        // TODO: parametrize this
-        TrustManager[] trustManagers = new DummyTrustManager[]{new DummyTrustManager()};
-        SSLContext sc = null;
-        try {
-            // FIXME: wait a bit so that the underlying network becomes available.
-            Thread.sleep(3000);
-            sc = SSLContext.getInstance ("SSL");
-            sc.init (null, trustManagers, new java.security.SecureRandom ());
-            options.setSocketFactory(sc.getSocketFactory());
-        } catch (KeyManagementException | NoSuchAlgorithmException | InterruptedException e) {
-            e.printStackTrace ();
-            error = "Error occurred while connecting to remote broker";
-            stateMachine(Signal.ERROR);
-        }
-
-        /* Establish an MQTT connection */
-        try {
-            mqttAndroidClient.connect(options, null, new IMqttActionListener() {
-                @Override
-                public void onSuccess(IMqttToken asyncActionToken) {
+            @Override
+            public void run() {
+                MerossHttpClient client = new MerossHttpClient(mCreds);
+                String targetUuid = pairActivityViewModel.getDeviceInfo().getValue().getPayload().getAll().getSystem().getHardware().getUuid();
+                boolean succeeed = false;
+                boolean timedOut = GregorianCalendar.getInstance().getTimeInMillis() >= timeout;
+                boolean exitNow = false;
+                while(!exitNow && !succeeed && !Thread.currentThread().isInterrupted() && !timedOut) {
                     try {
-                        asyncActionToken.getClient().disconnect();
-                    } catch (MqttException e) {
+                        List<DeviceInfo> devices = client.listDevices();
+                        DeviceInfo d = findDevice(devices, targetUuid);
+                        if (d == null) {
+                            Log.i(TAG, "Device " +targetUuid + " not paired yet.");
+                        } else if (d.getOnlineStatus() == OnlineStatus.ONLINE || d.getOnlineStatus() == OnlineStatus.LAN) {
+                            Log.i(TAG, "Device " +targetUuid + " is online.");
+                            succeeed = true;
+                        } else {
+                            Log.i(TAG, "Device " +targetUuid + " is paired, but not ready yet or in an unknown status.");
+                        }
+                    } catch (IOException e) {
                         e.printStackTrace();
+                        Log.e(TAG, "An IOException occurred while polling the HTTP API server.", e);
+                    } catch (HttpApiException e) {
+                        Log.e(TAG, "The HTTP API server reported status " + e.getCode(), e);
+                    } finally {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            exitNow = true;
+                            error = "An error occurred while poling the HTTP API server";
+                            stateMachine(Signal.ERROR);
+                        }
                     }
 
-                    stateMachine(Signal.MQTT_CONNECTED);
+                    if (succeeed)
+                        stateMachine(Signal.DEVICE_PAIRED);
+                    else
+                        stateMachine(Signal.ERROR);
                 }
-
-                @Override
-                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    error = "Failed MQTT Connection: " + exception.getMessage();
-                    stateMachine(Signal.ERROR);
-                }
-            });
-
-        } catch (MqttException e) {
-            e.printStackTrace();
-            error = "Failed MQTT Connection: " + e.getMessage();
-            stateMachine(Signal.ERROR);
-        }
+            }
+        }, 2, TimeUnit.SECONDS);
     }
 
     private String calculateMQttPassword(String userId, String fake_mac, String key) {
@@ -407,7 +394,7 @@ public class ExecutePairingFragment extends Fragment {
                         connectLocalWifiTaskLine.setState(TaskLine.TaskState.running);
                         currentTask = connectLocalWifiTaskLine;
                         break;
-                    case CONNECTING_TO_MQTT_BROKER:
+                    case VERIFYING_PAIRING_SUCCEEDED:
                         errorDetailsTextView.setVisibility(View.GONE);
                         connectLocalWifiTaskLine.setState(TaskLine.TaskState.completed);
                         testMqttBrokerTaskLine.setState(TaskLine.TaskState.running);
@@ -488,7 +475,7 @@ public class ExecutePairingFragment extends Fragment {
         CONNECTING_DEVICE_WIFI_AP,
         SENDING_PAIRING_COMMAND,
         CONNETING_LOCAL_WIFI,
-        CONNECTING_TO_MQTT_BROKER,
+        VERIFYING_PAIRING_SUCCEEDED,
         DONE,
         ERROR
     }
@@ -498,7 +485,7 @@ public class ExecutePairingFragment extends Fragment {
         DEVICE_WIFI_CONNECTED,
         DEVICE_CONFIGURED,
         LOCAL_WIFI_CONNECTED,
-        MQTT_CONNECTED,
+        DEVICE_PAIRED,
         ERROR
     }
 
