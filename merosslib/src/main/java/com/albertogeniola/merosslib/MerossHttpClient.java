@@ -38,6 +38,7 @@ import lombok.SneakyThrows;
 
 import java.util.logging.Logger;
 
+import javax.net.SocketFactory;
 
 
 public class MerossHttpClient implements Serializable {
@@ -58,6 +59,9 @@ public class MerossHttpClient implements Serializable {
 
     public MerossHttpClient() {
         this(null, new OkHttpClient());
+    }
+    public void setSocketFactory(SocketFactory socketFactory) {
+        mClient.setSocketFactory(socketFactory);
     }
     public MerossHttpClient(ApiCredentials creds) {
         this(creds, new OkHttpClient());

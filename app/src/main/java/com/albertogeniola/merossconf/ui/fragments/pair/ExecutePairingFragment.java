@@ -56,6 +56,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.SocketFactory;
+
 
 public class ExecutePairingFragment extends Fragment {
     private static final String TAG = "PairingFragment";
@@ -63,6 +65,8 @@ public class ExecutePairingFragment extends Fragment {
     private WifiManager mWifiManager;
     private ConnectivityManager mConnectivityManager;
     private ScheduledExecutorService worker;
+
+    private SocketFactory mNetworkSocketFactory;
 
     private PairActivityViewModel pairActivityViewModel;
     private TextView errorDetailsTextView;
@@ -223,7 +227,7 @@ public class ExecutePairingFragment extends Fragment {
                 @Override
                 public void onAvailable(Network network) {
                     Log.i(TAG, "Found network " + network);
-                    mApDevice.setSocketFactory(network.getSocketFactory());
+                    mNetworkSocketFactory = network.getSocketFactory();
                 }
             });
         }
@@ -252,6 +256,9 @@ public class ExecutePairingFragment extends Fragment {
                 boolean exitNow = false;
                 while(!exitNow && !succeeed && !Thread.currentThread().isInterrupted() && !timedOut) {
                     try {
+                        if (mNetworkSocketFactory != null)
+                            client.setSocketFactory(mNetworkSocketFactory);
+
                         List<DeviceInfo> devices = client.listDevices();
                         DeviceInfo d = findDevice(devices, targetUuid);
                         if (d == null) {
@@ -314,6 +321,9 @@ public class ExecutePairingFragment extends Fragment {
 
     private void configureDevice(final String userId, final String key) {
         state = State.SENDING_PAIRING_COMMAND;
+        if (mNetworkSocketFactory != null)
+            mApDevice.setSocketFactory(mNetworkSocketFactory);
+
         worker.schedule(new Runnable() {
             @Override
             public void run() {
