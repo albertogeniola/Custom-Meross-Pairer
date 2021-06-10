@@ -1,0 +1,7 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <color android:color="@color/colorAccent" />
+    </item>
+    <item android:drawable="@drawable/plug"
+        android:gravity="center" android:height="100pt" android:width="100pt" />
+</layer-list>

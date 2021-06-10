@@ -14,7 +14,7 @@
         android:layout_marginLeft="28dp"
         android:layout_marginTop="16dp"
         android:contentDescription="@string/device_icon_description"
-        android:src="@drawable/ic_smart_plug"
+        android:src="@drawable/cpu"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView9" />
 

@@ -25,7 +25,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ProgressBar;
@@ -47,7 +46,6 @@ import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -68,9 +66,10 @@ public class ConfigureWifiFragment extends Fragment {
     private WifiSpinnerAdapter adapter;
     private boolean mSavePassword;
     private boolean mReceiverRegistered = false;
+    private boolean mWaitingWifi = true;
 
     private String mTargetWifiSsid;
-    private WifiConfiguration mValidatingWifi;
+    private WifiConfiguration mWifi;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -152,8 +151,13 @@ public class ConfigureWifiFragment extends Fragment {
     }
 
     private void setUiValidatingWifi(boolean validatingWifi) {
+        mWaitingWifi = validatingWifi;
         mNextButton.setText(validatingWifi ? "Validating..." : "Next");
         mNextButton.setClickable(!validatingWifi);
+
+        if (!validatingWifi) {
+            unregisterWifiBroadcastReceiver();
+        }
     }
 
     private View.OnClickListener nextButtonClick = new View.OnClickListener() {
@@ -190,7 +194,7 @@ public class ConfigureWifiFragment extends Fragment {
             return;
         }
         String ssid = selectedWifi.getScannedWifi().getSsid();
-        mValidatingWifi = selectedWifi;
+
         String targetWifiBssid = selectedWifi.getScannedWifi().getBssid().replaceAll("-",":").toLowerCase();
         mTargetWifiSsid = "\"" + ssid +"\"";
 
@@ -267,31 +271,39 @@ public class ConfigureWifiFragment extends Fragment {
     }
 
     private void setWifiValidationSucceeded() {
-        setUiValidatingWifi(false);
         Toast.makeText(requireContext(), "Wifi validation succeeded.", Toast.LENGTH_SHORT).show();
 
-        pairActivityViewModel.setMerossWifiConfiguration(mValidatingWifi);
+        pairActivityViewModel.setMerossWifiConfiguration(mWifi);
 
         // Save the password
         if (mSavePassword)
-            AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mValidatingWifi.getScannedWifi().getBssid(), mValidatingWifi.getClearWifiPassword());
+            AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mWifi.getScannedWifi().getBssid(), mWifi.getClearWifiPassword());
 
         // Navigate to the next fragment
         NavHostFragment.findNavController(ConfigureWifiFragment.this)
                 .navigate(R.id.ConfigureMqttFragment);
+
+        setUiValidatingWifi(false);
     }
 
     private void startWifiConnectionValidation(WifiConfiguration selectedWifi) {
+        mWifi = selectedWifi;
+
         setUiValidatingWifi(true);
 
         // Start wifi connection
         connectToWifi(selectedWifi);
 
         // Set a timer to abort in case we are taking too long...
-        // TODO
+        mUiHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mWaitingWifi) {
 
-
-
+                    setWifiValidationFailed("Could not connect to the desired wifi");
+                }
+            }
+        }, 30000);
 
     }
 
@@ -370,7 +382,6 @@ public class ConfigureWifiFragment extends Fragment {
 
                     if (mTargetWifiSsid.compareTo(currentSsid) == 0) {
                         setWifiValidationSucceeded();
-                        unregisterWifiBroadcastReceiver();
                     }
                 }
             }
