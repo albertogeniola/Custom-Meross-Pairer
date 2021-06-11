@@ -12,11 +12,14 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.method.HideReturnsTransformationMethod;
 import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
@@ -43,6 +46,7 @@ import com.albertogeniola.merossconf.MerossUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.WifiConfiguration;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
+import com.albertogeniola.merossconf.ui.fragments.login.LoginFragment;
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 import com.google.android.material.button.MaterialButton;
@@ -57,6 +61,8 @@ public class ConfigureWifiFragment extends Fragment {
     private static final String TAG = "ConfigureWifiFragment";
     private WifiManager mWifiManager;
     private ConnectivityManager mConnectivityManager;
+    private NsdManager mNsdManager;
+    private static final String SERVICE_TYPE = "_meross-local-mqtt._tcp.";
 
     private Handler mUiHandler;
     private PairActivityViewModel pairActivityViewModel;
@@ -67,6 +73,8 @@ public class ConfigureWifiFragment extends Fragment {
     private boolean mSavePassword;
     private boolean mReceiverRegistered = false;
     private boolean mWaitingWifi = true;
+    private boolean mDiscoveryInProgress = false;
+    private boolean mResolveInProgress = false;
 
     private String mTargetWifiSsid;
     private WifiConfiguration mWifi;
@@ -77,6 +85,7 @@ public class ConfigureWifiFragment extends Fragment {
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
         mWifiManager = (WifiManager) requireContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         mConnectivityManager = (ConnectivityManager) requireContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        mNsdManager = (NsdManager) requireContext().getSystemService(Context.NSD_SERVICE);
         mUiHandler = new Handler(requireContext().getMainLooper());
     }
 
@@ -143,6 +152,10 @@ public class ConfigureWifiFragment extends Fragment {
         super.onDestroy();
         // Unregister the broadcast receiver in case we did not unregister it yet
         unregisterWifiBroadcastReceiver();
+        if (mDiscoveryInProgress)
+            mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+
+        mResolveInProgress = false;
     }
 
     @Override
@@ -259,6 +272,7 @@ public class ConfigureWifiFragment extends Fragment {
                 @Override
                 public void onAvailable(Network network) {
                     Log.i(TAG, "Found network " + network);
+                    mConnectivityManager.bindProcessToNetwork(network);
                     //mNetworkSocketFactory = network.getSocketFactory();
                 }
             });
@@ -271,7 +285,7 @@ public class ConfigureWifiFragment extends Fragment {
     }
 
     private void setWifiValidationSucceeded() {
-        Toast.makeText(requireContext(), "Wifi validation succeeded.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireContext(), "Wifi validation succeeded. Discovering Local MQTT Brokers...", Toast.LENGTH_SHORT).show();
 
         pairActivityViewModel.setMerossWifiConfiguration(mWifi);
 
@@ -279,11 +293,36 @@ public class ConfigureWifiFragment extends Fragment {
         if (mSavePassword)
             AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mWifi.getScannedWifi().getBssid(), mWifi.getClearWifiPassword());
 
-        // Navigate to the next fragment
-        NavHostFragment.findNavController(ConfigureWifiFragment.this)
-                .navigate(R.id.ConfigureMqttFragment);
+        // Scan mDNS
+        mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+    }
 
-        setUiValidatingWifi(false);
+    private void notifyDiscoveryEnded(@Nullable final String hostname,
+                                      @Nullable final Integer port) {
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                // In case the discovery found a valid service, put it into a parcel for the next fragment
+                Bundle args = new Bundle();
+                if (hostname != null && port != null) {
+                    args.putString("hostname", hostname);
+                    args.putInt("port", port);
+                    Toast.makeText(requireContext(), "Found a Meross MQTT broker in this LAN", Toast.LENGTH_SHORT).show();
+                }
+
+                // Navigate to the next fragment
+                NavHostFragment.findNavController(ConfigureWifiFragment.this)
+                        .navigate(R.id.ConfigureMqttFragment, args);
+
+                // Set discovery over
+                setUiValidatingWifi(false);
+            }
+        };
+
+        if (Looper.myLooper() == Looper.getMainLooper())
+            r.run();
+        else
+            mUiHandler.post(r);
     }
 
     private void startWifiConnectionValidation(WifiConfiguration selectedWifi) {
@@ -381,6 +420,7 @@ public class ConfigureWifiFragment extends Fragment {
                     Log.i(TAG, "WifiState updated. Current SSID: "+currentSsid);
 
                     if (mTargetWifiSsid.compareTo(currentSsid) == 0) {
+                        unregisterWifiBroadcastReceiver();
                         setWifiValidationSucceeded();
                     }
                 }
@@ -403,4 +443,70 @@ public class ConfigureWifiFragment extends Fragment {
             mReceiverRegistered = true;
         }
     }
+
+    // mDNS discovery listener
+    private final NsdManager.DiscoveryListener mDiscoveryListener = new NsdManager.DiscoveryListener() {
+        // Called as soon as service discovery begins.
+        @Override
+        public void onDiscoveryStarted(String serviceType) {
+            Log.d(TAG, "Service discovery started");
+            mDiscoveryInProgress = true;
+        }
+
+        @Override
+        public void onServiceFound(NsdServiceInfo service) {
+            Log.d(TAG, "Service discovery success" + service);
+            //mNsdManager.stopServiceDiscovery(this);
+            synchronized (this) {
+                if (!mResolveInProgress) {
+                    mResolveInProgress = true;
+                    mNsdManager.resolveService(service, mResolveListener);
+                }
+            }
+        }
+
+        @Override
+        public void onStartDiscoveryFailed(String serviceType, int errorCode) {
+            Log.e(TAG, "Discovery failed: Error code:" + errorCode);
+            mNsdManager.stopServiceDiscovery(this);
+            ConfigureWifiFragment.this.notifyDiscoveryEnded(null, null);
+        }
+
+        @Override
+        public void onStopDiscoveryFailed(String serviceType, int errorCode) {
+            Log.e(TAG, "Discovery failed: Error code:" + errorCode);
+            mNsdManager.stopServiceDiscovery(this);
+            ConfigureWifiFragment.this.notifyDiscoveryEnded(null, null);
+        }
+
+        @Override
+        public void onDiscoveryStopped(String serviceType) {
+            Log.i(TAG, "Discovery stopped: " + serviceType);
+            mDiscoveryInProgress = false;
+            ConfigureWifiFragment.this.notifyDiscoveryEnded(null, null);
+        }
+
+        @Override
+        public void onServiceLost(NsdServiceInfo serviceInfo) {
+            // When the network service is no longer available.
+            // Internal bookkeeping code goes here.
+            Log.e(TAG, "service lost: " + serviceInfo.getServiceType());
+        }
+    };
+
+    // mDNS resolver
+    private final NsdManager.ResolveListener mResolveListener = new NsdManager.ResolveListener() {
+        @Override
+        public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+            Log.e(TAG, "Resolve failed" + errorCode);
+            mResolveInProgress = false;
+            ConfigureWifiFragment.this.notifyDiscoveryEnded(null, null);
+        }
+        @Override
+        public void onServiceResolved(final NsdServiceInfo serviceInfo) {
+            Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
+            mResolveInProgress = false;
+            notifyDiscoveryEnded(serviceInfo.getHost().getHostName(), serviceInfo.getPort());
+        }
+    };
 }

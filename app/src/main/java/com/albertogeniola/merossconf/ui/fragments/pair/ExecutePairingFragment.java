@@ -66,8 +66,6 @@ public class ExecutePairingFragment extends Fragment {
     private ConnectivityManager mConnectivityManager;
     private ScheduledExecutorService worker;
 
-    private SocketFactory mNetworkSocketFactory;
-
     private PairActivityViewModel pairActivityViewModel;
     private TextView errorDetailsTextView;
     private TaskLine connectWifiTaskLine, sendPairCommandTaskLine, connectLocalWifiTaskLine, testMqttBrokerTaskLine, currentTask;
@@ -227,7 +225,7 @@ public class ExecutePairingFragment extends Fragment {
                 @Override
                 public void onAvailable(Network network) {
                     Log.i(TAG, "Found network " + network);
-                    mNetworkSocketFactory = network.getSocketFactory();
+                    mConnectivityManager.bindProcessToNetwork(network);
                 }
             });
         }
@@ -256,8 +254,6 @@ public class ExecutePairingFragment extends Fragment {
                 boolean exitNow = false;
                 while(!exitNow && !succeeed && !Thread.currentThread().isInterrupted() && !timedOut) {
                     try {
-                        if (mNetworkSocketFactory != null)
-                            client.setSocketFactory(mNetworkSocketFactory);
 
                         List<DeviceInfo> devices = client.listDevices();
                         DeviceInfo d = findDevice(devices, targetUuid);
@@ -275,6 +271,7 @@ public class ExecutePairingFragment extends Fragment {
                     } catch (HttpApiException e) {
                         Log.e(TAG, "The HTTP API server reported status " + e.getCode(), e);
                     } finally {
+                        timedOut = GregorianCalendar.getInstance().getTimeInMillis() >= timeout;
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException e) {
@@ -321,8 +318,6 @@ public class ExecutePairingFragment extends Fragment {
 
     private void configureDevice(final String userId, final String key) {
         state = State.SENDING_PAIRING_COMMAND;
-        if (mNetworkSocketFactory != null)
-            mApDevice.setSocketFactory(mNetworkSocketFactory);
 
         worker.schedule(new Runnable() {
             @Override

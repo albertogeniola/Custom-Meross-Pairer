@@ -33,6 +33,7 @@ public class ConfigureMqttFragment extends Fragment {
     private TextInputLayout mqttPortEditText;
     private Spinner mqttConfigurationSpinner;
     private CheckBox saveCheckbox;
+    private MqttConfiguration mDiscoveredConfig;
     private ArrayAdapter<MqttConfiguration> adapter;
     private MqttConfiguration newMqttConfig = new MqttConfiguration("Add new...", null, -1);
 
@@ -40,6 +41,21 @@ public class ConfigureMqttFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
+        parseArgumets();
+    }
+
+    private void parseArgumets() {
+        Bundle args = getArguments();
+        if (args != null) {
+            String hostname = args.getString("hostname");
+            int port = args.getInt("port", -1);
+            if (hostname!=null && port != -1) {
+                mDiscoveredConfig = new MqttConfiguration();
+                mDiscoveredConfig.setName("Local Broker on " + hostname + ":" + port);
+                mDiscoveredConfig.setHostname(hostname);
+                mDiscoveredConfig.setPort(port);
+            }
+        }
     }
 
     @Override
@@ -62,6 +78,8 @@ public class ConfigureMqttFragment extends Fragment {
         List<MqttConfiguration> configurations = AndroidPreferencesManager.loadAllMqttConfigurations(getContext());
         configurations.add(this.newMqttConfig);
         adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, configurations);
+        if (mDiscoveredConfig != null)
+            adapter.add(mDiscoveredConfig);
         saveCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
