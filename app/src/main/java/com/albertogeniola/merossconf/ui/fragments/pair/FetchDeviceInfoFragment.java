@@ -190,8 +190,23 @@ public class FetchDeviceInfoFragment extends Fragment {
                     Log.d("TEST", "Network unavailable");
                     // TODO
                 }
+
+                @Override
+                public void onLost(@NonNull Network network) {
+                    super.onLost(network);
+                    connectivityManager.bindProcessToNetwork(null);
+                    connectivityManager.unregisterNetworkCallback(this);
+                    // Here you can have a fallback option to show a 'Please connect manually' page with an Intent to the Wifi settings
+                }
+
                 @Override
                 public void onAvailable(Network network) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        // To make sure that requests don't go over mobile data
+                        connectivityManager.bindProcessToNetwork(network);
+                    } else {
+                        connectivityManager.setProcessDefaultNetwork(network);
+                    }
                     device.setSocketFactory(network.getSocketFactory());
                 }
             });
@@ -314,6 +329,15 @@ public class FetchDeviceInfoFragment extends Fragment {
     public void onPause() {
         super.onPause();
         getContext().unregisterReceiver(wifiBroadcastReceiver);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // To make sure that requests don't go over mobile data
+            connectivityManager.bindProcessToNetwork(null);
+        }
     }
 
     @Override

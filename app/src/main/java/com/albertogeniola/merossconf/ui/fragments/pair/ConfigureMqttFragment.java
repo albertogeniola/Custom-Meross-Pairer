@@ -78,8 +78,9 @@ public class ConfigureMqttFragment extends Fragment {
         List<MqttConfiguration> configurations = AndroidPreferencesManager.loadAllMqttConfigurations(getContext());
         configurations.add(this.newMqttConfig);
         adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, configurations);
-        if (mDiscoveredConfig != null)
+        if (mDiscoveredConfig != null) {
             adapter.add(mDiscoveredConfig);
+        }
         saveCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -116,6 +117,8 @@ public class ConfigureMqttFragment extends Fragment {
 
             }
         });
+
+        mqttConfigurationSpinner.setSelection(adapter.getCount()-1, true); ;
 
         pairButton.setOnClickListener(new View.OnClickListener() {
             @Override

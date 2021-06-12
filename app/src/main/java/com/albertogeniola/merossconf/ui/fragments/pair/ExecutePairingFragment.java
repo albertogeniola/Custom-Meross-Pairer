@@ -225,7 +225,7 @@ public class ExecutePairingFragment extends Fragment {
                 @Override
                 public void onAvailable(Network network) {
                     Log.i(TAG, "Found network " + network);
-                    mConnectivityManager.bindProcessToNetwork(network);
+                    //mConnectivityManager.bindProcessToNetwork(network);
                 }
             });
         }

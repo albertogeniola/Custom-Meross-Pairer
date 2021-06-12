@@ -14,6 +14,7 @@ import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.net.wifi.WifiNetworkSpecifier;
 import android.os.Build;
@@ -155,6 +156,10 @@ public class ConfigureWifiFragment extends Fragment {
         if (mDiscoveryInProgress)
             mNsdManager.stopServiceDiscovery(mDiscoveryListener);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mConnectivityManager.bindProcessToNetwork(null);
+        }
+        //mConnectivityManager.unregisterNetworkCallback(m);
         mResolveInProgress = false;
     }
 
@@ -269,11 +274,31 @@ public class ConfigureWifiFragment extends Fragment {
                         }
                     });
                 }
+
                 @Override
-                public void onAvailable(Network network) {
+                public void onLost(@NonNull Network network) {
+                    super.onLost(network);
+                    mConnectivityManager.bindProcessToNetwork(null);
+                    mConnectivityManager.unregisterNetworkCallback(this);
+                    // Here you can have a fallback option to show a 'Please connect manually' page with an Intent to the Wifi settings
+                }
+
+                @Override
+                public void onAvailable(@NonNull Network network) {
                     Log.i(TAG, "Found network " + network);
-                    mConnectivityManager.bindProcessToNetwork(network);
-                    //mNetworkSocketFactory = network.getSocketFactory();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        // To make sure that requests don't go over mobile data
+                        mConnectivityManager.bindProcessToNetwork(network);
+                    } else {
+                        mConnectivityManager.setProcessDefaultNetwork(network);
+                    }
+
+                    mUiHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            setWifiValidationSucceeded();
+                        }
+                    });
                 }
             });
         }
@@ -294,7 +319,12 @@ public class ConfigureWifiFragment extends Fragment {
             AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mWifi.getScannedWifi().getBssid(), mWifi.getClearWifiPassword());
 
         // Scan mDNS
-        mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+        mUiHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+            }
+        }, 3000);
     }
 
     private void notifyDiscoveryEnded(@Nullable final String hostname,
@@ -339,7 +369,9 @@ public class ConfigureWifiFragment extends Fragment {
             public void run() {
                 if (mWaitingWifi) {
 
-                    setWifiValidationFailed("Could not connect to the desired wifi");
+                    setWifiValidationFailed("Could not connect to the desired wifi. Please try again.");
+                    if (mDiscoveryInProgress)
+                        mNsdManager.stopServiceDiscovery(mDiscoveryListener);
                 }
             }
         }, 30000);
@@ -412,14 +444,20 @@ public class ConfigureWifiFragment extends Fragment {
             String action = intent.getAction();
             if (WifiManager.NETWORK_STATE_CHANGED_ACTION .equals(action)) {
                 NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
-                if (networkInfo != null
-                        && networkInfo.isConnected()
-                        && mWifiManager.getConnectionInfo() != null
-                        && mWifiManager.getConnectionInfo().getSSID() != null) {
-                    String currentSsid = mWifiManager.getConnectionInfo().getSSID();
-                    Log.i(TAG, "WifiState updated. Current SSID: "+currentSsid);
+                WifiInfo connectinInfo = mWifiManager.getConnectionInfo();
+                String connectedSsid = null;
+                if (connectinInfo!=null)
+                    connectedSsid=connectinInfo.getSSID();
 
-                    if (mTargetWifiSsid.compareTo(currentSsid) == 0) {
+                Log.i(TAG, "WifiState updated. Connected:  "+networkInfo.isConnected()+", SSID: "+ connectedSsid!=null?connectedSsid:"NONE");
+
+                if (networkInfo != null
+                        && networkInfo.getType() == ConnectivityManager.TYPE_WIFI
+                        && networkInfo.isConnected()
+                        && connectedSsid != null) {
+                    Log.i(TAG, "WifiState updated. Current SSID: "+connectedSsid);
+
+                    if (mTargetWifiSsid.compareTo(connectedSsid) == 0) {
                         unregisterWifiBroadcastReceiver();
                         setWifiValidationSucceeded();
                     }
