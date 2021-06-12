@@ -1,6 +1,8 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
-import android.Manifest;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -11,10 +13,10 @@ import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,7 +27,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
@@ -44,9 +48,16 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.CHANGE_NETWORK_STATE;
+import static android.Manifest.permission.CHANGE_WIFI_STATE;
 
 public class ScanDevicesFragment extends Fragment {
-    private static final int LOCATION_PERMISSION_CODE = 1;
+    private static final int REQUEST_PERMISSION_CODE = 1;
+    private static final String TAG = "ScanDevicesFragment";
 
     private PairActivityViewModel pairActivityViewModel;
 
@@ -59,6 +70,9 @@ public class ScanDevicesFragment extends Fragment {
     private Handler uiHandler;
     private boolean scanning;
 
+    private static final String[] REQUIRED_PERMISSIONS = new String[] {ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, CHANGE_WIFI_STATE, CHANGE_NETWORK_STATE };
+
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,6 +82,11 @@ public class ScanDevicesFragment extends Fragment {
         this.uiHandler = new Handler(Looper.getMainLooper());
         scanning = false;
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
     }
 
     @Override
@@ -84,14 +103,20 @@ public class ScanDevicesFragment extends Fragment {
         super.onResume();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
-        getContext().registerReceiver(wifiScanReceiver, intentFilter);
+        requireContext().registerReceiver(wifiScanReceiver, intentFilter);
 
         checkWifiAndLocation();
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        requireContext().unregisterReceiver(wifiScanReceiver);
+    }
+
     private boolean checkWifiAndLocation() {
         // Show an error message if wifi is not enabled
-        if (!AndroidUtils.isWifiEnabled(getContext())) {
+        if (!AndroidUtils.isWifiEnabled(requireContext())) {
             Snackbar.make(getView(), "Please enable Wifi network to perform the scan", Snackbar.LENGTH_LONG).show();
             return false;
         }
@@ -104,11 +129,6 @@ public class ScanDevicesFragment extends Fragment {
         return true;
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        getContext().unregisterReceiver(wifiScanReceiver);
-    }
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -152,7 +172,7 @@ public class ScanDevicesFragment extends Fragment {
         });
     }
 
-    private BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context c, Intent intent) {
             boolean success = intent.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false);
@@ -172,10 +192,21 @@ public class ScanDevicesFragment extends Fragment {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == LOCATION_PERMISSION_CODE && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            // Do something with granted permission
-            startScan();
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        Log.i(TAG, "User permissions handler...");
+        boolean permsOk = true;
+        if (requestCode == REQUEST_PERMISSION_CODE) {
+            for (int i=0; i<permissions.length;i++) {
+                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                    permsOk = false;
+                    break;
+                }
+            }
+
+            if (!permsOk)
+                Toast.makeText(requireContext(), "This app won't work without required permissions", Toast.LENGTH_LONG).show();
+            else
+                startScan();
         }
     }
 
@@ -189,18 +220,14 @@ public class ScanDevicesFragment extends Fragment {
             return;
         }
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                (getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
-                getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)){
-
-            AlertDialog.Builder permissionAlert = new AlertDialog.Builder(this.getContext());
+        if (!AndroidUtils.checkPermissions(requireContext(), REQUIRED_PERMISSIONS)) {
+            AlertDialog.Builder permissionAlert = new AlertDialog.Builder(requireContext());
             permissionAlert.setTitle("Permission requests");
             permissionAlert.setMessage("Wifi scanning requires access to geolocation services (this is a requirement on Android).");
             permissionAlert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION},
-                            LOCATION_PERMISSION_CODE);
+                    requestPermissions(REQUIRED_PERMISSIONS, REQUEST_PERMISSION_CODE);
                 }
             });
             permissionAlert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -302,9 +329,9 @@ public class ScanDevicesFragment extends Fragment {
         }
 
         class MyViewHolder extends RecyclerView.ViewHolder{
-            private TextView wifiName;
-            private TextView bssidName;
-            private ImageView signalStrength;
+            private final TextView wifiName;
+            private final TextView bssidName;
+            private final ImageView signalStrength;
             private ScanResult scanResult;
 
             MyViewHolder(View itemView) {

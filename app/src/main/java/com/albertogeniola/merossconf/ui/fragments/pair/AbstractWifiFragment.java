@@ -25,9 +25,9 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
+import com.albertogeniola.merossconf.AndroidUtils;
 import com.albertogeniola.merossconf.model.exception.PermissionNotGrantedException;
 
 import org.eclipse.paho.client.mqttv3.util.Strings;
@@ -35,7 +35,6 @@ import org.eclipse.paho.client.mqttv3.util.Strings;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static android.Manifest.permission.CHANGE_WIFI_STATE;
 
 
 public abstract class AbstractWifiFragment extends Fragment {
@@ -43,7 +42,10 @@ public abstract class AbstractWifiFragment extends Fragment {
     private final Timer mTimer;
     private WifiManager mWifiManager;
     private ConnectivityManager mConnectivityManager;
-    private static final String[] WIFI_PERMS = new String[] {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.CHANGE_WIFI_STATE};
+    private static final String[] WIFI_PERMS = new String[] {Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.CHANGE_WIFI_STATE, Manifest.permission.CHANGE_NETWORK_STATE};
+
+    private static final int REQUEST_PERMISSION_CODE = 1;
 
     // holds the state of the wifi connection attempt
     private boolean mWifiConnectionAttemptInProgress = false;
@@ -59,6 +61,7 @@ public abstract class AbstractWifiFragment extends Fragment {
 
     // holds the timeout task
     private TimeoutTask mTimeoutTask;
+
 
     public AbstractWifiFragment() {
         mTimer = new Timer();
@@ -115,8 +118,7 @@ public abstract class AbstractWifiFragment extends Fragment {
         }
 
         // Check for Wifi and Location permissions
-        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-            || ActivityCompat.checkSelfPermission(requireContext(), CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
+        if (!AndroidUtils.checkPermissions(requireContext(), WIFI_PERMS)) {
 
             // If a reason was specified, show it here.
             if (reason!=null) {
@@ -127,13 +129,16 @@ public abstract class AbstractWifiFragment extends Fragment {
             }
 
             // If the user did not yet grant Wifi and Location permissions, ask them here and abort the connection.
-            ActivityCompat.requestPermissions(requireActivity(), WIFI_PERMS, 1);
+            requestPermissions(WIFI_PERMS, REQUEST_PERMISSION_CODE);
 
             // Return false, so the caller know it has to retry the operation after the
             // user's consent to use wifi
             mWifiConnectionAttemptInProgress = false;
             throw new PermissionNotGrantedException();
         }
+
+        // Enable Wifi
+        mWifiManager.setWifiEnabled(true);
 
         // Sanitize/make sure bssid is ok
         String bssid = null;
@@ -234,11 +239,6 @@ public abstract class AbstractWifiFragment extends Fragment {
             }
 
             @Override
-            public void onBlockedStatusChanged(@NonNull Network network, boolean blocked) {
-                super.onBlockedStatusChanged(network, blocked);
-            }
-
-            @Override
             public void onLost(@NonNull Network network) {
                 super.onLost(network);
                 // TODO
@@ -259,7 +259,7 @@ public abstract class AbstractWifiFragment extends Fragment {
                 } else {
                     ConnectivityManager.setProcessDefaultNetwork(network);
                 }
-                notifyWifiUnavailable();
+                notifyWifiConnected();
             }
         }, timeout);
     }
@@ -307,6 +307,16 @@ public abstract class AbstractWifiFragment extends Fragment {
      */
     protected abstract void onWifiUnavailable();
 
+    /**
+     * Callback called when the user refuses to provide enough wifi permissions
+     */
+    protected abstract void onMissingWifiPermissions();
+
+    /**
+     * Callback called when the user has granted necessary wifi permissions
+     */
+    protected abstract void onWifiPermissionsGranted();
+
     private void notifyWifiConnected() {
         mWifiConnectionAttemptInProgress = false;
         if (mTimeoutTask!=null) {
@@ -336,7 +346,7 @@ public abstract class AbstractWifiFragment extends Fragment {
         }
     }
 
-    private BroadcastReceiver legacyWifiBroadcastReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver legacyWifiBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -377,4 +387,23 @@ public abstract class AbstractWifiFragment extends Fragment {
             }
         }
     };
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        Log.i(TAG, "User permissions handler...");
+        boolean permsOk = true;
+        if (requestCode == REQUEST_PERMISSION_CODE) {
+            for (int i=0; i<permissions.length;i++) {
+                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                    permsOk = false;
+                    break;
+                }
+            }
+
+            if (!permsOk)
+                onMissingWifiPermissions();
+            else
+                onWifiPermissionsGranted();
+        }
+    }
 }

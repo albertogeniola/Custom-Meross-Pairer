@@ -23,7 +23,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContract;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -32,6 +37,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.R;
+import com.albertogeniola.merossconf.model.exception.PermissionNotGrantedException;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merossconf.ui.views.TaskLine;
 import com.albertogeniola.merosslib.MerossDeviceAp;
@@ -41,22 +47,22 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import lombok.SneakyThrows;
 
-public class FetchDeviceInfoFragment extends Fragment {
+
+public class FetchDeviceInfoFragment extends AbstractWifiFragment {
 
     private static final int WIFI_STATE_CHANGE_PERMISSION = 1;
+    private static final String TAG = "FetchDeviceInfoFragment";
 
-    private TaskLine enablingWifiTask;
     private TaskLine wifiConnectTask;
     private TaskLine fetchDeviceInfoTask;
     private TaskLine scanWifiTask;
-    private WifiManager wifiManager;
-    private ConnectivityManager connectivityManager;
-    private WifiBroadcastReceiver wifiBroadcastReceiver;
     private Handler uiThreadHandler;
     private ScheduledExecutorService worker;
 
@@ -79,13 +85,6 @@ public class FetchDeviceInfoFragment extends Fragment {
         switch(state) {
             case INIT:
                 if (signal == Signal.RESUMED) {
-                    state = State.ENABLING_WIFI;
-                    updateUi();
-                    enableWifi();
-                }
-                break;
-            case ENABLING_WIFI:
-                if (signal == Signal.WIFI_ENABLED) {
                     state = State.CONNECTING_AP;
                     updateUi();
                     connectAp();
@@ -120,96 +119,15 @@ public class FetchDeviceInfoFragment extends Fragment {
         }
     }
 
-    private void enableWifi() {
-        wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        connectivityManager = (ConnectivityManager) getContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (getContext().checkSelfPermission(Manifest.permission.CHANGE_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED)) {
-            requestPermissions(new String[]{Manifest.permission.CHANGE_NETWORK_STATE},
-                    WIFI_STATE_CHANGE_PERMISSION);
-        } else {
-            wifiManager.setWifiEnabled(true);
-            stateMachine(Signal.WIFI_ENABLED);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                                           int[] grantResults) {
-        if (requestCode == WIFI_STATE_CHANGE_PERMISSION && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            stateMachine(Signal.WIFI_ENABLED);
-        } else if (requestCode == WIFI_STATE_CHANGE_PERMISSION && grantResults[0] == PackageManager.PERMISSION_DENIED) {
-            error = "Wifi permission has not been granted.";
-            stateMachine(Signal.ERROR);
-        }
-    }
-
     private void connectAp() {
         String ssid = pairActivityViewModel.getMerossPairingAp().getValue().getSsid();
         String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            WifiConfiguration conf = new WifiConfiguration();
-            conf.SSID = "\"" + ssid + "\"";
-            conf.BSSID = "\"" + bssid + "\"";
-            conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
-            wifiManager.addNetwork(conf);
-            List<WifiConfiguration> list = null;
-
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                    (getContext().checkSelfPermission(Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED)){
-                error = "User denied CHANGE_WIFI_STATE permission. Wifi cannot be enabled.";
-                stateMachine(Signal.ERROR);
-                return;
-            } else {
-                list = wifiManager.getConfiguredNetworks();
-            }
-
-            for (WifiConfiguration i : list) {
-                if (i.SSID != null && i.SSID.equals("\"" + ssid + "\"")) {
-                    wifiManager.disconnect();
-                    wifiManager.enableNetwork(i.networkId, true);
-                    wifiManager.reconnect();
-                    break;
-                }
-            }
-        } else {
-            NetworkRequest networkRequest = new NetworkRequest.Builder()
-                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                    .setNetworkSpecifier(
-                            new WifiNetworkSpecifier.Builder()
-                                    .setSsid(ssid)
-                                    .setBssid(MacAddress.fromString(bssid))
-                                    .build()
-                    )
-                    .build();
-            connectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
-
-                @Override
-                public void onUnavailable() {
-                    Log.d("TEST", "Network unavailable");
-                    // TODO
-                }
-
-                @Override
-                public void onLost(@NonNull Network network) {
-                    super.onLost(network);
-                    connectivityManager.bindProcessToNetwork(null);
-                    connectivityManager.unregisterNetworkCallback(this);
-                    // Here you can have a fallback option to show a 'Please connect manually' page with an Intent to the Wifi settings
-                }
-
-                @Override
-                public void onAvailable(Network network) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        // To make sure that requests don't go over mobile data
-                        connectivityManager.bindProcessToNetwork(network);
-                    } else {
-                        connectivityManager.setProcessDefaultNetwork(network);
-                    }
-                    device.setSocketFactory(network.getSocketFactory());
-                }
-            });
+        try {
+            startWifiConnection(ssid, bssid, null, null, 10000);
+            // The flow starts back from on onWifiConnected / onWifiUnavailable().
+        } catch (PermissionNotGrantedException e) {
+            Log.w(TAG, "Missing user permissions.");
+            // The flow starts back from permissions acquired callback
         }
     }
 
@@ -272,17 +190,11 @@ public class FetchDeviceInfoFragment extends Fragment {
             public void run() {
                 switch (state) {
                     case INIT:
-                        enablingWifiTask.setState(TaskLine.TaskState.not_started);
                         wifiConnectTask.setState(TaskLine.TaskState.not_started);
                         fetchDeviceInfoTask.setState(TaskLine.TaskState.not_started);
                         scanWifiTask.setState(TaskLine.TaskState.not_started);
                         break;
-                    case ENABLING_WIFI:
-                        enablingWifiTask.setState(TaskLine.TaskState.running);
-                        currentTask = enablingWifiTask;
-                        break;
                     case CONNECTING_AP:
-                        enablingWifiTask.setState(TaskLine.TaskState.completed);
                         wifiConnectTask.setState(TaskLine.TaskState.running);
                         currentTask = wifiConnectTask;
                         break;
@@ -321,23 +233,37 @@ public class FetchDeviceInfoFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
-        wifiBroadcastReceiver = new WifiBroadcastReceiver();
         uiThreadHandler = new Handler(Looper.getMainLooper());
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        getContext().unregisterReceiver(wifiBroadcastReceiver);
+        requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // To make sure that requests don't go over mobile data
-            connectivityManager.bindProcessToNetwork(null);
-        }
+        requireActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
+    @Override
+    protected void onWifiConnected() {
+        stateMachine(Signal.AP_CONNECTED);
+    }
+
+    @Override
+    protected void onWifiUnavailable() {
+        stateMachine(Signal.ERROR);
+    }
+
+    @Override
+    protected void onMissingWifiPermissions() {
+        stateMachine(Signal.ERROR);
+    }
+
+    @SneakyThrows(PermissionNotGrantedException.class)
+    @Override
+    protected void onWifiPermissionsGranted() {
+        String ssid = pairActivityViewModel.getMerossPairingAp().getValue().getSsid();
+        String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
+        startWifiConnection(ssid, bssid, null, null, 10000);
     }
 
     @Override
@@ -351,7 +277,6 @@ public class FetchDeviceInfoFragment extends Fragment {
 
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        enablingWifiTask = view.findViewById(R.id.enablingWifiTask);
         wifiConnectTask = view.findViewById(R.id.connectWifiTask);
         fetchDeviceInfoTask = view.findViewById(R.id.fetchDeviceInfoTask);
         scanWifiTask = view.findViewById(R.id.scanWifiTask);
@@ -361,37 +286,12 @@ public class FetchDeviceInfoFragment extends Fragment {
     public void onResume() {
         super.onResume();
 
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION );
-        getContext().registerReceiver(wifiBroadcastReceiver, intentFilter);
-
         // As soon as we resume, connect to the given WiFi
         stateMachine(Signal.RESUMED);
     }
 
-    class WifiBroadcastReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (WifiManager.NETWORK_STATE_CHANGED_ACTION .equals(action)) {
-                NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
-                if (networkInfo.isConnected()) {
-                    if (wifiManager.getConnectionInfo() != null &&
-                            wifiManager.getConnectionInfo().getBSSID() != null &&
-                            wifiManager.getConnectionInfo().getBSSID().compareTo(pairActivityViewModel.getMerossPairingAp().getValue().getBssid()) == 0) {
-                        // Connected!
-                        int tmp = wifiManager.getDhcpInfo().gateway;
-                        gatewayIp = String.format("%d.%d.%d.%d", (tmp & 0xff), (tmp >> 8 & 0xff), (tmp >> 16 & 0xff), (tmp >> 24 & 0xff));
-                        stateMachine(Signal.AP_CONNECTED);
-                    }
-                }
-            }
-        }
-    }
-
     enum State {
         INIT,
-        ENABLING_WIFI,
         CONNECTING_AP,
         GATHERING_INFORMATION,
         SCANNING_WIFI,
@@ -401,7 +301,6 @@ public class FetchDeviceInfoFragment extends Fragment {
 
     enum Signal {
         RESUMED,
-        WIFI_ENABLED,
         AP_CONNECTED,
         INFO_GATHERED,
         WIFI_SCAN_COMPLETED,

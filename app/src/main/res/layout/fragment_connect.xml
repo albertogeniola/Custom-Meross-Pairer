@@ -21,44 +21,37 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.albertogeniola.merossconf.ui.views.TaskLine
-        android:id="@+id/enablingWifiTask"
-        android:layout_width="fill_parent"
+        android:id="@+id/connectWifiTask"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageView6"
         app:state="not_started"
-        app:title="@string/enabling_wifi" />
-
-    <com.albertogeniola.merossconf.ui.views.TaskLine
-        android:id="@+id/connectWifiTask"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        app:layout_constraintTop_toBottomOf="@+id/enablingWifiTask"
-        app:state="not_started"
-        app:title="@string/connecting_to_ap"
-        tools:layout_editor_absoluteX="1dp" />
+        app:title="@string/connecting_to_ap" />
 
     <com.albertogeniola.merossconf.ui.views.TaskLine
         android:id="@+id/fetchDeviceInfoTask"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
+        app:layout_constraintEnd_toEndOf="@+id/connectWifiTask"
+        app:layout_constraintStart_toStartOf="@+id/connectWifiTask"
         app:layout_constraintTop_toBottomOf="@+id/connectWifiTask"
         app:state="not_started"
-        app:title="@string/fetching_device_info"
-        tools:layout_editor_absoluteX="1dp" />
+        app:title="@string/fetching_device_info" />
 
     <com.albertogeniola.merossconf.ui.views.TaskLine
         android:id="@+id/scanWifiTask"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
+        app:layout_constraintEnd_toEndOf="@+id/fetchDeviceInfoTask"
+        app:layout_constraintStart_toStartOf="@+id/fetchDeviceInfoTask"
         app:layout_constraintTop_toBottomOf="@+id/fetchDeviceInfoTask"
         app:state="not_started"
-        app:title="@string/scanning_wifi"
-        tools:layout_editor_absoluteX="1dp" />
+        app:title="@string/scanning_wifi" />
 
     <ImageView
         android:id="@+id/imageView6"

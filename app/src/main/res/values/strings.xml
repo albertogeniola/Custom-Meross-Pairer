@@ -41,7 +41,8 @@
     <string name="fargment_wifi_text">Please select the WiFi AP where the Meross device should connect to.</string>
     <string name="wifi_password">Wifi password</string>
     <string name="show_password">Show password</string>
-    <string name="next">Next</string>
+    <string name="next">Set wifi and scan mqtt</string>
+    <string name="next_no_validation">Set wifi without mqtt scan</string>
     <string name="ssid">SSID:</string>
     <string name="bssid">BSSID:</string>
     <string name="wifi_signal_strength">Wifi signal strength icon</string>

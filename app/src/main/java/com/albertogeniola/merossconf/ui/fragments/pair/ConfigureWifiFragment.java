@@ -1,23 +1,8 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
-import android.Manifest;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.MacAddress;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkInfo;
-import android.net.NetworkRequest;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.net.wifi.WifiNetworkSpecifier;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -38,7 +23,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
+import androidx.annotation.UiThread;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
@@ -46,22 +31,23 @@ import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.MerossUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.WifiConfiguration;
+import com.albertogeniola.merossconf.model.exception.PermissionNotGrantedException;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
-import com.albertogeniola.merossconf.ui.fragments.login.LoginFragment;
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.SneakyThrows;
 
-public class ConfigureWifiFragment extends Fragment {
+
+public class ConfigureWifiFragment extends AbstractWifiFragment {
     private static final String TAG = "ConfigureWifiFragment";
-    private WifiManager mWifiManager;
-    private ConnectivityManager mConnectivityManager;
     private NsdManager mNsdManager;
     private static final String SERVICE_TYPE = "_meross-local-mqtt._tcp.";
 
@@ -69,23 +55,25 @@ public class ConfigureWifiFragment extends Fragment {
     private PairActivityViewModel pairActivityViewModel;
     private Spinner wifiSpinner;
     private MaterialButton mNextButton;
-    private TextInputLayout wifiPasswordTextView;
+    private MaterialButton mSkipButton;
+    private TextInputLayout mWifiPasswordTextView;
     private WifiSpinnerAdapter adapter;
-    private boolean mSavePassword;
-    private boolean mReceiverRegistered = false;
-    private boolean mWaitingWifi = true;
+    private ProgressBar mLinearProgressBar;
+    private CheckBox mSaveWifiPasswordCheckBox;
     private boolean mDiscoveryInProgress = false;
     private boolean mResolveInProgress = false;
+    private WifiConfiguration mSelectedWifi = null;
 
-    private String mTargetWifiSsid;
-    private WifiConfiguration mWifi;
+    private static final String VALIDATE_AND_PROCEED = "Validate and proceed";
+    private static final String DISCOVERY_MQTT = "MQTT discovery...";
+    private static final String MQTT_RESOLVE = "Resolving service...";
+    private static final String COMPLETED = "Completed";
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
-        mWifiManager = (WifiManager) requireContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        mConnectivityManager = (ConnectivityManager) requireContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         mNsdManager = (NsdManager) requireContext().getSystemService(Context.NSD_SERVICE);
         mUiHandler = new Handler(requireContext().getMainLooper());
     }
@@ -104,31 +92,27 @@ public class ConfigureWifiFragment extends Fragment {
         adapter = new WifiSpinnerAdapter(ConfigureWifiFragment.this.getContext(), pairActivityViewModel.getDeviceAvailableWifis().getValue().getPayload().getWifiList());
         wifiSpinner.setAdapter(adapter);
 
-        wifiPasswordTextView = view.findViewById(R.id.wifi_password);
+        mWifiPasswordTextView = view.findViewById(R.id.wifi_password);
         mNextButton = view.findViewById(R.id.next_button);
-        setUiValidatingWifi(false);
+        mSaveWifiPasswordCheckBox = view.findViewById(R.id.saveWifiPasswordCheckBox);
+        mSkipButton = view.findViewById(R.id.next_no_validation_button);
+        mLinearProgressBar = view.findViewById(R.id.wifi_progress_bar);
+
+        configureUi(true, VALIDATE_AND_PROCEED);
         mNextButton.setOnClickListener(nextButtonClick);
+        mSkipButton.setOnClickListener(skipButtonClick);
         CheckBox showPasswordButton = view.findViewById(R.id.showPasswordCheckbox);
-        wifiPasswordTextView.getEditText().setTransformationMethod(PasswordTransformationMethod.getInstance());
+        mWifiPasswordTextView.getEditText().setTransformationMethod(PasswordTransformationMethod.getInstance());
         showPasswordButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (wifiPasswordTextView.getEditText().getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
-                    wifiPasswordTextView.getEditText().setTransformationMethod(PasswordTransformationMethod.getInstance());
+                if (mWifiPasswordTextView.getEditText().getTransformationMethod() == HideReturnsTransformationMethod.getInstance()) {
+                    mWifiPasswordTextView.getEditText().setTransformationMethod(PasswordTransformationMethod.getInstance());
                 } else {
-                    wifiPasswordTextView.getEditText().setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                    mWifiPasswordTextView.getEditText().setTransformationMethod(HideReturnsTransformationMethod.getInstance());
                 }
             }
         });
-
-        CheckBox saveWifiPasswordCheckBox = view.findViewById(R.id.saveWifiPasswordCheckBox);
-        saveWifiPasswordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                mSavePassword = isChecked;
-            }
-        });
-        mSavePassword = saveWifiPasswordCheckBox.isChecked();
 
         wifiSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -136,9 +120,9 @@ public class ConfigureWifiFragment extends Fragment {
                 GetConfigWifiListEntry selection = adapter.getItem(position);
                 String savedPassword = AndroidPreferencesManager.getWifiStoredPassword(requireContext(), selection.getBssid());
                 if (savedPassword != null)
-                    wifiPasswordTextView.getEditText().setText(savedPassword);
+                    mWifiPasswordTextView.getEditText().setText(savedPassword);
                 else
-                    wifiPasswordTextView.getEditText().setText("");
+                    mWifiPasswordTextView.getEditText().setText("");
             }
 
             @Override
@@ -151,32 +135,94 @@ public class ConfigureWifiFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // Unregister the broadcast receiver in case we did not unregister it yet
-        unregisterWifiBroadcastReceiver();
         if (mDiscoveryInProgress)
             mNsdManager.stopServiceDiscovery(mDiscoveryListener);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mConnectivityManager.bindProcessToNetwork(null);
-        }
-        //mConnectivityManager.unregisterNetworkCallback(m);
         mResolveInProgress = false;
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-    }
+    protected void onWifiConnected() {
+        // If the wifi connection succeeds, store the wifi info into the parent model
+        mUiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                pairActivityViewModel.setMerossWifiConfiguration(mSelectedWifi);
+            }
+        });
 
-    private void setUiValidatingWifi(boolean validatingWifi) {
-        mWaitingWifi = validatingWifi;
-        mNextButton.setText(validatingWifi ? "Validating..." : "Next");
-        mNextButton.setClickable(!validatingWifi);
+        // Store the password, if required
+        if (mSaveWifiPasswordCheckBox.isChecked())
+            AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mSelectedWifi.getScannedWifi().getBssid(), mWifiPasswordTextView.getEditText().getText().toString());
 
-        if (!validatingWifi) {
-            unregisterWifiBroadcastReceiver();
+        // As soo as the Wifi is connected, we start the Mqtt Discovery
+        if (mDiscoveryInProgress) {
+            Log.e(TAG, "Discovery is already in progress.");
+            // TODO: shall we stop and re-run?
+            // mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+            // mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+        } else if (mResolveInProgress) {
+            Log.e(TAG, "Resolve in progress. Cannot issue discovery.");
+        } else {
+            Log.i(TAG, "Wifi connected, issuing discovery.");
+            configureUi(false, DISCOVERY_MQTT);
+            mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
         }
     }
+
+    @Override
+    protected void onWifiUnavailable() {
+        Toast.makeText(requireContext(), "Wifi validation failed. Please double check credentials and try again.", Toast.LENGTH_LONG).show();
+        configureUi(true, VALIDATE_AND_PROCEED);
+    }
+
+    @Override
+    protected void onMissingWifiPermissions() {
+        Toast.makeText(requireContext(), "Please grant Wifi and Location permissions to this app. It won't work without them.", Toast.LENGTH_LONG).show();
+        configureUi(true, VALIDATE_AND_PROCEED);
+    }
+
+    @SneakyThrows(PermissionNotGrantedException.class)
+    @Override
+    protected void onWifiPermissionsGranted() {
+        startWifiConnection(mSelectedWifi.getScannedWifi().getSsid(), mSelectedWifi.getScannedWifi().getBssid(), mSelectedWifi.getClearWifiPassword(), null, 20000);
+    }
+
+    @UiThread
+    private void configureUi(final Boolean uiEnabled,
+                             final String nextButtonText) {
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                mNextButton.setEnabled(uiEnabled);
+                mSkipButton.setEnabled(uiEnabled);
+                mSaveWifiPasswordCheckBox.setEnabled(uiEnabled);
+                mNextButton.setText(nextButtonText);
+                mLinearProgressBar.setVisibility(uiEnabled ? View.GONE : View.VISIBLE);
+                mWifiPasswordTextView.setEnabled(uiEnabled);
+            }
+        };
+        if (Looper.getMainLooper().isCurrentThread())
+            r.run();
+        else
+            mUiHandler.post(r);
+    }
+
+    private View.OnClickListener skipButtonClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            // Just store the current configuration and proceed to the next fragment
+            pairActivityViewModel.setMerossWifiConfiguration(mSelectedWifi);
+
+            // Store the password, if required
+            if (mSaveWifiPasswordCheckBox.isChecked())
+                AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mSelectedWifi.getScannedWifi().getBssid(), mWifiPasswordTextView.getEditText().toString());
+
+            // Launch the next fragment
+            // Navigate to the next fragment
+            NavHostFragment.findNavController(ConfigureWifiFragment.this).navigate(R.id.ConfigureMqttFragment);
+        }
+    };
 
     private View.OnClickListener nextButtonClick = new View.OnClickListener() {
         @Override
@@ -189,149 +235,27 @@ public class ConfigureWifiFragment extends Fragment {
 
             // If the wifi requires a password, make sure the user inputted one.
             GetConfigWifiListEntry selectedWifi = adapter.getItem(wifiSpinner.getSelectedItemPosition());
-            if (selectedWifi.getEncryption() != Encryption.OPEN && wifiPasswordTextView.getEditText().getText().toString().isEmpty()) {
-                wifiPasswordTextView.setError("That wifi requires a password.");
+            if (selectedWifi.getEncryption() != Encryption.OPEN && mWifiPasswordTextView.getEditText().getText().toString().isEmpty()) {
+                mWifiPasswordTextView.setError("That wifi requires a password.");
                 return ;
             } else {
-                wifiPasswordTextView.setError(null);
+                mWifiPasswordTextView.setError(null);
             }
 
             // Start wifi connection validation
-            String clearPassword = wifiPasswordTextView.getEditText().getText().toString();
+            String clearPassword = mWifiPasswordTextView.getEditText().getText().toString();
             WifiConfiguration conf = new WifiConfiguration(selectedWifi, clearPassword);
             startWifiConnectionValidation(conf);
         }
     };
 
-    private void connectToWifi(WifiConfiguration selectedWifi) {
-        registerWifiBroadcastReceiver();
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                (getContext().checkSelfPermission(Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED)){
-            setWifiValidationFailed("User denied CHANGE_WIFI_STATE permission. Wifi cannot be enabled.");
-            return;
-        }
-        String ssid = selectedWifi.getScannedWifi().getSsid();
-
-        String targetWifiBssid = selectedWifi.getScannedWifi().getBssid().replaceAll("-",":").toLowerCase();
-        mTargetWifiSsid = "\"" + ssid +"\"";
-
-        // In case the device is "old", we rely on the classic WifiManager API
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            android.net.wifi.WifiConfiguration targetWifiConf = null;
-
-            // Locate the existing network configuration entry.
-            for (android.net.wifi.WifiConfiguration conf : mWifiManager.getConfiguredNetworks()) {
-                if (conf.BSSID.replaceAll("-",":").toLowerCase().compareTo(targetWifiBssid)==0
-                        && conf.SSID.compareTo(mTargetWifiSsid)==0) {
-                    // Found a matching configuration.
-                    targetWifiConf = conf;
-                    break;
-                }
-            }
-
-            if (targetWifiConf == null) {
-                // TODO: test this
-                android.net.wifi.WifiConfiguration wifiConf = new android.net.wifi.WifiConfiguration();
-                wifiConf.SSID = ssid;
-                wifiConf.BSSID = targetWifiBssid;
-                mWifiManager.addNetwork(wifiConf);
-            }
-
-            if (targetWifiConf == null) {
-                setWifiValidationFailed("Could not find a known network named '"+ssid+"' with bssid '"+targetWifiBssid+"'.");
-                return;
-            } else {
-                Log.i(TAG, "Issuing wifi connection against network "+targetWifiConf);
-                mWifiManager.disconnect();
-                mWifiManager.enableNetwork(targetWifiConf.networkId, true);
-                mWifiManager.reconnect();
-            }
-        }
-
-        // If the device is recent, we rely on Network Request API
-        else {
-            WifiNetworkSpecifier.Builder specifierBuilder = new WifiNetworkSpecifier.Builder()
-                    .setSsid(ssid)
-                    .setBssid(MacAddress.fromString(targetWifiBssid));
-            if (selectedWifi.getClearWifiPassword() != null)
-                specifierBuilder.setWpa2Passphrase(selectedWifi.getClearWifiPassword());
-
-            WifiNetworkSpecifier specifier = specifierBuilder.build();
-            NetworkRequest networkRequest = new NetworkRequest.Builder()
-                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) // The wifi does not necessarily need Internet Connection
-                    .setNetworkSpecifier(specifier)
-                    .build();
-
-            mConnectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
-                @Override
-                public void onUnavailable() {
-                    mUiHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            setWifiValidationFailed("Wifi network unavailable");
-                        }
-                    });
-                }
-
-                @Override
-                public void onLost(@NonNull Network network) {
-                    super.onLost(network);
-                    mConnectivityManager.bindProcessToNetwork(null);
-                    mConnectivityManager.unregisterNetworkCallback(this);
-                    // Here you can have a fallback option to show a 'Please connect manually' page with an Intent to the Wifi settings
-                }
-
-                @Override
-                public void onAvailable(@NonNull Network network) {
-                    Log.i(TAG, "Found network " + network);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        // To make sure that requests don't go over mobile data
-                        mConnectivityManager.bindProcessToNetwork(network);
-                    } else {
-                        mConnectivityManager.setProcessDefaultNetwork(network);
-                    }
-
-                    mUiHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            setWifiValidationSucceeded();
-                        }
-                    });
-                }
-            });
-        }
-    }
-
-    private void setWifiValidationFailed(String message) {
-        Snackbar.make(getView(), message, Snackbar.LENGTH_LONG ).setAnchorView(mNextButton).show();
-        setUiValidatingWifi(false);
-    }
-
-    private void setWifiValidationSucceeded() {
-        Toast.makeText(requireContext(), "Wifi validation succeeded. Discovering Local MQTT Brokers...", Toast.LENGTH_SHORT).show();
-
-        pairActivityViewModel.setMerossWifiConfiguration(mWifi);
-
-        // Save the password
-        if (mSavePassword)
-            AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mWifi.getScannedWifi().getBssid(), mWifi.getClearWifiPassword());
-
-        // Scan mDNS
-        mUiHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
-            }
-        }, 3000);
-    }
-
-    private void notifyDiscoveryEnded(@Nullable final String hostname,
+    private void notifyResolveCompleted(@Nullable final String hostname,
                                       @Nullable final Integer port) {
         Runnable r = new Runnable() {
             @Override
             public void run() {
+                configureUi(false, COMPLETED);
+
                 // In case the discovery found a valid service, put it into a parcel for the next fragment
                 Bundle args = new Bundle();
                 if (hostname != null && port != null) {
@@ -343,9 +267,6 @@ public class ConfigureWifiFragment extends Fragment {
                 // Navigate to the next fragment
                 NavHostFragment.findNavController(ConfigureWifiFragment.this)
                         .navigate(R.id.ConfigureMqttFragment, args);
-
-                // Set discovery over
-                setUiValidatingWifi(false);
             }
         };
 
@@ -356,30 +277,20 @@ public class ConfigureWifiFragment extends Fragment {
     }
 
     private void startWifiConnectionValidation(WifiConfiguration selectedWifi) {
-        mWifi = selectedWifi;
-
-        setUiValidatingWifi(true);
+        mSelectedWifi = selectedWifi;
+        configureUi(false, "Connecting to wifi...");
 
         // Start wifi connection
-        connectToWifi(selectedWifi);
-
-        // Set a timer to abort in case we are taking too long...
-        mUiHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (mWaitingWifi) {
-
-                    setWifiValidationFailed("Could not connect to the desired wifi. Please try again.");
-                    if (mDiscoveryInProgress)
-                        mNsdManager.stopServiceDiscovery(mDiscoveryListener);
-                }
-            }
-        }, 30000);
-
+        try {
+            startWifiConnection(mSelectedWifi.getScannedWifi().getSsid(), mSelectedWifi.getScannedWifi().getBssid(), mSelectedWifi.getClearWifiPassword(), null, 20000);
+            // The flow starts back from on onWifiConnected / onWifiUnavailable().
+        } catch (PermissionNotGrantedException e) {
+            // The flow starts back from onWifiPermissionsGranted()
+        }
     }
 
     public class WifiSpinnerAdapter extends ArrayAdapter<GetConfigWifiListEntry> {
-        private ArrayList<GetConfigWifiListEntry> values;
+        private final ArrayList<GetConfigWifiListEntry> values;
 
         public WifiSpinnerAdapter(Context context, List<GetConfigWifiListEntry> values) {
             super(context, R.layout.wifi_dropdown_item, R.id.wifi_name);
@@ -438,50 +349,6 @@ public class ConfigureWifiFragment extends Fragment {
         }
     }
 
-    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (WifiManager.NETWORK_STATE_CHANGED_ACTION .equals(action)) {
-                NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
-                WifiInfo connectinInfo = mWifiManager.getConnectionInfo();
-                String connectedSsid = null;
-                if (connectinInfo!=null)
-                    connectedSsid=connectinInfo.getSSID();
-
-                Log.i(TAG, "WifiState updated. Connected:  "+networkInfo.isConnected()+", SSID: "+ connectedSsid!=null?connectedSsid:"NONE");
-
-                if (networkInfo != null
-                        && networkInfo.getType() == ConnectivityManager.TYPE_WIFI
-                        && networkInfo.isConnected()
-                        && connectedSsid != null) {
-                    Log.i(TAG, "WifiState updated. Current SSID: "+connectedSsid);
-
-                    if (mTargetWifiSsid.compareTo(connectedSsid) == 0) {
-                        unregisterWifiBroadcastReceiver();
-                        setWifiValidationSucceeded();
-                    }
-                }
-            }
-        }
-    };
-
-    private synchronized void unregisterWifiBroadcastReceiver() {
-        if (mReceiverRegistered) {
-            ConfigureWifiFragment.this.requireContext().getApplicationContext().unregisterReceiver(mReceiver);
-            mReceiverRegistered = false;
-        }
-    }
-
-    private synchronized void registerWifiBroadcastReceiver() {
-        if (!mReceiverRegistered) {
-            IntentFilter intentFilter = new IntentFilter();
-            intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
-            ConfigureWifiFragment.this.requireContext().getApplicationContext().registerReceiver(mReceiver, intentFilter, null, mUiHandler);
-            mReceiverRegistered = true;
-        }
-    }
-
     // mDNS discovery listener
     private final NsdManager.DiscoveryListener mDiscoveryListener = new NsdManager.DiscoveryListener() {
         // Called as soon as service discovery begins.
@@ -494,10 +361,10 @@ public class ConfigureWifiFragment extends Fragment {
         @Override
         public void onServiceFound(NsdServiceInfo service) {
             Log.d(TAG, "Service discovery success" + service);
-            //mNsdManager.stopServiceDiscovery(this);
             synchronized (this) {
                 if (!mResolveInProgress) {
                     mResolveInProgress = true;
+                    configureUi(false, MQTT_RESOLVE);
                     mNsdManager.resolveService(service, mResolveListener);
                 }
             }
@@ -506,22 +373,20 @@ public class ConfigureWifiFragment extends Fragment {
         @Override
         public void onStartDiscoveryFailed(String serviceType, int errorCode) {
             Log.e(TAG, "Discovery failed: Error code:" + errorCode);
-            mNsdManager.stopServiceDiscovery(this);
-            ConfigureWifiFragment.this.notifyDiscoveryEnded(null, null);
+            mDiscoveryInProgress = false;
+            configureUi(true, VALIDATE_AND_PROCEED);
         }
 
         @Override
         public void onStopDiscoveryFailed(String serviceType, int errorCode) {
             Log.e(TAG, "Discovery failed: Error code:" + errorCode);
-            mNsdManager.stopServiceDiscovery(this);
-            ConfigureWifiFragment.this.notifyDiscoveryEnded(null, null);
         }
 
         @Override
         public void onDiscoveryStopped(String serviceType) {
             Log.i(TAG, "Discovery stopped: " + serviceType);
             mDiscoveryInProgress = false;
-            ConfigureWifiFragment.this.notifyDiscoveryEnded(null, null);
+            configureUi(false, VALIDATE_AND_PROCEED);
         }
 
         @Override
@@ -538,13 +403,14 @@ public class ConfigureWifiFragment extends Fragment {
         public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
             Log.e(TAG, "Resolve failed" + errorCode);
             mResolveInProgress = false;
-            ConfigureWifiFragment.this.notifyDiscoveryEnded(null, null);
+            configureUi(false, VALIDATE_AND_PROCEED);
         }
         @Override
         public void onServiceResolved(final NsdServiceInfo serviceInfo) {
             Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
             mResolveInProgress = false;
-            notifyDiscoveryEnded(serviceInfo.getHost().getHostName(), serviceInfo.getPort());
+            configureUi(false, VALIDATE_AND_PROCEED);
+            notifyResolveCompleted(serviceInfo.getHost().getHostName(), serviceInfo.getPort());
         }
     };
 }

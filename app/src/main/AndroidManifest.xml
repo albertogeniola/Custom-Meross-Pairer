@@ -28,6 +28,7 @@
         <activity
             android:name=".PairActivity"
             android:label="@string/title_activity_pair"
+            android:exported="true"
             android:theme="@style/AppTheme" />
         <activity
             android:name=".SplashActivity"

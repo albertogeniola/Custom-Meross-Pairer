@@ -151,6 +151,7 @@ public class ExecutePairingFragment extends Fragment {
         String passphrase = pairActivityViewModel.getMerossConfiguredWifi().getValue().getClearWifiPassword();
 
         // Check if we are already connected to such wifi
+        // TODO: Check comparison happens with double quotes
         WifiInfo connectedWifi = mWifiManager.getConnectionInfo();
         if (connectedWifi == null ||
                 connectedWifi.getSSID() == null ||
