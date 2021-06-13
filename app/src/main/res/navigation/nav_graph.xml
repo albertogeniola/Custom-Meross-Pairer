@@ -12,9 +12,8 @@
         tools:layout="@layout/fragment_scan">
 
         <action
-            android:id="@+id/scan_to_connect"
-            app:destination="@id/FetchDeviceInfoFragment"
-            app:popUpToInclusive="false" />
+            android:id="@+id/action_scan_to_fetchDeviceInfo"
+            app:destination="@id/FetchDeviceInfoFragment" />
     </fragment>
     <fragment
         android:id="@+id/FetchDeviceInfoFragment"
@@ -22,8 +21,9 @@
         android:label="Fetching device info"
         tools:layout="@layout/fragment_connect">
         <action
-            android:id="@+id/action_ConnectFragment_to_configureFragment"
+            android:id="@+id/action_fetchDeviceInfo_to_showDeviceInfo"
             app:destination="@id/ShowDeviceInfoFragment"
+            app:popUpTo="@+id/nav_graph2"
             app:popUpToInclusive="false" />
     </fragment>
     <fragment
@@ -31,7 +31,7 @@
         android:name="com.albertogeniola.merossconf.ui.fragments.pair.ShowDeviceInfoFragment"
         android:label="Device Info">
         <action
-            android:id="@+id/action_InfoFragment_to_configFragment"
+            android:id="@+id/action_showDeviceInfo_to_configureWifi"
             app:destination="@id/ConfigureWifiFragment"
             app:popUpToInclusive="false" />
     </fragment>
@@ -41,28 +41,33 @@
         android:label="Setup Wifi"
         tools:layout="@layout/fragment_wifi_config">
         <action
-            android:id="@+id/action_ConfigFragment_to_mqttConfigFragment"
+            android:id="@+id/action_configureWifi_to_configureMqtt"
+            app:popUpTo="@+id/ShowDeviceInfoFragment"
+            app:popUpToInclusive="false"
             app:destination="@id/ConfigureMqttFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/ConfigureMqttFragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.pair.ConfigureMqttFragment"
+        android:label="Setup MQTT">
+        <action
+            android:id="@+id/action_configureMqtt_to_executePair"
+            app:popUpTo="@+id/ShowDeviceInfoFragment"
+            app:popUpToInclusive="false"
+            app:destination="@id/ExecutePairingFragment" />
     </fragment>
     <fragment
         android:id="@+id/ExecutePairingFragment"
         android:name="com.albertogeniola.merossconf.ui.fragments.pair.ExecutePairingFragment"
         android:label="Pairing...">
         <action
-            android:id="@+id/action_PairFragment_to_PairDone"
+            android:id="@+id/action_executePair_to_pairCompleted"
             app:destination="@id/PairCompletedFragment"
+            app:popUpTo="@id/nav_graph2"
             app:popUpToInclusive="false" />
     </fragment>
     <fragment
         android:id="@+id/PairCompletedFragment"
         android:name="com.albertogeniola.merossconf.ui.fragments.pair.PairCompletedFragment"
         android:label="Done" />
-    <fragment
-        android:id="@+id/ConfigureMqttFragment"
-        android:name="com.albertogeniola.merossconf.ui.fragments.pair.ConfigureMqttFragment"
-        android:label="Setup MQTT">
-        <action
-            android:id="@+id/action_mqttConfigFragment_to_PairFragment"
-            app:destination="@id/ExecutePairingFragment" />
-    </fragment>
 </navigation>

@@ -12,7 +12,9 @@
         <item
             android:id="@+id/devices_fragment"
             android:icon="@drawable/ic_outline_contactless_24"
-            android:title="@string/menu_devices" />
+            android:title="@string/menu_devices"
+            android:enabled="false"
+            android:tooltipText="Under construction!"/>
         <item
             android:id="@+id/pair_activity"
             android:icon="@drawable/ic_menu_pair"

@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.R;
@@ -78,7 +79,7 @@ public class ShowDeviceInfoFragment extends Fragment {
 
     private void launchConfigFragment() {
         NavController ctrl = NavHostFragment.findNavController(ShowDeviceInfoFragment.this);
-        ctrl.navigate(R.id.ConfigureWifiFragment);
+        ctrl.navigate(R.id.action_showDeviceInfo_to_configureWifi,null, new NavOptions.Builder().setEnterAnim(android.R.animator.fade_in).setExitAnim(android.R.animator.fade_out).build());
     }
 
     private void loadUiInfo() {

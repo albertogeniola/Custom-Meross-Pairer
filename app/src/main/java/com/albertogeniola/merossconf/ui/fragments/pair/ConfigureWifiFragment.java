@@ -25,6 +25,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
@@ -36,8 +38,6 @@ import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.progressindicator.CircularProgressIndicator;
-import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
@@ -137,12 +137,11 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
         super.onDestroy();
         if (mDiscoveryInProgress)
             mNsdManager.stopServiceDiscovery(mDiscoveryListener);
-
         mResolveInProgress = false;
     }
 
     @Override
-    protected void onWifiConnected() {
+    protected void onWifiConnected(String ssid, String bssid) {
         // If the wifi connection succeeds, store the wifi info into the parent model
         mUiHandler.post(new Runnable() {
             @Override
@@ -171,21 +170,21 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     }
 
     @Override
-    protected void onWifiUnavailable() {
+    protected void onWifiUnavailable(String ssid, String bssid) {
         Toast.makeText(requireContext(), "Wifi validation failed. Please double check credentials and try again.", Toast.LENGTH_LONG).show();
         configureUi(true, VALIDATE_AND_PROCEED);
     }
 
     @Override
-    protected void onMissingWifiPermissions() {
+    protected void onMissingWifiPermissions(String ssid, String bssid) {
         Toast.makeText(requireContext(), "Please grant Wifi and Location permissions to this app. It won't work without them.", Toast.LENGTH_LONG).show();
         configureUi(true, VALIDATE_AND_PROCEED);
     }
 
     @SneakyThrows(PermissionNotGrantedException.class)
     @Override
-    protected void onWifiPermissionsGranted() {
-        startWifiConnection(mSelectedWifi.getScannedWifi().getSsid(), mSelectedWifi.getScannedWifi().getBssid(), mSelectedWifi.getClearWifiPassword(), null, 20000);
+    protected void onWifiPermissionsGranted(String ssid, String bssid) {
+        startWifiConnection(ssid, bssid, mSelectedWifi.getClearWifiPassword(), null, 20000);
     }
 
     @UiThread
@@ -208,7 +207,7 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
             mUiHandler.post(r);
     }
 
-    private View.OnClickListener skipButtonClick = new View.OnClickListener() {
+    private final View.OnClickListener skipButtonClick = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
             // Just store the current configuration and proceed to the next fragment
@@ -219,12 +218,12 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
                 AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mSelectedWifi.getScannedWifi().getBssid(), mWifiPasswordTextView.getEditText().toString());
 
             // Launch the next fragment
-            // Navigate to the next fragment
-            NavHostFragment.findNavController(ConfigureWifiFragment.this).navigate(R.id.ConfigureMqttFragment);
+            NavController ctrl = NavHostFragment.findNavController(ConfigureWifiFragment.this);
+            ctrl.navigate(R.id.action_configureWifi_to_configureMqtt, null, new NavOptions.Builder().setEnterAnim(android.R.animator.fade_in).setExitAnim(android.R.animator.fade_out).build());
         }
     };
 
-    private View.OnClickListener nextButtonClick = new View.OnClickListener() {
+    private final View.OnClickListener nextButtonClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             // Validate the configuration...
@@ -251,29 +250,26 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
 
     private void notifyResolveCompleted(@Nullable final String hostname,
                                       @Nullable final Integer port) {
+
+        configureUi(false, COMPLETED);
+
+        // In case the discovery found a valid service, put it into a parcel for the next fragment
+        final Bundle args = new Bundle();
+        if (hostname != null && port != null) {
+            args.putString("hostname", hostname);
+            args.putInt("port", port);
+            Toast.makeText(requireContext(), "Found a Meross MQTT broker in this LAN", Toast.LENGTH_SHORT).show();
+        }
+
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                configureUi(false, COMPLETED);
-
-                // In case the discovery found a valid service, put it into a parcel for the next fragment
-                Bundle args = new Bundle();
-                if (hostname != null && port != null) {
-                    args.putString("hostname", hostname);
-                    args.putInt("port", port);
-                    Toast.makeText(requireContext(), "Found a Meross MQTT broker in this LAN", Toast.LENGTH_SHORT).show();
-                }
-
                 // Navigate to the next fragment
-                NavHostFragment.findNavController(ConfigureWifiFragment.this)
-                        .navigate(R.id.ConfigureMqttFragment, args);
+                NavController ctrl = NavHostFragment.findNavController(ConfigureWifiFragment.this);
+                ctrl.navigate(R.id.action_configureWifi_to_configureMqtt, args, new NavOptions.Builder().setEnterAnim(android.R.animator.fade_in).setExitAnim(android.R.animator.fade_out).build());
             }
         };
-
-        if (Looper.myLooper() == Looper.getMainLooper())
-            r.run();
-        else
-            mUiHandler.post(r);
+        mUiHandler.post(r);
     }
 
     private void startWifiConnectionValidation(WifiConfiguration selectedWifi) {
@@ -355,6 +351,7 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
         @Override
         public void onDiscoveryStarted(String serviceType) {
             Log.d(TAG, "Service discovery started");
+
             mDiscoveryInProgress = true;
         }
 
@@ -365,6 +362,7 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
                 if (!mResolveInProgress) {
                     mResolveInProgress = true;
                     configureUi(false, MQTT_RESOLVE);
+                    mNsdManager.stopServiceDiscovery(mDiscoveryListener);
                     mNsdManager.resolveService(service, mResolveListener);
                 }
             }
@@ -386,7 +384,13 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
         public void onDiscoveryStopped(String serviceType) {
             Log.i(TAG, "Discovery stopped: " + serviceType);
             mDiscoveryInProgress = false;
-            configureUi(false, VALIDATE_AND_PROCEED);
+
+            // We need to check the availability of the context. This appers to be a bug:
+            // it is not possible to unregister a discovery listener.
+            // So, we just check for the presence of the Context. If that's null, we assume this
+            // must not run.
+            if (ConfigureWifiFragment.this.getContext()!=null)
+                configureUi(false, VALIDATE_AND_PROCEED);
         }
 
         @Override
@@ -401,6 +405,7 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     private final NsdManager.ResolveListener mResolveListener = new NsdManager.ResolveListener() {
         @Override
         public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
+
             Log.e(TAG, "Resolve failed" + errorCode);
             mResolveInProgress = false;
             configureUi(false, VALIDATE_AND_PROCEED);

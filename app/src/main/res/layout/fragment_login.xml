@@ -6,6 +6,21 @@
     android:layout_height="match_parent"
     tools:context=".LoginActivity">
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/discoveryButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:backgroundTint="@android:color/darker_gray"
+        android:text="Discovery"
+        android:drawableTint="@color/design_default_color_on_primary"
+        android:drawableEnd="@drawable/ic_baseline_search_24"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/constraintLayout" />
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/constraintLayout"
         android:layout_width="match_parent"
@@ -26,7 +41,7 @@
             app:layout_constraintTop_toBottomOf="@+id/httpPasswordEditText" />
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/httpHostnameEditText"
+            android:id="@+id/httpHostnameInputLayout"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:ems="10"
@@ -42,7 +57,7 @@
             <com.google.android.material.textfield.TextInputEditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="http://192.168.1.16:2002" />
+                />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -57,7 +72,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/httpHostnameEditText"
+            app:layout_constraintTop_toBottomOf="@+id/httpHostnameInputLayout"
             app:layout_constraintVertical_bias="0.0"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
@@ -99,19 +114,19 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/loginButton"
+        android:drawableEnd="@drawable/ic_baseline_login_24"
+        android:drawableTint="@color/design_default_color_on_primary"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginRight="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="124dp"
         android:text="Login"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/constraintLayout"
+        app:layout_constraintTop_toBottomOf="@+id/discoveryButton"
         app:layout_constraintVertical_bias="0.0" />
 
     <TextView

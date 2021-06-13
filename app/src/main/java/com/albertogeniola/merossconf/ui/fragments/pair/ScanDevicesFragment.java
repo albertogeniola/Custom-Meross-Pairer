@@ -32,6 +32,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -318,7 +319,7 @@ public class ScanDevicesFragment extends Fragment {
                     pairActivityViewModel.setMerossPairingAp(targetAp);
                     NavHostFragment
                             .findNavController(ScanDevicesFragment.this)
-                            .navigate(R.id.scan_to_connect);
+                            .navigate(R.id.action_scan_to_fetchDeviceInfo,null, new NavOptions.Builder().setEnterAnim(android.R.animator.fade_in).setExitAnim(android.R.animator.fade_out).build());
                 }
             });
         }

@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -30,11 +31,15 @@ import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.progressindicator.CircularProgressIndicatorSpec;
 import com.google.android.material.progressindicator.IndeterminateDrawable;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.albertogeniola.merossconf.AndroidUtils.dpToPx;
 
@@ -45,29 +50,27 @@ public class LoginFragment extends Fragment {
     private static final  String TAG = "Login";
 
     // Instance attributes
+    private boolean mDiscoveryInProgress;
     private NsdManager mNsdManager;
-    private WifiManager mWifiManager;
-    private TextInputLayout mHttpHostnameInput;
+    private TextInputLayout mHttpHostnameInputLayout;
     private EditText mHttpHostnameEditText;
     private EditText mHttpUsernameEditText;
     private EditText mHttpPasswordEditText;
-    private Button mLoginButton;
+    private MaterialButton mLoginButton;
+    private MaterialButton mDiscoveryButton;
 
-    private Handler uiHandler;
+    private Timer mTimer;
+    private Handler mUiHandler;
 
     private CircularProgressIndicator mSearchProgress;
+    private IndeterminateDrawable<CircularProgressIndicatorSpec> mProgressIndicatorDrawable;
 
-
-    public LoginFragment() {
-        // Required empty public constructor
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mNsdManager = (NsdManager) requireContext().getSystemService(Context.NSD_SERVICE);
-        mWifiManager = (WifiManager) requireContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        uiHandler = new Handler(this.getContext().getMainLooper());
+        mUiHandler = new Handler(this.requireContext().getMainLooper());
     }
 
     @Override
@@ -78,17 +81,18 @@ public class LoginFragment extends Fragment {
 
         // Bind views
         CheckBox showPasswordCheckBox = view.findViewById(R.id.showPasswordCheckBox);
-        mHttpHostnameInput = (TextInputLayout)view.findViewById(R.id.httpHostnameEditText);
-        mHttpHostnameEditText = ((TextInputLayout)view.findViewById(R.id.httpHostnameEditText)).getEditText();
+        mHttpHostnameInputLayout =  view.findViewById(R.id.httpHostnameInputLayout);
+        mHttpHostnameEditText = mHttpHostnameInputLayout.getEditText();
         mHttpPasswordEditText = ((TextInputLayout)view.findViewById(R.id.httpPasswordEditText)).getEditText();
         mHttpUsernameEditText = ((TextInputLayout)view.findViewById(R.id.httpUsernameEditText)).getEditText();
         mLoginButton = view.findViewById(R.id.loginButton);
+        mDiscoveryButton = view.findViewById(R.id.discoveryButton);
 
         // Configure HostEditText for progress showing
         mSearchProgress = new CircularProgressIndicator(this.requireActivity(), null);
         mSearchProgress.setIndicatorSize((int)dpToPx(requireContext(), 15));
         mSearchProgress.setIndeterminate(true);
-
+        mProgressIndicatorDrawable = mSearchProgress.getIndeterminateDrawable();
         // Show/Hide password logic
         showPasswordCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -109,6 +113,14 @@ public class LoginFragment extends Fragment {
             }
         });
 
+        // Discovery button logic
+        mDiscoveryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startApiDiscovery();
+            }
+        });
+
         // Setup the edit-text to hide the password characters
         showPasswordCheckBox.setChecked(false);
         mHttpPasswordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
@@ -116,46 +128,68 @@ public class LoginFragment extends Fragment {
         return view;
     }
 
-    private void notifyDiscoveryEnded(@Nullable final String result, @Nullable final String message) {
-        Runnable r = new Runnable() {
+    private void startApiDiscovery() {
+        // Setup UI
+        configureUi(false,  true, null, null);
+
+        // Start mDNS discovery
+        if (!mDiscoveryInProgress) {
+            mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+        }
+
+        // Start a timer for aborting discovery after 10 seconds if nothing is found.
+        if (mTimer == null) {
+            mTimer = new Timer();
+            mTimer.schedule(new TimeoutTask(), 5000);
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer = null;
+        }
+    }
+
+    private void configureUi(final boolean uiEnabled, final boolean discoveryInProgress, @Nullable final String hostnameValue, @Nullable final String message) {
+        Runnable logic = new Runnable() {
             @Override
             public void run() {
-                mHttpHostnameInput.setEndIconMode(TextInputLayout.END_ICON_NONE);
-                mHttpHostnameInput.setEndIconDrawable(null);
-                mHttpHostnameEditText.setText(result == null ? "" : result);
-                mHttpHostnameEditText.setEnabled(true);
+                mLoginButton.setEnabled(uiEnabled);
+                mDiscoveryButton.setEnabled(uiEnabled);
+                mHttpUsernameEditText.setEnabled(uiEnabled);
+                mHttpPasswordEditText.setEnabled(uiEnabled);
 
-                if (result!=null && message==null) {
-                    Snackbar.make(getView(),"Local Meross HTTP service found!", Snackbar.LENGTH_SHORT)
-                            .setAnchorView(mHttpHostnameInput)
-                            .show();
-                } else if (message != null) {
-                    Snackbar.make(getView(), message, Snackbar.LENGTH_SHORT).show();
+                if (discoveryInProgress) {
+                    mHttpHostnameInputLayout.setEndIconMode(TextInputLayout.END_ICON_CUSTOM);
+                    mHttpHostnameInputLayout.setEndIconDrawable(mProgressIndicatorDrawable);
+                } else {
+                    mHttpHostnameInputLayout.setEndIconMode(TextInputLayout.END_ICON_NONE);
+                    mHttpHostnameInputLayout.setEndIconDrawable(null);
                 }
+
+                if (hostnameValue != null) {
+                    mHttpHostnameEditText.setText(hostnameValue);
+                }
+
+                if (message != null)
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
             }
         };
 
-        if (Looper.myLooper() == Looper.getMainLooper())
-            r.run();
-        else
-            uiHandler.post(r);
-    }
-
-    private void startApiDiscovery() {
-        // Setup UI
-        IndeterminateDrawable<CircularProgressIndicatorSpec> progressIndicatorDrawable = mSearchProgress.getIndeterminateDrawable();
-        mHttpHostnameInput.setEndIconMode(TextInputLayout.END_ICON_CUSTOM);
-        mHttpHostnameInput.setEndIconDrawable(progressIndicatorDrawable);
-        mHttpHostnameEditText.setText("Searching...");
-        mHttpHostnameEditText.setEnabled(false);
-
-        // Start mDNS discovery
-        mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            logic.run();
+        } else {
+            mUiHandler.post(logic);
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        mDiscoveryInProgress = false;
         startApiDiscovery();
     }
 
@@ -231,37 +265,39 @@ public class LoginFragment extends Fragment {
         @Override
         public void onDiscoveryStarted(String serviceType) {
             Log.d(TAG, "Service discovery started");
+            mDiscoveryInProgress = true;
         }
 
         @Override
         public void onServiceFound(NsdServiceInfo service) {
             Log.d(TAG, "Service discovery success" + service);
+            if (mDiscoveryInProgress)
+                mNsdManager.stopServiceDiscovery(mDiscoveryListener);
             mNsdManager.resolveService(service, mResolveListener);
         }
 
         @Override
         public void onStartDiscoveryFailed(String serviceType, int errorCode) {
             Log.e(TAG, "Discovery failed: Error code:" + errorCode);
-            LoginFragment.this.notifyDiscoveryEnded(null, "Automatic discovery failed");
+            configureUi(true,  false, null, "Discovery failed");
         }
 
         @Override
         public void onStopDiscoveryFailed(String serviceType, int errorCode) {
             Log.e(TAG, "Discovery failed: Error code:" + errorCode);
-            LoginFragment.this.notifyDiscoveryEnded(null, null);
         }
 
         @Override
         public void onDiscoveryStopped(String serviceType) {
             Log.i(TAG, "Discovery stopped: " + serviceType);
-            LoginFragment.this.notifyDiscoveryEnded(null, null);
+            mDiscoveryInProgress = false;
         }
 
         @Override
         public void onServiceLost(NsdServiceInfo serviceInfo) {
-            // When the network service is no longer available.
-            // Internal bookkeeping code goes here.
             Log.e(TAG, "service lost: " + serviceInfo.getServiceType());
+            if (mDiscoveryInProgress)
+                mNsdManager.stopServiceDiscovery(mDiscoveryListener);
         }
     };
 
@@ -270,12 +306,21 @@ public class LoginFragment extends Fragment {
         @Override
         public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
             Log.e(TAG, "Resolve failed" + errorCode);
-            LoginFragment.this.notifyDiscoveryEnded(null, "Automatic discovery failed");
+            configureUi(true,  false, null, "Discovery failed");
         }
         @Override
         public void onServiceResolved(final NsdServiceInfo serviceInfo) {
-            Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
-            notifyDiscoveryEnded("http://" + serviceInfo.getHost().getHostName()+":"+serviceInfo.getPort(), null);
+            Log.e(TAG, "Found local API!. " + serviceInfo);
+            String result = "http://" + serviceInfo.getHost().getHostName()+":"+serviceInfo.getPort();
+            configureUi(true,  false, result, "Found local API!");
         }
     };
+
+    private class TimeoutTask extends TimerTask {
+        @Override
+        public void run() {
+            configureUi(true,  false, null, "No Local HTTP service found.");
+            mTimer = null;
+        }
+    }
 }

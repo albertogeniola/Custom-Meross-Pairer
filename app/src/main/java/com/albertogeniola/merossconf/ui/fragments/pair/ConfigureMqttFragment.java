@@ -15,6 +15,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
@@ -66,6 +68,11 @@ public class ConfigureMqttFragment extends Fragment {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mqttConfigurationSpinner = view.findViewById(R.id.mqttConfigurationSpinner);
@@ -75,9 +82,9 @@ public class ConfigureMqttFragment extends Fragment {
         Button pairButton = view.findViewById(R.id.pairButton);
         saveCheckbox = view.findViewById(R.id.saveCheckbox);
 
-        List<MqttConfiguration> configurations = AndroidPreferencesManager.loadAllMqttConfigurations(getContext());
+        List<MqttConfiguration> configurations = AndroidPreferencesManager.loadAllMqttConfigurations(requireContext());
         configurations.add(this.newMqttConfig);
-        adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, configurations);
+        adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, configurations);
         if (mDiscoveredConfig != null) {
             adapter.add(mDiscoveredConfig);
         }
@@ -180,9 +187,8 @@ public class ConfigureMqttFragment extends Fragment {
                     pairActivityViewModel.setTargetMqttConfig(tmp);
                 }
 
-                NavHostFragment
-                        .findNavController(ConfigureMqttFragment.this)
-                        .navigate(R.id.action_mqttConfigFragment_to_PairFragment);
+                NavController ctrl = NavHostFragment.findNavController(ConfigureMqttFragment.this);
+                ctrl.navigate(R.id.action_configureMqtt_to_executePair, null, new NavOptions.Builder().setEnterAnim(android.R.animator.fade_in).setExitAnim(android.R.animator.fade_out).build());
             }
         });
     }

@@ -34,6 +34,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.R;
@@ -177,8 +178,7 @@ public class FetchDeviceInfoFragment extends AbstractWifiFragment {
                 pairActivityViewModel.setDeviceInfo(deviceInfo);
                 pairActivityViewModel.setDeviceAvailableWifis(deviceAvailableWifis);
                 NavController ctrl = NavHostFragment.findNavController(FetchDeviceInfoFragment.this);
-                ctrl.popBackStack();
-                ctrl.navigate(R.id.ShowDeviceInfoFragment);
+                ctrl.navigate(R.id.action_fetchDeviceInfo_to_showDeviceInfo,null, new NavOptions.Builder().setEnterAnim(android.R.animator.fade_in).setExitAnim(android.R.animator.fade_out).build());
             }
         });
     }
@@ -234,35 +234,33 @@ public class FetchDeviceInfoFragment extends AbstractWifiFragment {
         super.onCreate(savedInstanceState);
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
         uiThreadHandler = new Handler(Looper.getMainLooper());
-        requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        //requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        requireActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        //requireActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override
-    protected void onWifiConnected() {
+    protected void onWifiConnected(String ssid, String bssid) {
         stateMachine(Signal.AP_CONNECTED);
     }
 
     @Override
-    protected void onWifiUnavailable() {
+    protected void onWifiUnavailable(String ssid, String bssid) {
         stateMachine(Signal.ERROR);
     }
 
     @Override
-    protected void onMissingWifiPermissions() {
+    protected void onMissingWifiPermissions(String ssid, String bssid) {
         stateMachine(Signal.ERROR);
     }
 
     @SneakyThrows(PermissionNotGrantedException.class)
     @Override
-    protected void onWifiPermissionsGranted() {
-        String ssid = pairActivityViewModel.getMerossPairingAp().getValue().getSsid();
-        String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
+    protected void onWifiPermissionsGranted(String ssid, String bssid) {
         startWifiConnection(ssid, bssid, null, null, 10000);
     }
 

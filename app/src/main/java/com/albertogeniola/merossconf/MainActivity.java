@@ -165,13 +165,13 @@ public class MainActivity extends AppCompatActivity {
         if (creds == null) {
             mPairMenuItem.setEnabled(false);
             mPairMenuItem.setTitle("Pair (Login required)");
-            mDeviceMenuItem.setEnabled(false);
-            mDeviceMenuItem.setTitle("Devices (Login required)");
+            //mDeviceMenuItem.setEnabled(false);
+            //mDeviceMenuItem.setTitle("Devices (Login required)");
         } else {
             mPairMenuItem.setEnabled(true);
             mPairMenuItem.setTitle("Pair");
-            mDeviceMenuItem.setEnabled(true);
-            mDeviceMenuItem.setTitle("Devices");
+            //mDeviceMenuItem.setEnabled(true);
+            //mDeviceMenuItem.setTitle("Devices");
         }
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);

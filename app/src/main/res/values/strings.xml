@@ -62,7 +62,7 @@
 
     <string name="menu_account">Account</string>
     <string name="menu_pair">Pair</string>
-    <string name="menu_devices">Devices</string>
+    <string name="menu_devices">Devices (coming soon!)</string>
     <string name="drawer_open">DRAWER OPEN</string>
     <string name="drawer_close">DRAWER CLOSE</string>
     <string name="title_activity_login">Local API Login</string>
