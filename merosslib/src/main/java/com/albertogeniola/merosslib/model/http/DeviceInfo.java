@@ -28,7 +28,7 @@ public class DeviceInfo {
     private String subType;
 
     @SerializedName("channels")
-    private List[] channels;
+    private List<Object> channels;
 
     @SerializedName("region")
     private String region;
