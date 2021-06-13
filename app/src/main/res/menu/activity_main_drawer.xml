@@ -19,5 +19,9 @@
             android:id="@+id/pair_activity"
             android:icon="@drawable/ic_menu_pair"
             android:title="@string/menu_pair" />
+        <item
+            android:id="@+id/about_fragment"
+            android:icon="@drawable/ic_baseline_info_24"
+            android:title="@string/menu_about" />
     </group>
 </menu>

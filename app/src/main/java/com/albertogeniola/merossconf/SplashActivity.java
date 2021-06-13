@@ -1,16 +1,19 @@
 package com.albertogeniola.merossconf;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
+import com.google.android.material.button.MaterialButton;
 
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -18,6 +21,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class SplashActivity extends AppCompatActivity {
+    private MaterialButton agreeButton;
+    private MaterialButton quitButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.AppTheme);
@@ -30,6 +36,22 @@ public class SplashActivity extends AppCompatActivity {
             actionBar.hide();
         }
 
+        agreeButton = findViewById(R.id.acceptButton);
+        agreeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(SplashActivity.this, MainActivity.class));
+                finish();
+            }
+        });
+        quitButton = findViewById(R.id.quitButton);
+        quitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
+            }
+        });
+
         hideSystemUI();
     }
 
@@ -38,8 +60,6 @@ public class SplashActivity extends AppCompatActivity {
         super.onResume();
         hideSystemUI();
         init();
-        startActivity(new Intent(SplashActivity.this, MainActivity.class));
-        finish();
     }
 
     private void init() {

@@ -27,5 +27,20 @@
         android:name="com.albertogeniola.merossconf.PairActivity"
         android:label="activity_pair"
         tools:layout="@layout/activity_pair" />
+    <fragment
+        android:id="@+id/about_fragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.about.AboutFragment"
+        android:label="fragment_about"
+        tools:layout="@layout/fragment_about" />
+    <activity
+        android:id="@+id/splash_activity"
+        android:name="com.albertogeniola.merossconf.SplashActivity"
+        android:label="activity_splash"
+        tools:layout="@layout/activity_splash" />
+    <activity
+        android:id="@+id/main_activity"
+        android:name="com.albertogeniola.merossconf.MainActivity"
+        android:label="app_bar_main"
+        tools:layout="@layout/app_bar_main" />
 
 </navigation>
