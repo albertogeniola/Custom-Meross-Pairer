@@ -12,19 +12,19 @@ public class DeviceInfo {
     @SerializedName("uuid")
     private String uuid;
 
-    @SerializedName("onlineStatus")
+    @SerializedName("online_status")
     private OnlineStatus onlineStatus;
 
     @SerializedName("devName")
     private String devName;
 
-    @SerializedName("bindTime")
+    @SerializedName("bind_time")
     private String bindTime;
 
-    @SerializedName("deviceType")
+    @SerializedName("device_type")
     private String deviceType;
 
-    @SerializedName("subType")
+    @SerializedName("sub_type")
     private String subType;
 
     @SerializedName("channels")
@@ -33,24 +33,24 @@ public class DeviceInfo {
     @SerializedName("region")
     private String region;
 
-    @SerializedName("fmwareVersion")
+    @SerializedName("fmware_version")
     private String fmwareVersion;
 
-    @SerializedName("hdwareVersion")
+    @SerializedName("hdware_version")
     private String hdwareVersion;
 
-    @SerializedName("userDevIcon")
+    @SerializedName("user_dev_icon")
     private String userDevIcon;
 
-    @SerializedName("iconType")
+    @SerializedName("icon_type")
     private int iconType;
 
-    @SerializedName("skillNumber")
+    @SerializedName("skill_number")
     private String skillNumber;
 
     @SerializedName("domain")
     private String domain;
 
-    @SerializedName("reservedDomain")
+    @SerializedName("reserved_domain")
     private String reservedDomain;
 }

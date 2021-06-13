@@ -45,7 +45,7 @@ public class MerossHttpClient implements Serializable {
     // Static attributes
     private final static Logger l = Logger.getLogger(MerossHttpClient.class.getName());
 
-    private static final Gson g = new GsonBuilder().disableHtmlEscaping().create();
+    private static final Gson g =  Utils.getGson();
     private static final String NOONCE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final String LOGIN_PATH = "/v1/Auth/Login";
     private static final String DEVICE_LIST = "/v1/Device/devList";
