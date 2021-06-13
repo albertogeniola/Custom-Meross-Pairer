@@ -179,7 +179,6 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                 boolean exitNow = false;
                 while(!exitNow && !succeeed && !Thread.currentThread().isInterrupted() && !timedOut) {
                     try {
-
                         List<DeviceInfo> devices = client.listDevices();
                         DeviceInfo d = findDevice(devices, targetUuid);
                         if (d == null) {
@@ -190,11 +189,15 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                         } else {
                             Log.i(TAG, "Device " +targetUuid + " is paired, but not ready yet or in an unknown status.");
                         }
+                    } catch (HttpApiException e) {
+                        e.printStackTrace();
+                        Log.e(TAG, "The HTTP API server reported status " + e.getCode(), e);
                     } catch (IOException e) {
                         e.printStackTrace();
                         Log.e(TAG, "An IOException occurred while polling the HTTP API server.", e);
-                    } catch (HttpApiException e) {
-                        Log.e(TAG, "The HTTP API server reported status " + e.getCode(), e);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Log.e(TAG, "An unexpected exception occurred", e);
                     } finally {
                         timedOut = GregorianCalendar.getInstance().getTimeInMillis() >= timeout;
                         try {

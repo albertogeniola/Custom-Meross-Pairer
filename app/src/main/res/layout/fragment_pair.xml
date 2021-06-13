@@ -70,7 +70,7 @@
         app:layout_constraintStart_toStartOf="@+id/connectToBrokerWifi"
         app:layout_constraintTop_toBottomOf="@+id/connectToBrokerWifi"
         app:state="not_started"
-        app:title="Connect to mqtt broker" />
+        app:title="Waiting for Online Status Report" />
 
     <TextView
         android:id="@+id/errorDetailTextView"
