@@ -7,6 +7,29 @@
     android:background="@color/colorAccent"
     tools:context=".SplashActivity">
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/quitButton"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="24dp"
+        android:text="Quit"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView29" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/acceptButton"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:layout_marginEnd="8dp"
+        android:text="Accept"
+        app:layout_constraintBottom_toBottomOf="@+id/quitButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/quitButton" />
+
     <TextView
         android:id="@+id/textView25"
         android:layout_width="wrap_content"

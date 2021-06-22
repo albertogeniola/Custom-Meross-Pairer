@@ -21,8 +21,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class SplashActivity extends AppCompatActivity {
-    private MaterialButton agreeButton;
-    private MaterialButton quitButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +34,7 @@ public class SplashActivity extends AppCompatActivity {
             actionBar.hide();
         }
 
-        agreeButton = findViewById(R.id.acceptButton);
+        MaterialButton agreeButton = findViewById(R.id.acceptButton);
         agreeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -44,7 +42,7 @@ public class SplashActivity extends AppCompatActivity {
                 finish();
             }
         });
-        quitButton = findViewById(R.id.quitButton);
+        MaterialButton quitButton = findViewById(R.id.quitButton);
         quitButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
