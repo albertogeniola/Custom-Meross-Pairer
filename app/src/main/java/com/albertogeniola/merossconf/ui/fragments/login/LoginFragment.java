@@ -46,7 +46,7 @@ import static com.albertogeniola.merossconf.AndroidUtils.dpToPx;
 
 public class LoginFragment extends Fragment {
     // Constants
-    private static final String SERVICE_TYPE = "_meross-local-api._tcp.";
+    private static final String SERVICE_TYPE = "_meross-api._tcp.";
     private static final  String TAG = "Login";
 
     // Instance attributes
@@ -146,11 +146,15 @@ public class LoginFragment extends Fragment {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
         if (mTimer != null) {
             mTimer.cancel();
             mTimer = null;
         }
+
+        if (mDiscoveryInProgress)
+            mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+
+        super.onDestroy();
     }
 
     private void configureUi(final boolean uiEnabled, final boolean discoveryInProgress, @Nullable final String hostnameValue, @Nullable final String message) {
@@ -189,7 +193,6 @@ public class LoginFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        mDiscoveryInProgress = false;
         startApiDiscovery();
     }
 
@@ -271,8 +274,11 @@ public class LoginFragment extends Fragment {
         @Override
         public void onServiceFound(NsdServiceInfo service) {
             Log.d(TAG, "Service discovery success" + service);
+            /*
             if (mDiscoveryInProgress)
                 mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+
+             */
             mNsdManager.resolveService(service, mResolveListener);
         }
 
@@ -280,11 +286,13 @@ public class LoginFragment extends Fragment {
         public void onStartDiscoveryFailed(String serviceType, int errorCode) {
             Log.e(TAG, "Discovery failed: Error code:" + errorCode);
             configureUi(true,  false, null, "Discovery failed");
+            mNsdManager.stopServiceDiscovery(this);
         }
 
         @Override
         public void onStopDiscoveryFailed(String serviceType, int errorCode) {
             Log.e(TAG, "Discovery failed: Error code:" + errorCode);
+            mNsdManager.stopServiceDiscovery(this);
         }
 
         @Override
@@ -296,8 +304,6 @@ public class LoginFragment extends Fragment {
         @Override
         public void onServiceLost(NsdServiceInfo serviceInfo) {
             Log.e(TAG, "service lost: " + serviceInfo.getServiceType());
-            if (mDiscoveryInProgress)
-                mNsdManager.stopServiceDiscovery(mDiscoveryListener);
         }
     };
 
@@ -321,6 +327,8 @@ public class LoginFragment extends Fragment {
         public void run() {
             configureUi(true,  false, null, "No Local HTTP service found.");
             mTimer = null;
+            if (mDiscoveryInProgress)
+                mNsdManager.stopServiceDiscovery(mDiscoveryListener);
         }
     }
 }

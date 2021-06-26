@@ -10,6 +10,7 @@ import android.provider.Settings;
 import android.util.DisplayMetrics;
 
 import androidx.core.app.ActivityCompat;
+import androidx.core.location.LocationManagerCompat;
 
 import com.albertogeniola.merosslib.model.Cipher;
 import com.albertogeniola.merosslib.model.Encryption;
@@ -24,17 +25,7 @@ import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 public class AndroidUtils {
     public static boolean isLocationEnabled(Context context)
     {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            // This is new method provided in API 28
-            LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-            return lm.isLocationEnabled();
-        } else {
-            // This is Deprecated in API 28
-            int mode = Settings.Secure.getInt(context.getContentResolver(), Settings.Secure.LOCATION_MODE,
-                    Settings.Secure.LOCATION_MODE_OFF);
-            return  (mode != Settings.Secure.LOCATION_MODE_OFF);
-
-        }
+        return LocationManagerCompat.isLocationEnabled((LocationManager) context.getSystemService(Context.LOCATION_SERVICE));
     }
 
     public static String getConnectedWifi(Context context) {

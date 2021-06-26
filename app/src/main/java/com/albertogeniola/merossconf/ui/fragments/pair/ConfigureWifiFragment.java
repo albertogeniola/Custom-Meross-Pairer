@@ -49,7 +49,7 @@ import lombok.SneakyThrows;
 public class ConfigureWifiFragment extends AbstractWifiFragment {
     private static final String TAG = "ConfigureWifiFragment";
     private NsdManager mNsdManager;
-    private static final String SERVICE_TYPE = "_meross-local-mqtt._tcp.";
+    private static final String SERVICE_TYPE = "_meross-mqtt._tcp.";
 
     private Handler mUiHandler;
     private PairActivityViewModel pairActivityViewModel;
