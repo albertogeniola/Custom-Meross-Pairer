@@ -146,7 +146,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         // Check if we are already connected to such wifi
         // TODO: Check comparison happens with double quotes
         try {
-            startWifiConnection(ssid, passphrase, null, 15000);
+            startWifiConnection(ssid, passphrase, null, 60000);
             // Flow starts again from onWifiConnected() / onWifiUnavailable()
         } catch (PermissionNotGrantedException e) {
             Log.e(TAG, "Missing wifi permissions");
@@ -158,7 +158,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
     private void pollDeviceList() {
         state = State.VERIFYING_PAIRING_SUCCEEDED;
 
-        final long timeout = GregorianCalendar.getInstance().getTimeInMillis() + 30000; // 30 seconds timeout
+        final long timeout = GregorianCalendar.getInstance().getTimeInMillis() + 60000; // 30 seconds timeout
         ScheduledFuture<?> future = worker.schedule(new Runnable() {
             private @Nullable DeviceInfo findDevice(Collection<DeviceInfo> devices, String deviceUuid) {
                 for (DeviceInfo d : devices) {

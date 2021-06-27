@@ -76,6 +76,8 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     private static final String MQTT_RESOLVE = "Resolving service...";
     private static final String COMPLETED = "Completed";
 
+    private boolean mPaused = false;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -137,6 +139,18 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
 
             }
         });
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        mPaused = true;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mPaused = false;
     }
 
     @Override
@@ -204,7 +218,7 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     @SneakyThrows(PermissionNotGrantedException.class)
     @Override
     protected void onWifiPermissionsGranted(String ssid) {
-        startWifiConnection(ssid, mSelectedWifi.getClearWifiPassword(), null, 20000);
+        startWifiConnection(ssid, mSelectedWifi.getClearWifiPassword(), null, 60000);
     }
 
     @UiThread
@@ -276,6 +290,11 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
 
     private void notifyResolveCompleted(@Nullable final String hostname,
                                       @Nullable final Integer port) {
+        // FIXME: Workaround, as it appears there is no way to stop the mNSDManager from
+        //  notifying resolved services ater a network/reconnection (stopping the discovery does
+        //  not help)
+        if (mPaused)
+            return;
 
         configureUi(false, COMPLETED, null);
 
@@ -286,6 +305,10 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
             args.putInt("port", port);
             Toast.makeText(requireContext(), "Found a Meross MQTT broker in this LAN", Toast.LENGTH_SHORT).show();
         }
+
+        // Cancel the timeout task
+        if (mTimer!=null)
+            mTimer.cancel();
 
         Runnable r = new Runnable() {
             @Override

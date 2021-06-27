@@ -102,20 +102,16 @@ public abstract class AbstractWifiFragment extends Fragment {
         if (mBroadcastReceiverRegistered) {
             unRegisterWifiBroadcastReceiver();
         }
+
+        // Unregister network callbacks
+        if (mNetworkCallbackRegistered && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+            mConnectivityManager.unregisterNetworkCallback(mNetworkCallback);
     }
 
 
     @Override
     public void onPause() {
         super.onPause();
-
-        // Whenever the application is paused, we want to deregister all listeners,
-        // as the UI might not be available any longer
-        if (mNetworkCallbackRegistered && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-            mConnectivityManager.unregisterNetworkCallback(mNetworkCallback);
-        if (mBroadcastReceiverRegistered) {
-            unRegisterWifiBroadcastReceiver();
-        }
     }
 
     private void restoreState(Bundle savedState) {
