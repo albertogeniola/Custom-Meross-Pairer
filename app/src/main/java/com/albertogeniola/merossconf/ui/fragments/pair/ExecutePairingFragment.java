@@ -65,6 +65,7 @@ import javax.net.SocketFactory;
 
 public class ExecutePairingFragment extends AbstractWifiFragment {
     private static final String TAG = "PairingFragment";
+    private static final int WIFI_CONNECT_DELAY = 5000;
 
     private ScheduledExecutorService worker;
 
@@ -127,7 +128,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
 
         try {
-            startWifiConnection(ssid, bssid, null, null, 15000);
+            startWifiConnection(ssid, null, null, 15000);
             // Flow starts again from onWifiConnected() / onWifiUnavailable()
         } catch (PermissionNotGrantedException e) {
             Log.e(TAG, "Missing wifi permissions");
@@ -140,13 +141,12 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         state = State.CONNETING_LOCAL_WIFI;
 
         String ssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
-        String bssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getBssid();
         String passphrase = pairActivityViewModel.getMerossConfiguredWifi().getValue().getClearWifiPassword();
 
         // Check if we are already connected to such wifi
         // TODO: Check comparison happens with double quotes
         try {
-            startWifiConnection(ssid, bssid, passphrase, null, 15000);
+            startWifiConnection(ssid, passphrase, null, 15000);
             // Flow starts again from onWifiConnected() / onWifiUnavailable()
         } catch (PermissionNotGrantedException e) {
             Log.e(TAG, "Missing wifi permissions");
@@ -224,31 +224,6 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                 });
             }
         }, 2, TimeUnit.SECONDS);
-    }
-
-    private String calculateMQttPassword(String userId, String fake_mac, String key) {
-        StringBuilder sb = new StringBuilder();
-        String md5pwd = md5(fake_mac+key);
-        sb.append(userId);
-        sb.append("_");
-        sb.append(md5pwd);
-        return sb.toString();
-    }
-
-    public static String md5(String message) {
-        String digest = null;
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] hash = md.digest(message.getBytes("UTF-8"));
-            StringBuilder sb = new StringBuilder(2*hash.length);
-            for(byte b : hash){
-                sb.append(String.format("%02x", b&0xff));
-            } digest = sb.toString();
-        } catch (Exception ex) {
-            throw new RuntimeException("MD5 error");
-        }
-
-        return digest;
     }
 
     private void configureDevice(final String userId, final String key) {
@@ -371,30 +346,35 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
     }
 
     @Override
-    protected void onWifiConnected(String ssid, String bssid) {
-        String targetLocalSSID = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
-        String targetApSSID = pairActivityViewModel.getMerossPairingAp().getValue().getSsid() ;
-        if (targetLocalSSID.compareTo(ssid) == 0) {
-            stateMachine(Signal.LOCAL_WIFI_CONNECTED);
-        } else if (targetApSSID.compareTo(ssid) == 0) {
-            stateMachine(Signal.DEVICE_WIFI_CONNECTED);
-        }
+    protected void onWifiConnected(final String ssid) {
+        uiThreadHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                String targetLocalSSID = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
+                String targetApSSID = pairActivityViewModel.getMerossPairingAp().getValue().getSsid() ;
+                if (targetLocalSSID.compareTo(ssid) == 0) {
+                    stateMachine(Signal.LOCAL_WIFI_CONNECTED);
+                } else if (targetApSSID.compareTo(ssid) == 0) {
+                    stateMachine(Signal.DEVICE_WIFI_CONNECTED);
+                }
+            }
+        }, WIFI_CONNECT_DELAY);
     }
 
     @Override
-    protected void onWifiUnavailable(String ssid, String bssid) {
+    protected void onWifiUnavailable(String ssid) {
         error = "Failed to connect to " + ssid;
         stateMachine(Signal.ERROR);
     }
 
     @Override
-    protected void onMissingWifiPermissions(String ssid, String bssid) {
+    protected void onMissingWifiPermissions(String ssid) {
         error = "You must provide Wifi and Location access to this app to complete the operation.";
         stateMachine(Signal.ERROR);
     }
 
     @Override
-    protected void onWifiPermissionsGranted(String ssid, String bssid) {
+    protected void onWifiPermissionsGranted(String ssid) {
         String pairingSsid = pairActivityViewModel.getMerossPairingAp().getValue().getSsid();
         String localSsid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
 

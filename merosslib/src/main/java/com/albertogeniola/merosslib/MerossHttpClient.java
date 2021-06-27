@@ -184,7 +184,7 @@ public class MerossHttpClient implements Serializable {
                 throw new HttpApiTokenException(responseData.getApiStatus());
             default:
                 l.severe("API Code was unknown. Passing CODE_ERROR_GENERIC to the handler.");
-                throw new HttpApiException(responseData.getApiStatus() == null ? ErrorCodes.CODE_ERROR_GENERIC : responseData.getApiStatus());
+                throw new HttpApiException(responseData.getApiStatus() == null ? ErrorCodes.CODE_GENERIC_ERROR : responseData.getApiStatus());
         }
     }
 

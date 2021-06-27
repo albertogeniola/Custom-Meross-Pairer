@@ -274,11 +274,6 @@ public class LoginFragment extends Fragment {
         @Override
         public void onServiceFound(NsdServiceInfo service) {
             Log.d(TAG, "Service discovery success" + service);
-            /*
-            if (mDiscoveryInProgress)
-                mNsdManager.stopServiceDiscovery(mDiscoveryListener);
-
-             */
             mNsdManager.resolveService(service, mResolveListener);
         }
 

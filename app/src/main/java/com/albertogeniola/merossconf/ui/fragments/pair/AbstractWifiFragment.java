@@ -59,18 +59,26 @@ public abstract class AbstractWifiFragment extends Fragment {
     // holds the timeout task
     private TimeoutTask mTimeoutTask;
 
-    // hold target wifi ssid/bssid
-    private String mTargetSsid, mTargetBssid;
+    // hold target wifi ssid
+    private String mTargetSsid;
 
     public AbstractWifiFragment() {
         mTimer = new Timer();
     }
+
+    // Holds the callback for network connectivity (only used for version > LOLLIPOP)
+    private ConnectivityManager.NetworkCallback mNetworkCallback;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mWifiManager = (WifiManager) requireContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         mConnectivityManager = (ConnectivityManager) requireContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        // Only init the network callback if we are going to use it
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            initNetworkCallBack();
+        }
 
         restoreState(savedInstanceState);
     }
@@ -103,7 +111,7 @@ public abstract class AbstractWifiFragment extends Fragment {
 
         // Whenever the application is paused, we want to deregister all listeners,
         // as the UI might not be available any longer
-        if (mNetworkCallbackRegistered)
+        if (mNetworkCallbackRegistered && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
             mConnectivityManager.unregisterNetworkCallback(mNetworkCallback);
         if (mBroadcastReceiverRegistered) {
             unRegisterWifiBroadcastReceiver();
@@ -115,7 +123,6 @@ public abstract class AbstractWifiFragment extends Fragment {
             mNetworkCallbackRegistered = savedState.getBoolean("mNetworkCallbackRegistered", false);
             mBroadcastReceiverRegistered = savedState.getBoolean("mBroadcastReceiverRegistered", false);
             mTargetSsid = savedState.getString("mTargetSsid", null);
-            mTargetBssid = savedState.getString("mTargetBssid", null);
             mWifiConnectionAttemptInProgress = savedState.getBoolean("mWifiConnectionAttemptInProgress", false);
         }
     }
@@ -126,7 +133,6 @@ public abstract class AbstractWifiFragment extends Fragment {
         outState.putBoolean("mNetworkCallbackRegistered", mNetworkCallbackRegistered);
         outState.putBoolean("mBroadcastReceiverRegistered", mBroadcastReceiverRegistered);
         outState.putString("mTargetSsid", mTargetSsid);
-        outState.putString("mTargetBssid", mTargetBssid);
         outState.putBoolean("mWifiConnectionAttemptInProgress", mWifiConnectionAttemptInProgress);
     }
 
@@ -138,7 +144,6 @@ public abstract class AbstractWifiFragment extends Fragment {
     /**
      * Starts the wifi connection to the specified ssid
      * @param targetSsid Target Wifi SSID to connect to
-     * @param targetBssid (Optional) Target Wifi Bssid to connect to
      * @param targetPassphrase (Optional) Wifi passphrase to use
      * @param reason A reason to show to the user that explains why Wifi is being requested.
      * @param timeout Number of milliseconds to wait before issuing a timeout to the wifi operation
@@ -147,7 +152,6 @@ public abstract class AbstractWifiFragment extends Fragment {
      *                                       is automatically requested by this method.
      */
     public void startWifiConnection(String targetSsid,
-                                    @Nullable String targetBssid,
                                     @Nullable String targetPassphrase,
                                     @Nullable String reason,
                                     int timeout) throws PermissionNotGrantedException {
@@ -180,21 +184,14 @@ public abstract class AbstractWifiFragment extends Fragment {
         // Enable Wifi
         mWifiManager.setWifiEnabled(true);
 
-        // Sanitize/make sure bssid is ok
-        String bssid = null;
-        if (targetBssid!=null) {
-            bssid = targetBssid.toLowerCase().trim().replace("-",":");
-        }
-
-        // Store ssid/bssid for callback later usage
+        // Store ssid for callback later usage
         mTargetSsid = targetSsid;
-        mTargetBssid = targetBssid;
 
         // Since Android Q, Android requires the developer to work with NetworkRequest API.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            startWifiConnectionLegacy(targetSsid, bssid, targetPassphrase, timeout);
+            startWifiConnectionLegacy(targetSsid, targetPassphrase, timeout);
         } else {
-            startWifiConnectionAndroidQ(targetSsid, bssid, targetPassphrase, timeout);
+            startWifiConnectionAndroidQ(targetSsid, targetPassphrase, timeout);
         }
     }
 
@@ -203,25 +200,20 @@ public abstract class AbstractWifiFragment extends Fragment {
      * To do so, it registers a broadcast receiver for the network connection events and
      * waits for the connection to attempt to the specified network.
      * @param ssid
-     * @param bssid
      * @param passphrase
      * @param timeout Timeout in milliseconds
      */
     @SuppressLint("MissingPermission") //This piece of code is called only after permissions have bee granted
-    private void startWifiConnectionLegacy(String ssid, @Nullable String bssid, @Nullable String passphrase, int timeout) {
-        // TODO: Verify that the following works
+    private void startWifiConnectionLegacy(String ssid, @Nullable String passphrase, int timeout) {
+
         WifiConfiguration targetWifiConf = null;
 
         // Locate the existing network configuration entry.
         for (android.net.wifi.WifiConfiguration conf : mWifiManager.getConfiguredNetworks()) {
-            // TODO: check if the store network ssid is quoted or not.
-            if (conf.SSID.compareTo(ssid) == 0) {
-                if (bssid != null && conf.BSSID.compareTo(bssid) != 0) {
-                    Log.i(TAG, "Network configuration ("+conf.networkId+") ignored: " + ssid + ", mismatching bssid (" + conf.BSSID + " - " + bssid + ").");
-                    continue;
-                }
+
+            if (conf.SSID.compareTo("\""+ssid+"\"") == 0) {
                 // Found a matching configuration: make sure the network passphrase is OK
-                if (conf.preSharedKey.length()>0 && Strings.isEmpty(passphrase) || conf.preSharedKey.length()==0 && !Strings.isEmpty(passphrase)) {
+                if (conf.preSharedKey != null && conf.preSharedKey.length()>0 && Strings.isEmpty(passphrase) || Strings.isEmpty(conf.preSharedKey) && !Strings.isEmpty(passphrase)) {
                     Log.i(TAG, "Network configuration ("+conf.networkId+") ignored: passphrase mismatch.");
                     continue;
                 }
@@ -232,17 +224,21 @@ public abstract class AbstractWifiFragment extends Fragment {
             }
         }
 
-        if (targetWifiConf == null) {
-            // TODO: test this
+        Integer networkId = null;
+        if (targetWifiConf == null || targetWifiConf.networkId == -1) {
             Log.i(TAG, "Adding new Wifi configuration for the desired network.");
             targetWifiConf = new android.net.wifi.WifiConfiguration();
-            targetWifiConf.SSID = ssid;
-            targetWifiConf.BSSID = bssid;
+            targetWifiConf.SSID = "\""+ssid+"\"";
 
             if (!Strings.isEmpty(passphrase)) {
                 targetWifiConf.preSharedKey = "\""+passphrase+"\"";
+                targetWifiConf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+            } else {
+                targetWifiConf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
             }
-            mWifiManager.addNetwork(targetWifiConf);
+            networkId = mWifiManager.addNetwork(targetWifiConf);
+        } else {
+            networkId = targetWifiConf.networkId;
         }
 
         // Disconnect from current network
@@ -253,18 +249,17 @@ public abstract class AbstractWifiFragment extends Fragment {
         mTimeoutTask = new TimeoutTask();
         mTimer.schedule(mTimeoutTask, timeout);
         // Register the broadcast receiver
-        registerWifiBroadcastReceiver(ssid, bssid);
+        registerWifiBroadcastReceiver(ssid);
 
         // Reconnect!
-        mWifiManager.enableNetwork(targetWifiConf.networkId, true);
+        mWifiManager.enableNetwork(networkId, true);
         mWifiManager.reconnect();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    private void startWifiConnectionAndroidQ(String ssid, @Nullable String bssid, @Nullable String passphrase, int timeout) {
+    private void startWifiConnectionAndroidQ(String ssid, @Nullable String passphrase, int timeout) {
         WifiNetworkSpecifier.Builder specifierBuilder = new WifiNetworkSpecifier.Builder()
-                .setSsid(ssid)
-                .setBssid(MacAddress.fromString(bssid));
+                .setSsid(ssid);
         if (passphrase != null)
             specifierBuilder.setWpa2Passphrase(passphrase);
 
@@ -281,12 +276,11 @@ public abstract class AbstractWifiFragment extends Fragment {
 
     /**
      * Registers a broadcast received that listens to WIFI_STATE changes. It also sets the value
-     * of the SSID and BSSID to configure the broadcast receiver to intercept the desired network
+     * of the SSID to configure the broadcast receiver to intercept the desired network
      * connection.
      * @param ssid SSID value that represet the network we are looking for
-     * @param bssid (Optional) BSSID value of the network we are looking for
      */
-    private void registerWifiBroadcastReceiver(String ssid, @Nullable String bssid) {
+    private void registerWifiBroadcastReceiver(String ssid) {
         if (!mBroadcastReceiverRegistered) {
             mBroadcastReceiverRegistered = true;
             IntentFilter intentFilter = new IntentFilter();
@@ -303,9 +297,9 @@ public abstract class AbstractWifiFragment extends Fragment {
     private void unRegisterWifiBroadcastReceiver() {
         if (mBroadcastReceiverRegistered) {
             requireActivity().unregisterReceiver(legacyWifiBroadcastReceiver);
-
-            mTargetBssid = null;
+            mBroadcastReceiverRegistered = false;
             mTargetSsid = null;
+
         } else {
             Log.e(TAG, "Broadcast receiver already unregistered");
         }
@@ -314,22 +308,22 @@ public abstract class AbstractWifiFragment extends Fragment {
     /**
      * Callback called whenever the connection to the given wifi succeeds.
      */
-    protected abstract void onWifiConnected(String ssid, String bssid);
+    protected abstract void onWifiConnected(String ssid);
 
     /**
      * Callback called whenever the connection to the given wifi fails.
      */
-    protected abstract void onWifiUnavailable(String ssid, String bssid);
+    protected abstract void onWifiUnavailable(String ssid);
 
     /**
      * Callback called when the user refuses to provide enough wifi permissions
      */
-    protected abstract void onMissingWifiPermissions(String ssid, String bssid);
+    protected abstract void onMissingWifiPermissions(String ssid);
 
     /**
      * Callback called when the user has granted necessary wifi permissions
      */
-    protected abstract void onWifiPermissionsGranted(String ssid, String bssid);
+    protected abstract void onWifiPermissionsGranted(String ssid);
 
     private void notifyWifiConnected() {
         mWifiConnectionAttemptInProgress = false;
@@ -337,7 +331,7 @@ public abstract class AbstractWifiFragment extends Fragment {
             mTimeoutTask.cancel();
             mTimeoutTask = null;
         }
-        onWifiConnected(mTargetSsid, mTargetBssid);
+        onWifiConnected(mTargetSsid);
     }
 
     private void notifyWifiUnavailable() {
@@ -346,7 +340,42 @@ public abstract class AbstractWifiFragment extends Fragment {
             mTimeoutTask.cancel();
             mTimeoutTask = null;
         }
-        onWifiUnavailable(mTargetSsid, mTargetBssid);
+        onWifiUnavailable(mTargetSsid);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private void initNetworkCallBack() {
+        mNetworkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onUnavailable() {
+                super.onUnavailable();
+                notifyWifiUnavailable();
+            }
+
+            @Override
+            public void onLost(@NonNull Network network) {
+                super.onLost(network);
+                // TODO
+                /*
+                mConnectivityManager.bindProcessToNetwork(null);
+                mConnectivityManager.unregisterNetworkCallback(this);
+                // Here you can have a fallback option to show a 'Please connect manually' page with an Intent to the Wifi settings
+                */
+            }
+
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                Log.i(TAG, "Found network " + network);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    // To make sure that requests don't go over mobile data
+                    mConnectivityManager.bindProcessToNetwork(network);
+                } else {
+                    ConnectivityManager.setProcessDefaultNetwork(network);
+                }
+                notifyWifiConnected();
+            }
+        };
     }
 
     private class TimeoutTask extends TimerTask {
@@ -389,14 +418,11 @@ public abstract class AbstractWifiFragment extends Fragment {
                 if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected()) {
                     Log.i(TAG, "WifiState updated. Current SSID: "+connectedSsid);
 
-                    // TODO: verify the comparision occurs as expected.
                     String quotedSsid = "\""+mTargetSsid+"\"";
                     if (quotedSsid.compareTo(connectedSsid) == 0) {
-                        if (!Strings.isEmpty(mTargetBssid) && !Strings.isEmpty(connectedBssid) && mTargetBssid.compareTo(connectedBssid)!=0)
-                            Log.w(TAG, "Connected to the desired SSID, but the BSSID mismatches. Ignoring this network.");
                         // Ok, we found the network we were looking for.
-                        unRegisterWifiBroadcastReceiver();
                         notifyWifiConnected();
+                        unRegisterWifiBroadcastReceiver();
                     }
                 }
             }
@@ -416,41 +442,9 @@ public abstract class AbstractWifiFragment extends Fragment {
             }
 
             if (!permsOk)
-                onMissingWifiPermissions(mTargetSsid, mTargetBssid);
+                onMissingWifiPermissions(mTargetSsid);
             else
-                onWifiPermissionsGranted(mTargetSsid, mTargetBssid);
+                onWifiPermissionsGranted(mTargetSsid);
         }
     }
-
-    private final ConnectivityManager.NetworkCallback mNetworkCallback = new ConnectivityManager.NetworkCallback() {
-        @Override
-        public void onUnavailable() {
-            super.onUnavailable();
-            notifyWifiUnavailable();
-        }
-
-        @Override
-        public void onLost(@NonNull Network network) {
-            super.onLost(network);
-            // TODO
-                /*
-                mConnectivityManager.bindProcessToNetwork(null);
-                mConnectivityManager.unregisterNetworkCallback(this);
-                // Here you can have a fallback option to show a 'Please connect manually' page with an Intent to the Wifi settings
-                */
-        }
-
-        @Override
-        public void onAvailable(@NonNull Network network) {
-            Log.i(TAG, "Found network " + network);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                // To make sure that requests don't go over mobile data
-                mConnectivityManager.bindProcessToNetwork(network);
-            } else {
-                ConnectivityManager.setProcessDefaultNetwork(network);
-            }
-            notifyWifiConnected();
-        }
-    };
 }

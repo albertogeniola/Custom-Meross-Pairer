@@ -2,6 +2,7 @@ package com.albertogeniola.merossconf;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -23,6 +24,7 @@ import static com.albertogeniola.merossconf.Constants.LOG_TAG;
 
 public class AndroidPreferencesManager {
     private static String PREFS_CONFS = "com.albertogeniola.merossconf.shared_preferences";
+    private static String PREFS_WIFI_CREDS = "com.albertogeniola.merossconf.shared_preferences.wifi_creds";
     private static String KEY_MQTT_CONF = "mqtt";
     private static String KEY_HTTP_CONF = "http";
     private static Gson g = Utils.getGson();
@@ -76,11 +78,21 @@ public class AndroidPreferencesManager {
 
     @Nullable
     public static String getWifiStoredPassword(@NonNull Context c, @NonNull String bssid) {
-        return SecurePreferences.getStringValue(bssid.trim().toLowerCase(), c, null);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            return SecurePreferences.getStringValue(bssid.trim().toLowerCase(), c, null);
+        } else {
+            return c.getSharedPreferences(PREFS_WIFI_CREDS, Context.MODE_PRIVATE).getString(bssid.trim().toLowerCase(), null);
+        }
     }
 
     public static void storeWifiStoredPassword(@NonNull Context c, @NonNull String bssid, @NonNull String password) {
-        SecurePreferences.setValue(bssid.trim().toLowerCase(), password, c);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            SecurePreferences.setValue(bssid.trim().toLowerCase(), password, c);
+        } else {
+            SharedPreferences.Editor e = c.getSharedPreferences(PREFS_WIFI_CREDS, Context.MODE_PRIVATE).edit();
+            e.putString(bssid.trim().toLowerCase(), password);
+            e.apply();
+        }
     }
 
     @Nullable

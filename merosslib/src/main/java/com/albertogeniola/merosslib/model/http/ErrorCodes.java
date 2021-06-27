@@ -40,7 +40,7 @@ public enum ErrorCodes {
     CODE_TOO_MANY_TOKENS(1301),
 
     @SerializedName("5000")
-    CODE_ERROR_GENERIC(5000);
+    CODE_GENERIC_ERROR(5000);
 
     private int value;
     ErrorCodes(int val) {

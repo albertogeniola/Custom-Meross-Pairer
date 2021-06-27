@@ -25,6 +25,10 @@ public class MessageSetConfigKey extends Message {
         msg.payload.key.gateway = new SetConfigKeyPayloadKeyGateway();
         msg.payload.key.gateway.host = hostname;
         msg.payload.key.gateway.port = ""+port;
+
+        // Both secondary as the primary
+        msg.payload.key.gateway.secondHost = hostname;
+        msg.payload.key.gateway.secondPort = ""+port;
         return msg;
     }
 
@@ -59,5 +63,11 @@ public class MessageSetConfigKey extends Message {
 
         @SerializedName("port")
         private String port;
+
+        @SerializedName("secondHost")
+        private String secondHost;
+
+        @SerializedName("secondPort")
+        private String secondPort;
     }
 }
