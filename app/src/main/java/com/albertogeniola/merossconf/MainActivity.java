@@ -183,18 +183,27 @@ public class MainActivity extends AppCompatActivity {
                 || super.onOptionsItemSelected(item);
     }
 
+
     private static final int TIME_INTERVAL = 2000; // # milliseconds, desired time passed between two back presses.
     private long mBackPressed;
-
     @Override
     public void onBackPressed() {
         FragmentManager fragmentManager = getSupportFragmentManager();
-        if (mBackPressed + TIME_INTERVAL > System.currentTimeMillis())
-        {
+        int backFrags = fragmentManager.findFragmentById(R.id.nav_host_fragment).getChildFragmentManager().getBackStackEntryCount();
+
+        // If there are more fragments, popback (default behaviour)
+        if (backFrags>0)
+            super.onBackPressed();
+
+        // otherwise ask for confirmation to exit
+        else if (mBackPressed + TIME_INTERVAL > System.currentTimeMillis()) {
             super.onBackPressed();
             return;
-        }else { Toast.makeText(getBaseContext(), "Tap back button in order to exit", Toast.LENGTH_SHORT).show(); }
+        } else {
+            Toast.makeText(getBaseContext(), "Tap back button in order to exit", Toast.LENGTH_SHORT).show();
+        }
 
         mBackPressed = System.currentTimeMillis();
     }
+
 }

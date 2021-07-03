@@ -127,7 +127,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
 
-                android:text="Login" />
+                android:text="Homeassistant Login" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/setManualButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+
+                android:text="Manual User/Key setup" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </LinearLayout>

@@ -26,6 +26,8 @@ import com.albertogeniola.merosslib.model.http.ErrorCodes;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiTokenException;
 
+import org.eclipse.paho.client.mqttv3.util.Strings;
+
 public class AccountFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -39,18 +41,46 @@ public class AccountFragment extends Fragment {
         final Button httpLogoutButton = root.findViewById(R.id.httpLogoutButton);
         final Button httpLoginButton = root.findViewById(R.id.httpLoginButton);
         final CardView loginCardView = root.findViewById(R.id.loginCard);
+        final Button manualSetupButton = root.findViewById(R.id.setManualButton);
 
         mainActivityViewModel.getCredentials().observe(getViewLifecycleOwner(), new Observer<ApiCredentials>() {
             @Override
             public void onChanged(ApiCredentials apiCredentials) {
-                httpUrlEditText.setText(apiCredentials == null ? "N/A" : apiCredentials.getApiServer());
-                userIdEditText.setText(apiCredentials == null ? "N/A" : apiCredentials.getUserId());
-                httpTokenEditText.setText(apiCredentials == null ? "N/A" : apiCredentials.getToken());
-                mqttKeyEditText.setText(apiCredentials == null ? "N/A" : apiCredentials.getKey());
+                if (apiCredentials == null || Strings.isEmpty(apiCredentials.getApiServer())) {
+                    httpUrlEditText.setText("Not set");
+                } else {
+                    httpUrlEditText.setText(apiCredentials.getApiServer());
+                }
+
+                if (apiCredentials == null || Strings.isEmpty(apiCredentials.getUserId())) {
+                    userIdEditText.setText("Not set");
+                } else {
+                    userIdEditText.setText(apiCredentials.getUserId());
+                }
+
+                if (apiCredentials == null || Strings.isEmpty(apiCredentials.getToken())) {
+                    httpTokenEditText.setText("Not set");
+                } else {
+                    httpTokenEditText.setText(apiCredentials.getToken());
+                }
+
+                if (apiCredentials == null || Strings.isEmpty(apiCredentials.getKey())) {
+                    mqttKeyEditText.setText("Not set (empty string)");
+                } else {
+                    mqttKeyEditText.setText(apiCredentials.getKey());
+                }
+
+                if (apiCredentials != null && apiCredentials.isManuallySet()) {
+                    httpLogoutButton.setText("Discard");
+                } else {
+                    httpLogoutButton.setText("Logout");
+                }
+
                 httpLogoutButton.setEnabled(apiCredentials != null);
                 httpInfoCard.setVisibility(apiCredentials == null ? View.GONE : View.VISIBLE);
                 loginCardView.setVisibility(apiCredentials == null ? View.VISIBLE : View.GONE);
                 httpLoginButton.setEnabled(apiCredentials == null);
+                manualSetupButton.setVisibility(apiCredentials == null ? View.VISIBLE : View.GONE);
             }
         });
 
@@ -61,10 +91,26 @@ public class AccountFragment extends Fragment {
             }
         });
 
+        manualSetupButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                NavHostFragment.findNavController(AccountFragment.this).navigate(R.id.manual_setup_fragment);
+            }
+        });
+
         httpLogoutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AlertDialog dialog = new AlertDialog.Builder(getActivity()).setMessage("Are you sure you want to discard current HTTP credentials?").setTitle("Confirm").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+
+                // If the stored credentials is just manual, simply discard it
+                if (mainActivityViewModel.getCredentials().getValue().isManuallySet()) {
+                    mainActivityViewModel.setCredentials(null);
+                    AndroidPreferencesManager.removeHttpCredentials(requireContext());
+                    return;
+                }
+
+                // If the stored credentials has been obtained by login, ask for confirmation first
+                AlertDialog dialog = new AlertDialog.Builder(requireActivity()).setMessage("Are you sure you want to discard current HTTP credentials?").setTitle("Confirm").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialog, int which) {
                         HttpClientManager.getInstance().asyncLogout(new HttpClientManager.Callback<Void>() {

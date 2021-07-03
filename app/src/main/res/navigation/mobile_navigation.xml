@@ -17,6 +17,14 @@
         <action
             android:id="@+id/action_account_fragment_to_pairActivity"
             app:destination="@id/pair_activity" />
+        <action
+            android:id="@+id/action_nav_home_to_manual_setup"
+            app:destination="@id/manual_setup_fragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@id/account_fragment"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out" />
     </fragment>
     <fragment
         android:id="@+id/login_fragment"
@@ -42,5 +50,10 @@
         android:name="com.albertogeniola.merossconf.MainActivity"
         android:label="app_bar_main"
         tools:layout="@layout/app_bar_main" />
+    <fragment
+        android:id="@+id/manual_setup_fragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.login.ManualSetupFragment"
+        android:label="fragment_manual_setup"
+        tools:layout="@layout/fragment_manual_setup" />
 
 </navigation>
