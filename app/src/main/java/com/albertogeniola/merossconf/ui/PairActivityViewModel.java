@@ -10,7 +10,6 @@ import com.albertogeniola.merossconf.model.WifiConfiguration;
 import com.albertogeniola.merossconf.model.WifiLocationStatus;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
-import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 
 public class PairActivityViewModel extends ViewModel {
     // Wrapper around the Meross AP

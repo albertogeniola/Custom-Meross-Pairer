@@ -55,6 +55,10 @@ public class TaskLine extends LinearLayout {
         setState(state);
     }
 
+    public TaskState getState() {
+        return this.state;
+    }
+
     public void setState(TaskState state) {
         this.state = state;
 

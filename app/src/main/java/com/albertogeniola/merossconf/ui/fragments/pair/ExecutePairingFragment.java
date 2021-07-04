@@ -1,22 +1,5 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
-import android.Manifest;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.MacAddress;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkInfo;
-import android.net.NetworkRequest;
-import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.net.wifi.WifiNetworkSpecifier;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -24,13 +7,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -51,7 +31,6 @@ import com.albertogeniola.merosslib.model.http.DeviceInfo;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 
 import java.io.IOException;
-import java.security.MessageDigest;
 import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -59,8 +38,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.SocketFactory;
 
 
 public class ExecutePairingFragment extends AbstractWifiFragment {
@@ -71,7 +48,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
 
     private PairActivityViewModel pairActivityViewModel;
     private TextView errorDetailsTextView;
-    private TaskLine connectWifiTaskLine, sendPairCommandTaskLine, connectLocalWifiTaskLine, testMqttBrokerTaskLine, currentTask;
+    private TaskLine connectWifiTaskLine, sendPairCommandTaskLine, connectLocalWifiTaskLine, checkOnlineTaskLine, currentTask;
     private Handler uiThreadHandler;
 
     private State state = State.INIT;
@@ -102,13 +79,20 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                 if (signal == Signal.DEVICE_WIFI_CONNECTED) {configureDevice(mCreds.getUserId(), mCreds.getKey());}
                 break;
             case SENDING_PAIRING_COMMAND:
-                if (signal == Signal.DEVICE_CONFIGURED) {connectToLocalWifi();}
+                if (signal == Signal.DEVICE_CONFIGURED) {
+                    // Skip connection polling if the device has been manually configured
+                    ApiCredentials creds = AndroidPreferencesManager.loadHttpCredentials(requireContext());
+                    if (creds == null || creds.isManuallySet())
+                        completeActivityFragment(false);
+                    else
+                        connectToLocalWifi();
+                }
                 break;
             case CONNETING_LOCAL_WIFI:
                 if (signal == Signal.LOCAL_WIFI_CONNECTED) { pollDeviceList(); }
                 break;
             case VERIFYING_PAIRING_SUCCEEDED:
-                if (signal == Signal.DEVICE_PAIRED) {completeActivityFragment();}
+                if (signal == Signal.DEVICE_PAIRED) {completeActivityFragment(true);}
                 break;
         }
 
@@ -270,10 +254,24 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         },3, TimeUnit.SECONDS);
     }
 
-    private void completeActivityFragment() {
-        state = State.DONE;
-        NavController ctrl = NavHostFragment.findNavController(this);
-        ctrl.navigate(R.id.action_executePair_to_pairCompleted,null, new NavOptions.Builder().setEnterAnim(android.R.animator.fade_in).setExitAnim(android.R.animator.fade_out).build());
+    private void completeActivityFragment(final boolean verified) {
+        Runnable uiUpdater = new Runnable() {
+            @Override
+            public void run() {
+                state = State.DONE;
+                updateUi();
+                NavController ctrl = NavHostFragment.findNavController(ExecutePairingFragment.this);
+                Bundle args = new Bundle();
+                args.putBoolean("verified", verified);
+                ctrl.navigate(R.id.action_executePair_to_pairCompleted, args, new NavOptions.Builder().setEnterAnim(android.R.animator.fade_in).setExitAnim(android.R.animator.fade_out).build());
+            }
+        };
+
+        if (Looper.getMainLooper().getThread().getId() != Thread.currentThread().getId()) {
+            uiThreadHandler.post(uiUpdater);
+        } else {
+            uiUpdater.run();
+        }
     }
 
     // UI
@@ -288,7 +286,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                         connectWifiTaskLine.setState(TaskLine.TaskState.not_started);
                         sendPairCommandTaskLine.setState(TaskLine.TaskState.not_started);
                         connectLocalWifiTaskLine.setState(TaskLine.TaskState.not_started);
-                        testMqttBrokerTaskLine.setState(TaskLine.TaskState.not_started);
+                        checkOnlineTaskLine.setState(TaskLine.TaskState.not_started);
                         currentTask = null;
                         break;
                     case CONNECTING_DEVICE_WIFI_AP:
@@ -311,12 +309,16 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                     case VERIFYING_PAIRING_SUCCEEDED:
                         errorDetailsTextView.setVisibility(View.GONE);
                         connectLocalWifiTaskLine.setState(TaskLine.TaskState.completed);
-                        testMqttBrokerTaskLine.setState(TaskLine.TaskState.running);
-                        currentTask = testMqttBrokerTaskLine;
+                        checkOnlineTaskLine.setState(TaskLine.TaskState.running);
+                        currentTask = checkOnlineTaskLine;
                         break;
                     case DONE:
+                        if (connectLocalWifiTaskLine.getState() == TaskLine.TaskState.not_started)
+                            connectLocalWifiTaskLine.setState(TaskLine.TaskState.skipped);
+                        if (checkOnlineTaskLine.getState() == TaskLine.TaskState.not_started)
+                            checkOnlineTaskLine.setState(TaskLine.TaskState.skipped);
                         errorDetailsTextView.setVisibility(View.GONE);
-                        testMqttBrokerTaskLine.setState(TaskLine.TaskState.completed);
+                        checkOnlineTaskLine.setState(TaskLine.TaskState.completed);
                         currentTask = null;
                         break;
                     case ERROR:
@@ -399,7 +401,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         connectWifiTaskLine = view.findViewById(R.id.connectApWifiTaskLine);
         sendPairCommandTaskLine = view.findViewById(R.id.sendPairCommandTaskLine);
         connectLocalWifiTaskLine = view.findViewById(R.id.connectToBrokerWifi);
-        testMqttBrokerTaskLine  = view.findViewById(R.id.connectToMqttBrokerTaskLike);
+        checkOnlineTaskLine = view.findViewById(R.id.connectToMqttBrokerTaskLike);
         errorDetailsTextView = view.findViewById(R.id.errorDetailTextView);
 
         //requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

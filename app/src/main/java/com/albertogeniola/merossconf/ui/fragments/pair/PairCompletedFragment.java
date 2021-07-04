@@ -6,6 +6,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,9 +25,12 @@ import cdflynn.android.library.checkview.CheckView;
 
 public class PairCompletedFragment extends Fragment {
     private CheckView mCheckView;
+    private TextView mTextView;
+    private ImageView mQuestionMarkView;
     private Timer mTimer;
     private Handler mHandler;
     private Button pairDoneButton;
+    private boolean mVerified;
 
     public PairCompletedFragment() {
         mHandler = new Handler();
@@ -35,6 +40,7 @@ public class PairCompletedFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mVerified = getArguments().getBoolean("verified", false);
     }
 
     @Override
@@ -47,6 +53,8 @@ public class PairCompletedFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        mTextView = view.findViewById(R.id.pairing_completed_text_view);
+        mQuestionMarkView = view.findViewById(R.id.questionMarkIcon);
         pairDoneButton = view.findViewById(R.id.pairDoneButton);
         pairDoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -58,16 +66,22 @@ public class PairCompletedFragment extends Fragment {
         });
 
         mCheckView = view.findViewById(R.id.pairDoneCheckView);
-        mTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mCheckView.check();
-                    }
-                });
-            }
-        }, 1000);
+        mCheckView.setVisibility(mVerified ? View.VISIBLE:View.GONE);
+        mQuestionMarkView.setVisibility(!mVerified ? View.VISIBLE:View.GONE);
+        mTextView.setText(mVerified ? R.string.pairing_done_verified : R.string.pairing_done_unverified);
+
+        if (mVerified) {
+            mTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mCheckView.check();
+                        }
+                    });
+                }
+            }, 1000);
+        }
     }
 }

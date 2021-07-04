@@ -71,8 +71,16 @@ public class MainActivity extends AppCompatActivity {
         mainActivityViewModel.getCredentials().observe(this, new Observer<ApiCredentials>() {
             @Override
             public void onChanged(ApiCredentials apiCredentials) {
-                loggedUserTextView.setText(apiCredentials==null?"User: not logged":apiCredentials.getUserEmail());
-                httpEndpointTextView.setText(apiCredentials==null?"Server: not logged":apiCredentials.getApiServer());
+                if (apiCredentials==null) {
+                    loggedUserTextView.setText("User: not logged");
+                    httpEndpointTextView.setText("API Server: not specified");
+                } else if (apiCredentials.isManuallySet()) {
+                    loggedUserTextView.setText("UserId: " + apiCredentials.getUserId() + " (manual)");
+                    httpEndpointTextView.setText("API Server: not specified");
+                } else {
+                    loggedUserTextView.setText(apiCredentials.getUserEmail());
+                    httpEndpointTextView.setText(apiCredentials.getApiServer());
+                }
             }
         });
 

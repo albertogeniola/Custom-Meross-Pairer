@@ -35,7 +35,8 @@
     <string name="configuring_wifi">Configuring WiFi...</string>
     <string name="pair_fragment_text">"Please be patient while the app connects to the Meross Device. "</string>
     <string name="paring_done_title">PAIRING COMPLETED!</string>
-    <string name="pairing_done_text">The device should now reboot itself and connect to the specific Wifi/MQTT broker. \n\nWhen the connection succeeds, the device LED will turn solid green. That means the device has paired successfully.</string>
+    <string name="pairing_done_unverified">The device should now reboot itself and connect to the specific Wifi/MQTT broker. \n\nWhen the connection succeeds, the device LED will turn solid green. That means the device has paired successfully. If that does not happen, then you need to start over again and double check Wifi configuration, MQTT configuration and Credentials configuration.</string>
+    <string name="pairing_done_verified">Congratulations! The pairing process completed successfully and the HTTP API reported the device online. You should be ready to go.</string>
     <string name="scan_fragment_text2">Put your Meross device in Pairing mode and then tap on the update button.\n\nBe sure to enable both Wifi and Location (GPS) access on your device. Some devices also require to turn off HotSpot in case it\'s active.</string>
     <string name="fargment_wifi_title">Wifi Connection</string>
     <string name="fargment_wifi_text">Please select the WiFi AP where the Meross device should connect to.</string>
