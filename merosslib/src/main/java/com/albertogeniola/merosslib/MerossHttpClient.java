@@ -9,7 +9,6 @@ import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiInvalidCredentialsException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiTokenException;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
@@ -28,17 +27,14 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import jdk.nashorn.internal.parser.TokenType;
-import lombok.NonNull;
-import lombok.SneakyThrows;
-
 import java.util.logging.Logger;
 
 import javax.net.SocketFactory;
+
+import lombok.NonNull;
+import lombok.SneakyThrows;
 
 
 public class MerossHttpClient implements Serializable {

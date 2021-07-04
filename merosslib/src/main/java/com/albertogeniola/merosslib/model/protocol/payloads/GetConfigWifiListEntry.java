@@ -9,7 +9,6 @@ import org.apache.commons.codec.binary.Base64;
 import java.io.UnsupportedEncodingException;
 
 import lombok.Getter;
-import lombok.Setter;
 
 @Getter
 public class GetConfigWifiListEntry {

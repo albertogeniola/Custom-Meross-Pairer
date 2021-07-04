@@ -16,10 +16,13 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.SocketFactory;
+
 import lombok.Getter;
 
 
