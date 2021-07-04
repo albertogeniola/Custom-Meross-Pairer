@@ -9,8 +9,8 @@ android {
         applicationId "com.albertogeniola.merossconf"
         minSdkVersion 16
         targetSdkVersion 30
-        versionCode 4
-        versionName "0.0.1-alpha3"
+        versionCode 5
+        versionName "0.0.1-alpha4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
