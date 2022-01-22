@@ -31,6 +31,7 @@ import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
+import com.albertogeniola.merossconf.Constants;
 import com.albertogeniola.merossconf.MerossUtils;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.WifiConfiguration;
@@ -198,10 +199,10 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
             mNsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, mDiscoveryListener);
         }
 
-        // Start a timer for aborting discovery after 10 seconds if nothing is found.
+        // Start a timer for aborting discovery after some time  if nothing is found.
         if (mTimer == null) {
             mTimer = new Timer();
-            mTimer.schedule(new ConfigureWifiFragment.TimeoutTask(), 5000);
+            mTimer.schedule(new ConfigureWifiFragment.TimeoutTask(), Constants.MDNS_DISCOVERY_TIMEOUT_MILLISEOONDS);
         }
     }
 
@@ -307,8 +308,10 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
         }
 
         // Cancel the timeout task
-        if (mTimer!=null)
+        if (mTimer!=null) {
             mTimer.cancel();
+            mTimer = null;
+        }
 
         Runnable r = new Runnable() {
             @Override
@@ -457,7 +460,6 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     private class TimeoutTask extends TimerTask {
         @Override
         public void run() {
-            mTimer = null;
             if (mDiscoveryInProgress)
                 mNsdManager.stopServiceDiscovery(mDiscoveryListener);
 

@@ -9,8 +9,5 @@
         <attr name="metaButtonBarButtonStyle" format="reference" />
     </declare-styleable>
 
-    <style name="test">
-
-    </style>
 
 </resources>

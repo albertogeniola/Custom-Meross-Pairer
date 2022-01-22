@@ -86,6 +86,11 @@ public abstract class AbstractWifiFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
 
         // Unschedule the timeout task, if any
         if (mTimeoutTask!=null) {
@@ -107,7 +112,6 @@ public abstract class AbstractWifiFragment extends Fragment {
         if (mNetworkCallbackRegistered && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
             mConnectivityManager.unregisterNetworkCallback(mNetworkCallback);
     }
-
 
     @Override
     public void onPause() {

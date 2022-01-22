@@ -19,12 +19,12 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- android:theme="@style/AppTheme.NoActionBar" -->
+
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
             android:label="@string/title_activity_main"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
+            android:theme="@style/AppTheme"
         />
         <activity
             android:name=".PairActivity"

@@ -28,6 +28,20 @@
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/textView21"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:text="@string/account_activity_logged_info" />
+
+            <ImageView
+                android:id="@+id/loggedInAccountLogo"
+                android:layout_width="match_parent"
+                android:layout_height="121dp"
+                android:layout_margin="5dp"
+                android:src="@drawable/question_mark" />
+
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textField"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -92,7 +106,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:editable="false"
-                    android:text="N/A" />
+                    android:text="N/A"
+                    android:textIsSelectable="true" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.button.MaterialButton

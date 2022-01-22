@@ -25,12 +25,6 @@
     <string name="pairing_done_icon_description">Pairing completed icon</string>
     <string name="fragment_info_text">"The discovery processs has queried the device and obtained the following information. "</string>
     <string name="pair_btn">Pair!</string>
-    <string name="mqtt_config_fragment_text">Meross plugs are only capable to connect to MQTT over TLS connections (default port 8883). Using a clear-mqtt connection won\'t work.</string>
-    <string name="mqtt_fragment_title">MQTT Server</string>
-    <string name="mqtt_conf_name">Configuration Name...</string>
-    <string name="mqtt_host_name">Server hostname or IP...</string>
-    <string name="mqtt_port">Server Port</string>
-    <string name="save_checkbox">Save for future use</string>
     <string name="configuring_mqtt">Configuring MQTT info...</string>
     <string name="configuring_wifi">Configuring WiFi...</string>
     <string name="pair_fragment_text">"Please be patient while the app connects to the Meross Device. "</string>
@@ -61,7 +55,7 @@
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
 
-    <string name="menu_account">Account</string>
+    <string name="menu_account">Account &amp; Login</string>
     <string name="menu_pair">Pair</string>
     <string name="menu_devices">Devices (coming soon!)</string>
     <string name="drawer_open">DRAWER OPEN</string>
@@ -71,6 +65,17 @@
     <string name="login_intro_text">Log-in to the HTTP API broker.</string>
     <string name="login_intro_text_meross">Fill in your credentials as you would do in the Official Meross app to proceed.</string>
     <string name="login_intro_ha_broker">Make sure the Meross Local Broker (on HomeAssistant) Addon is started and log-in using the credentials configured in the configuration section of that Addon.</string>
+
+    <string name="mqtt_config_fragment_text">Meross plugs are only capable to connect to MQTT over TLS connections (default port 8883). Using a clear-mqtt connection won\'t work.</string>
+    <string name="mqtt_fragment_title">MQTT Server</string>
+    <string name="mqtt_conf_name">Configuration Name...</string>
+    <string name="mqtt_host_name">Server hostname or IP...</string>
+    <string name="mqtt_port">Server Port</string>
+    <string name="save_checkbox">Save for future use</string>
+    <string name="mqtt_key_override_message">Override USER-ID/KEY parameters.</string>
+    <string name="mqtt_custom_user_id">Custom User-Id</string>
+    <string name="mqtt_custom_key">Custom key</string>
+    <string name="account_activity_logged_info">Your account data is represented as follows.</string>
 
     <string name="user_key">User Key</string>
     <!-- TODO: Remove or change this placeholder text -->

@@ -23,6 +23,8 @@ import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.MqttConfiguration;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
+import com.albertogeniola.merosslib.model.http.ApiCredentials;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.List;
@@ -35,6 +37,9 @@ public class ConfigureMqttFragment extends Fragment {
     private TextInputLayout mqttPortEditText;
     private Spinner mqttConfigurationSpinner;
     private CheckBox saveCheckbox;
+    private CheckBox overrideMqttParamsCheckbox;
+    private TextInputLayout customMqttUserId;
+    private TextInputLayout customMqttKey;
     private MqttConfiguration mDiscoveredConfig;
     private ArrayAdapter<MqttConfiguration> adapter;
     private MqttConfiguration newMqttConfig = new MqttConfiguration("Add new...", null, -1);
@@ -81,6 +86,12 @@ public class ConfigureMqttFragment extends Fragment {
         mqttPortEditText = view.findViewById(R.id.mqttPortEditText);
         Button pairButton = view.findViewById(R.id.pairButton);
         saveCheckbox = view.findViewById(R.id.saveCheckbox);
+        customMqttUserId = view.findViewById(R.id.customMqttUserId);
+        customMqttKey = view.findViewById(R.id.customMqttKey);
+        overrideMqttParamsCheckbox = view.findViewById(R.id.overrideMqttParams);
+
+        customMqttKey.setVisibility(View.GONE);
+        customMqttUserId.setVisibility(View.GONE);
 
         List<MqttConfiguration> configurations = AndroidPreferencesManager.loadAllMqttConfigurations(requireContext());
         configurations.add(this.newMqttConfig);
@@ -92,6 +103,13 @@ public class ConfigureMqttFragment extends Fragment {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 mqttConfigurationNameEditText.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            }
+        });
+        overrideMqttParamsCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                customMqttUserId.setVisibility(isChecked ? View.VISIBLE:View.GONE);
+                customMqttKey.setVisibility(isChecked ? View.VISIBLE:View.GONE);
             }
         });
         mqttConfigurationSpinner.setAdapter(adapter);
@@ -185,6 +203,14 @@ public class ConfigureMqttFragment extends Fragment {
                 } else {
                     MqttConfiguration tmp = (MqttConfiguration) mqttConfigurationSpinner.getSelectedItem();
                     pairActivityViewModel.setTargetMqttConfig(tmp);
+                }
+
+                if (overrideMqttParamsCheckbox.isChecked()) {
+                    pairActivityViewModel.setOverrideKey(customMqttKey.getEditText().toString());
+                    pairActivityViewModel.setOverrideUserId(customMqttUserId.getEditText().toString());
+                } else {
+                    pairActivityViewModel.setOverrideKey(null);
+                    pairActivityViewModel.setOverrideUserId(null);
                 }
 
                 NavController ctrl = NavHostFragment.findNavController(ConfigureMqttFragment.this);

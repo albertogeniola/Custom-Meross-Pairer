@@ -18,6 +18,7 @@ import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
+import com.albertogeniola.merossconf.Constants;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.MqttConfiguration;
 import com.albertogeniola.merossconf.model.exception.PermissionNotGrantedException;
@@ -76,7 +77,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                 if (signal == Signal.RESUMED) {connectToDeviceWifiAp();}
                 break;
             case CONNECTING_DEVICE_WIFI_AP:
-                if (signal == Signal.DEVICE_WIFI_CONNECTED) {configureDevice(mCreds.getUserId(), mCreds.getKey());}
+                if (signal == Signal.DEVICE_WIFI_CONNECTED) {configureDevice();}
                 break;
             case SENDING_PAIRING_COMMAND:
                 if (signal == Signal.DEVICE_CONFIGURED) {
@@ -93,6 +94,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                 break;
             case VERIFYING_PAIRING_SUCCEEDED:
                 if (signal == Signal.DEVICE_PAIRED) {completeActivityFragment(true);}
+                if (signal == Signal.MISSING_CONFIRMATION) {completeActivityFragment(false);}
                 break;
         }
 
@@ -142,7 +144,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
     private void pollDeviceList() {
         state = State.VERIFYING_PAIRING_SUCCEEDED;
 
-        final long timeout = GregorianCalendar.getInstance().getTimeInMillis() + 60000; // 30 seconds timeout
+        final long timeout = GregorianCalendar.getInstance().getTimeInMillis() + Constants.PAIRING_VERIFY_TIMEOUT_MILLISECONDS;
         ScheduledFuture<?> future = worker.schedule(new Runnable() {
             private @Nullable DeviceInfo findDevice(Collection<DeviceInfo> devices, String deviceUuid) {
                 for (DeviceInfo d : devices) {
@@ -184,6 +186,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                         Log.e(TAG, "An unexpected exception occurred", e);
                     } finally {
                         timedOut = GregorianCalendar.getInstance().getTimeInMillis() >= timeout;
+                        error = "Timeout: waiting for confirmation from remote broker.";
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException e) {
@@ -195,13 +198,15 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                     }
                 }
 
-
                 final boolean finalSucceeed = succeeed;
+                final boolean finalTimedOut = timedOut;
                 uiThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         if (finalSucceeed)
                             stateMachine(Signal.DEVICE_PAIRED);
+                        else if (finalTimedOut)
+                            stateMachine(Signal.MISSING_CONFIRMATION);
                         else
                             stateMachine(Signal.ERROR);
                     }
@@ -210,8 +215,11 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         }, 2, TimeUnit.SECONDS);
     }
 
-    private void configureDevice(final String userId, final String key) {
+    private void configureDevice() {
         state = State.SENDING_PAIRING_COMMAND;
+        // In custom credentials has been specified, override userId/key
+        final String userId = pairActivityViewModel.getOverridedUserId().getValue() != null ? pairActivityViewModel.getOverridedUserId().getValue() : mCreds.getUserId();
+        final String key = pairActivityViewModel.getOverridedKey().getValue() != null ? pairActivityViewModel.getOverridedKey().getValue() : mCreds.getKey();
 
         worker.schedule(new Runnable() {
             @Override
@@ -438,6 +446,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         DEVICE_CONFIGURED,
         LOCAL_WIFI_CONNECTED,
         DEVICE_PAIRED,
+        MISSING_CONFIRMATION,
         ERROR
     }
 }

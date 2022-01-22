@@ -8,6 +8,7 @@ import com.albertogeniola.merossconf.model.MqttConfiguration;
 import com.albertogeniola.merossconf.model.MerossDeviceAp;
 import com.albertogeniola.merossconf.model.WifiConfiguration;
 import com.albertogeniola.merossconf.model.WifiLocationStatus;
+import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.albertogeniola.merosslib.model.protocol.MessageGetConfigWifiListResponse;
 import com.albertogeniola.merosslib.model.protocol.MessageGetSystemAllResponse;
 
@@ -20,6 +21,8 @@ public class PairActivityViewModel extends ViewModel {
     private MutableLiveData<MqttConfiguration> targetMqttConfig;
     private MutableLiveData<MessageGetSystemAllResponse> deviceInfo;
     private MutableLiveData<WifiLocationStatus> wifiLocationStatus;
+    private MutableLiveData<String> overridedKey;
+    private MutableLiveData<String> overridedUserId;
 
 
     public PairActivityViewModel() {
@@ -30,6 +33,8 @@ public class PairActivityViewModel extends ViewModel {
         deviceInfo = new MutableLiveData<>(null);
         deviceAvailableWifis = new MutableLiveData<>(null);
         wifiLocationStatus = new MutableLiveData<>(null);
+        overridedKey = new MutableLiveData<>(null);
+        overridedUserId = new MutableLiveData<>(null);
     }
 
     public LiveData<com.albertogeniola.merosslib.MerossDeviceAp> getDevice() {
@@ -79,5 +84,19 @@ public class PairActivityViewModel extends ViewModel {
     }
     public void setWifiLocationStatus(WifiLocationStatus status) {
         this.wifiLocationStatus.setValue(status);
+    }
+
+    public LiveData<String> getOverridedUserId() {
+        return this.overridedUserId;
+    }
+    public void setOverrideUserId(String overrideUserId) {
+        this.overridedUserId.setValue(overrideUserId);
+    }
+
+    public LiveData<String> getOverridedKey() {
+        return this.overridedKey;
+    }
+    public void setOverrideKey(String overrideKey) {
+        this.overridedKey.setValue(overrideKey);
     }
 }

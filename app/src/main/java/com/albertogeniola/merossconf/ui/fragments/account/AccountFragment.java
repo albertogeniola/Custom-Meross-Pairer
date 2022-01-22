@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,10 +45,17 @@ public class AccountFragment extends Fragment {
         final Button merossCloudLoginButton = root.findViewById(R.id.merossCloudLoginButton);
         final CardView loginCardView = root.findViewById(R.id.loginCard);
         final Button manualSetupButton = root.findViewById(R.id.setManualButton);
+        final ImageView loggedInAccountLogoImageView = root.findViewById(R.id.loggedInAccountLogo);
 
         mainActivityViewModel.getCredentials().observe(getViewLifecycleOwner(), new Observer<ApiCredentials>() {
             @Override
             public void onChanged(ApiCredentials apiCredentials) {
+                if (apiCredentials == null || apiCredentials.getApiServer().compareTo(Constants.MEROSS_CLOUD_EP)==0) {
+                    loggedInAccountLogoImageView.setImageResource(R.drawable.meross_logo);
+                } else {
+                    loggedInAccountLogoImageView.setImageResource(R.drawable.ha_logo);
+                }
+
                 if (apiCredentials == null || Strings.isEmpty(apiCredentials.getApiServer())) {
                     httpUrlEditText.setText("Not set");
                 } else {
