@@ -53,7 +53,7 @@
     <fragment
         android:id="@+id/manual_setup_fragment"
         android:name="com.albertogeniola.merossconf.ui.fragments.login.ManualSetupFragment"
-        android:label="fragment_manual_setup"
+        android:label="@string/title_manual_setup"
         tools:layout="@layout/fragment_manual_setup" />
 
 </navigation>

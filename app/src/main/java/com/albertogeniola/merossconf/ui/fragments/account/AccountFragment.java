@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -18,13 +19,13 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
+import com.albertogeniola.merossconf.Constants;
+import com.albertogeniola.merossconf.MainActivity;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
+import com.albertogeniola.merossconf.ui.fragments.login.LoginFragment;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
-import com.albertogeniola.merosslib.model.http.ErrorCodes;
-import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
-import com.albertogeniola.merosslib.model.http.exceptions.HttpApiTokenException;
 
 import org.eclipse.paho.client.mqttv3.util.Strings;
 
@@ -39,7 +40,8 @@ public class AccountFragment extends Fragment {
         final EditText httpTokenEditText = root.findViewById(R.id.httpTokenEditText);
         final EditText mqttKeyEditText = root.findViewById(R.id.mqttKeyEditText);
         final Button httpLogoutButton = root.findViewById(R.id.httpLogoutButton);
-        final Button httpLoginButton = root.findViewById(R.id.httpLoginButton);
+        final Button haBrokerLoginButton = root.findViewById(R.id.haBrokerLoginButton);
+        final Button merossCloudLoginButton = root.findViewById(R.id.merossCloudLoginButton);
         final CardView loginCardView = root.findViewById(R.id.loginCard);
         final Button manualSetupButton = root.findViewById(R.id.setManualButton);
 
@@ -79,15 +81,35 @@ public class AccountFragment extends Fragment {
                 httpLogoutButton.setEnabled(apiCredentials != null);
                 httpInfoCard.setVisibility(apiCredentials == null ? View.GONE : View.VISIBLE);
                 loginCardView.setVisibility(apiCredentials == null ? View.VISIBLE : View.GONE);
-                httpLoginButton.setEnabled(apiCredentials == null);
+                haBrokerLoginButton.setEnabled(apiCredentials == null);
+                merossCloudLoginButton.setEnabled(apiCredentials == null);
                 manualSetupButton.setVisibility(apiCredentials == null ? View.VISIBLE : View.GONE);
             }
         });
 
-        httpLoginButton.setOnClickListener(new View.OnClickListener() {
+        haBrokerLoginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                NavHostFragment.findNavController(AccountFragment.this).navigate(R.id.login_fragment);
+                Bundle args = new Bundle();
+                args.putBoolean(LoginFragment.Args.ENABLE_BROKER_DISCOVERY, true);
+                args.putString(LoginFragment.Args.HTTP_BROKER_EMAIL, Constants.HA_ADDON_DEFAULT_EMAIL);
+                args.putString(LoginFragment.Args.HTTP_BROKER_PASSWORD, Constants.HA_ADDON_DEFAULT_PASSWORD);
+                args.putInt(LoginFragment.Args.INTRO_TEXT_RESOURCE_ID, R.string.login_intro_ha_broker);
+                args.putInt(LoginFragment.Args.INTRO_IMAGE_RESOURCE_ID, R.drawable.ha_logo);
+                args.putBoolean(LoginFragment.Args.REQUIRES_WIFI_LOCATION, true);
+                NavHostFragment.findNavController(AccountFragment.this).navigate(R.id.login_fragment, args);
+            }
+        });
+        merossCloudLoginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Bundle args = new Bundle();
+                args.putBoolean(LoginFragment.Args.ENABLE_BROKER_DISCOVERY, false);
+                args.putString(LoginFragment.Args.HTTP_BROKER_URL, Constants.MEROSS_CLOUD_EP);
+                args.putInt(LoginFragment.Args.INTRO_TEXT_RESOURCE_ID, R.string.login_intro_text_meross);
+                args.putInt(LoginFragment.Args.INTRO_IMAGE_RESOURCE_ID, R.drawable.meross_logo);
+                args.putBoolean(LoginFragment.Args.REQUIRES_WIFI_LOCATION, false);
+                NavHostFragment.findNavController(AccountFragment.this).navigate(R.id.login_fragment, args);
             }
         });
 
@@ -141,6 +163,12 @@ public class AccountFragment extends Fragment {
         });
 
         return root;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        ((MainActivity)requireActivity()).setWifiLocationWarnRequired(false);
     }
 
 }

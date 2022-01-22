@@ -15,10 +15,11 @@
         android:layout_margin="10dp">
 
         <LinearLayout
-            android:layout_margin="10sp"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_margin="10sp"
             android:orientation="vertical">
+
             <TextView
                 android:id="@+id/networkCardTitle"
                 android:layout_width="wrap_content"
@@ -29,65 +30,69 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textField"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="API Endpoint"
                 android:layout_marginTop="4sp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                android:hint="API Endpoint">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/httpUrlEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textIsSelectable="true"
                     android:editable="false"
-                    android:text="N/A"/>
+                    android:text="N/A"
+                    android:textIsSelectable="true" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textField2"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="User ID"
                 android:layout_marginTop="4sp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                android:hint="User ID">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/userIdEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textIsSelectable="true"
                     android:editable="false"
-                    android:text="N/A"/>
+                    android:text="N/A"
+                    android:textIsSelectable="true" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textField3"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="HTTP Token"
                 android:layout_marginTop="4sp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                android:hint="HTTP Token">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/httpTokenEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textIsSelectable="true"
                     android:editable="false"
-                    android:text="N/A"/>
+                    android:text="N/A"
+                    android:textIsSelectable="true" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/textField4"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="MQTT Key"
                 android:layout_marginTop="4sp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                android:hint="MQTT Key">
+
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/mqttKeyEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:editable="false"
-                    android:text="N/A"/>
+                    android:text="N/A" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.button.MaterialButton
@@ -104,30 +109,34 @@
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         tools:layout_editor_absoluteX="10dp">
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_margin="10sp"
             android:orientation="vertical">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Please acquire an HTTP Token from the HTTP broker to start pairing devices. " />
 
             <ImageView
-                android:layout_margin="5dp"
-                android:layout_gravity="center_horizontal"
                 android:id="@+id/imageView4"
                 android:layout_width="203dp"
                 android:layout_height="145dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_margin="5dp"
                 android:src="@drawable/login_icon" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/httpLoginButton"
+                android:id="@+id/haBrokerLoginButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Login to (HA) Meross Local Addon" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/merossCloudLoginButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
 
-                android:text="Homeassistant Login" />
+                android:text="Login to Official Meross Broker" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/setManualButton"
@@ -136,6 +145,7 @@
                 android:layout_height="wrap_content"
 
                 android:text="Manual User/Key setup" />
+
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </LinearLayout>

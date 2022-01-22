@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -42,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView wifiMerossWarning;
     private TextView locationTextView;
     private LinearLayout wifiLocationStatusLayout;
-
+    private boolean mActiveFragmentsRequireWifiLocationWarn = false;
     private MenuItem mPairMenuItem, mDeviceMenuItem;
 
     @Override
@@ -127,11 +126,20 @@ public class MainActivity extends AppCompatActivity {
         updateStatusBarVisibility();
     }
 
-    private void updateStatusBarVisibility() {
-        wifiLocationStatusLayout.setVisibility(
-                wifiTextView.getVisibility()==View.VISIBLE ||
-                locationTextView.getVisibility()==View.VISIBLE ||
-                wifiMerossWarning.getVisibility()==View.VISIBLE ? View.VISIBLE : View.GONE);
+    public void setWifiLocationWarnRequired(boolean enabled) {
+        mActiveFragmentsRequireWifiLocationWarn = enabled;
+        updateStatusBarVisibility();
+    }
+
+    public void updateStatusBarVisibility() {
+        if (mActiveFragmentsRequireWifiLocationWarn) {
+            wifiLocationStatusLayout.setVisibility(
+                    wifiTextView.getVisibility() == View.VISIBLE ||
+                            locationTextView.getVisibility() == View.VISIBLE ||
+                            wifiMerossWarning.getVisibility() == View.VISIBLE ? View.VISIBLE : View.GONE);
+        } else {
+            wifiLocationStatusLayout.setVisibility(View.GONE);
+        }
     }
 
     @Override

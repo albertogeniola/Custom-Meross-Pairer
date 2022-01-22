@@ -4,7 +4,6 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,10 +13,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -27,6 +27,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.AndroidUtils;
+import com.albertogeniola.merossconf.MainActivity;
 import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
@@ -50,7 +51,9 @@ public class LoginFragment extends Fragment {
     private static final  String TAG = "Login";
 
     // Instance attributes
-    private boolean mDiscoveryInProgress;
+    private boolean mDiscoveryInProgress = false;
+    private boolean mDiscoveryEnabled = false;
+    private boolean mRequiresWifiLocation = false;
     private NsdManager mNsdManager;
     private TextInputLayout mHttpHostnameInputLayout;
     private EditText mHttpHostnameEditText;
@@ -58,6 +61,8 @@ public class LoginFragment extends Fragment {
     private EditText mHttpPasswordEditText;
     private MaterialButton mLoginButton;
     private MaterialButton mDiscoveryButton;
+    private TextView httpLoginIntroText;
+    private ImageView loginLogo;
 
     private Timer mTimer;
     private Handler mUiHandler;
@@ -65,6 +70,15 @@ public class LoginFragment extends Fragment {
     private CircularProgressIndicator mSearchProgress;
     private IndeterminateDrawable<CircularProgressIndicatorSpec> mProgressIndicatorDrawable;
 
+    public static class Args {
+        public static final String HTTP_BROKER_URL = "com.albertogeniola.merossconf.ui.fragments.account.AccountFragment.Args.HTTP_BROKER_URL";
+        public static final String HTTP_BROKER_EMAIL = "com.albertogeniola.merossconf.ui.fragments.account.AccountFragment.Args.HTTP_BROKER_EMAIL";
+        public static final String HTTP_BROKER_PASSWORD = "com.albertogeniola.merossconf.ui.fragments.account.AccountFragment.Args.HTTP_BROKER_PASSWORD";
+        public static final String ENABLE_BROKER_DISCOVERY = "com.albertogeniola.merossconf.ui.fragments.account.AccountFragment.Args.ENABLE_BROKER_DISCOVERY";
+        public static final String INTRO_TEXT_RESOURCE_ID = "com.albertogeniola.merossconf.ui.fragments.account.AccountFragment.Args.INTRO_TEXT_RESOURCE_ID";
+        public static final String INTRO_IMAGE_RESOURCE_ID = "com.albertogeniola.merossconf.ui.fragments.account.AccountFragment.Args.INTRO_IMAGE_RESOURCE_ID";
+        public static final String REQUIRES_WIFI_LOCATION = "com.albertogeniola.merossconf.ui.fragments.account.AccountFragment.Args.REQUIRES_WIFI_LOCATION";
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -87,6 +101,8 @@ public class LoginFragment extends Fragment {
         mHttpUsernameEditText = ((TextInputLayout)view.findViewById(R.id.httpUsernameEditText)).getEditText();
         mLoginButton = view.findViewById(R.id.loginButton);
         mDiscoveryButton = view.findViewById(R.id.discoveryButton);
+        httpLoginIntroText = view.findViewById(R.id.httpLoginIntroText);
+        loginLogo = view.findViewById(R.id.loginLogo);
 
         // Configure HostEditText for progress showing
         mSearchProgress = new CircularProgressIndicator(this.requireActivity(), null);
@@ -124,6 +140,22 @@ public class LoginFragment extends Fragment {
         // Setup the edit-text to hide the password characters
         showPasswordCheckBox.setChecked(false);
         mHttpPasswordEditText.setTransformationMethod(PasswordTransformationMethod.getInstance());
+
+        // Configure the UI based on received args, if any.
+        Bundle args = getArguments();
+        if (args == null)
+            args = new Bundle();
+
+        mRequiresWifiLocation = args.getBoolean(Args.REQUIRES_WIFI_LOCATION, false);
+        mDiscoveryEnabled = args.getBoolean(Args.ENABLE_BROKER_DISCOVERY, false);
+
+        mHttpHostnameEditText.setText(args.getString(Args.HTTP_BROKER_URL, ""));
+        mHttpUsernameEditText.setText(args.getString(Args.HTTP_BROKER_EMAIL, ""));
+        mHttpPasswordEditText.setText(args.getString(Args.HTTP_BROKER_PASSWORD, ""));
+        mDiscoveryButton.setEnabled(mDiscoveryEnabled);
+        mDiscoveryButton.setVisibility(mDiscoveryEnabled ? View.VISIBLE : View.INVISIBLE);
+        httpLoginIntroText.setText(args.getInt(Args.INTRO_TEXT_RESOURCE_ID, R.string.login_intro_text));
+        loginLogo.setImageResource(args.getInt(Args.INTRO_IMAGE_RESOURCE_ID, R.drawable.login_icon));
 
         return view;
     }
@@ -193,7 +225,10 @@ public class LoginFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        startApiDiscovery();
+        ((MainActivity)requireActivity()).setWifiLocationWarnRequired(mRequiresWifiLocation);
+
+        if (mDiscoveryEnabled)
+            startApiDiscovery();
     }
 
     @Override

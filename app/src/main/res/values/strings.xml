@@ -66,8 +66,11 @@
     <string name="menu_devices">Devices (coming soon!)</string>
     <string name="drawer_open">DRAWER OPEN</string>
     <string name="drawer_close">DRAWER CLOSE</string>
-    <string name="title_activity_login">Local API Login</string>
-    <string name="login_intro_text">Log-in to the Local API broker. Make sure your HomeAssistant addon is running (started) and double check the credentials from within the Addon configuration page.</string>
+    <string name="title_activity_login">API Login</string>
+    <string name="title_manual_setup">Manual API Setup</string>
+    <string name="login_intro_text">Log-in to the HTTP API broker.</string>
+    <string name="login_intro_text_meross">Fill in your credentials as you would do in the Official Meross app to proceed.</string>
+    <string name="login_intro_ha_broker">Make sure the Meross Local Broker (on HomeAssistant) Addon is started and log-in using the credentials configured in the configuration section of that Addon.</string>
 
     <string name="user_key">User Key</string>
     <!-- TODO: Remove or change this placeholder text -->
