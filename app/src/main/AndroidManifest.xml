@@ -19,7 +19,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
