@@ -38,7 +38,7 @@
     <fragment
         android:id="@+id/about_fragment"
         android:name="com.albertogeniola.merossconf.ui.fragments.about.AboutFragment"
-        android:label="fragment_about"
+        android:label="@string/about_fragment_title"
         tools:layout="@layout/fragment_about" />
     <activity
         android:id="@+id/splash_activity"
@@ -55,5 +55,9 @@
         android:name="com.albertogeniola.merossconf.ui.fragments.login.ManualSetupFragment"
         android:label="@string/title_manual_setup"
         tools:layout="@layout/fragment_manual_setup" />
-
+    <fragment
+        android:id="@+id/devices_fragment"
+        android:name="com.albertogeniola.merossconf.ui.fragments.device.DeviceListFragment"
+        android:label="@string/title_device_list"
+        tools:layout="@layout/fragment_device_list" />
 </navigation>

@@ -54,8 +54,10 @@ public class ManualSetupFragment extends Fragment {
             Integer userIdInt = null;
 
             // Check UserId
-            if (Strings.isEmpty(userId))
+            if (Strings.isEmpty(userId)) {
                 mManualUserIdEditText.setError("Missing UserId");
+                return;
+            }
             else {
                 try {
                     userIdInt = Integer.parseInt(userId);

@@ -50,7 +50,9 @@ public class AccountFragment extends Fragment {
         mainActivityViewModel.getCredentials().observe(getViewLifecycleOwner(), new Observer<ApiCredentials>() {
             @Override
             public void onChanged(ApiCredentials apiCredentials) {
-                if (apiCredentials == null || apiCredentials.getApiServer().compareTo(Constants.MEROSS_CLOUD_EP)==0) {
+                if (apiCredentials == null || Strings.isEmpty(apiCredentials.getApiServer())) {
+                    loggedInAccountLogoImageView.setImageResource(R.drawable.question_mark);
+                } else if (apiCredentials.getApiServer().compareTo(Constants.MEROSS_CLOUD_EP)==0) {
                     loggedInAccountLogoImageView.setImageResource(R.drawable.meross_logo);
                 } else {
                     loggedInAccountLogoImageView.setImageResource(R.drawable.ha_logo);

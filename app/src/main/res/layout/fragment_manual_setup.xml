@@ -8,23 +8,30 @@
     android:layout_margin="8dp"
     android:orientation="vertical">
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/textField5"
+    <TextView
+        android:id="@+id/textView23"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:text="@string/manual_setup_info" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/textField5"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
         android:hint="User ID"
-        app:expandedHintEnabled="false"
-        android:layout_marginTop="4sp"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        app:expandedHintEnabled="false">
+
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/manualUserIdEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textIsSelectable="true"
-            android:inputType="number"
             android:digits="0123456789"
             android:hint="Example: 1"
-            />
+            android:inputType="number"
+            android:textIsSelectable="true" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout

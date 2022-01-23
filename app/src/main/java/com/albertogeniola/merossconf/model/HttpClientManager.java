@@ -9,7 +9,9 @@ import com.albertogeniola.merossconf.AndroidPreferencesManager;
 import com.albertogeniola.merossconf.model.exception.MissingHttpCredentials;
 import com.albertogeniola.merosslib.MerossHttpClient;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
+import com.albertogeniola.merosslib.model.http.DeviceInfo;
 
+import java.util.List;
 import java.util.concurrent.Executor;
 
 public class HttpClientManager {
@@ -51,13 +53,26 @@ public class HttpClientManager {
 
     public void asyncLogout(Callback<Void> callback) {
         if (mClient == null)
-            throw new IllegalStateException("HttpCLient has not been loaded yet");
+            throw new IllegalStateException("HttpClient has not been loaded yet");
 
         CallbackTask<Void> t = new CallbackTask<Void>(callback) {
             @Override
             protected Void run(MerossHttpClient client) throws Exception {
                 client.logout();
                 return null;
+            }
+        };
+        t.execute(mClient);
+    }
+
+    public void asyncListDevices(Callback<List<DeviceInfo>> callback) {
+        if (mClient == null)
+            throw new IllegalStateException("HttpClient has not been loaded yet");
+
+        CallbackTask<List<DeviceInfo>> t = new CallbackTask<List<DeviceInfo>>(callback) {
+            @Override
+            protected List<DeviceInfo> run(MerossHttpClient client) throws Exception {
+                return client.listDevices();
             }
         };
         t.execute(mClient);
