@@ -36,7 +36,7 @@ By issuing a donation, you will:
 
 [![Buy me a coffee!](https://www.buymeacoffee.com/assets/img/custom_images/black_img.png)](https://www.buymeacoffee.com/albertogeniola)
 
-[![Apply for GitHub sponsorship](https://korlibs.soywiz.com/i/github_sponsors_big_box_small.png)](https://github.com/sponsors/albertogeniola/dashboard/tiers)
+[![Apply for GitHub sponsorship](https://korlibs.soywiz.com/i/github_sponsors_big_box_small.png)](https://github.com/sponsors/albertogeniola)
 
 ## Disclaimer
 This app has been developed for free and for fun. The developer is in no way affiliate with Meross
