@@ -78,6 +78,13 @@
     <string name="account_activity_logged_info">Your account data is represented as follows.</string>
 
     <string name="title_device_list">Devices</string>
+    <string name="fragment_support_title">Supporting this app</string>
+    <string name="support_this_app_text_intro">First of all, if you reached this section of the app, it means you care about it, and <b>that\'s great!</b> </string>
+    <string name="support_this_app_text">This app, as well as almost all the other tools that I developed, is free &amp; opensource. If you feel thankful and would like to support my work, you can do that via in a couple of ways.</string>
+    <string name="support_this_app_links">Have a look at the following for more info:</string>
+    <string name="support_this_app_buy_me_a_coffe_link"><a href="https://www.buymeacoffee.com/albertogeniola">BuyMeACoffe program</a></string>
+    <string name="support_this_app_github_sponsorhip_link"><a href="https://github.com/sponsors/albertogeniola/">GitHub Sponsorship program</a></string>
+
 
     <string name="manual_setup_info">Use this option to manually set the UserId and Key values manually. Such values are usually provided by the Meross HTTP API broker or by the HA Local Addon. However, you can manually set such values in case you want to pair against third-party brokers: you sure know what you are doing.</string>
 

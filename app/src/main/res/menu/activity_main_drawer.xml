@@ -21,5 +21,9 @@
             android:id="@+id/about_fragment"
             android:icon="@drawable/ic_baseline_info_24"
             android:title="@string/menu_about" />
+        <item
+            android:id="@+id/supporting_this_app"
+            android:icon="@drawable/hand_heart"
+            android:title="@string/fragment_support_title" />
     </group>
 </menu>

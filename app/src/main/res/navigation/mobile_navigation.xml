@@ -60,4 +60,9 @@
         android:name="com.albertogeniola.merossconf.ui.fragments.device.DeviceListFragment"
         android:label="@string/title_device_list"
         tools:layout="@layout/fragment_device_list" />
+    <fragment
+        android:id="@+id/supporting_this_app"
+        android:name="com.albertogeniola.merossconf.ui.fragments.support_this_app.SupportThisApp"
+        android:label="@string/fragment_support_title"
+        tools:layout="@layout/fragment_support_this_app" />
 </navigation>
