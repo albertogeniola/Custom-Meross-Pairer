@@ -1,6 +1,5 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
@@ -37,7 +36,6 @@ import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.WifiConfiguration;
 import com.albertogeniola.merossconf.model.exception.PermissionNotGrantedException;
 import com.albertogeniola.merossconf.ui.PairActivityViewModel;
-import com.albertogeniola.merossconf.ui.fragments.login.LoginFragment;
 import com.albertogeniola.merosslib.model.Encryption;
 import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEntry;
 import com.google.android.material.button.MaterialButton;
@@ -76,7 +74,6 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     private static final String DISCOVERY_MQTT = "MQTT discovery...";
     private static final String MQTT_RESOLVE = "Resolving service...";
     private static final String COMPLETED = "Completed";
-
     private boolean mPaused = false;
 
 
@@ -468,10 +465,6 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
                 public void run() {
                     // Just store the current configuration and proceed to the next fragment
                     pairActivityViewModel.setMerossWifiConfiguration(mSelectedWifi);
-
-                    // Store the password, if required
-                    if (mSaveWifiPasswordCheckBox.isChecked())
-                        AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mSelectedWifi.getScannedWifi().getBssid(), mWifiPasswordTextView.getEditText().toString());
 
                     // Launch the next fragment
                     NavController ctrl = NavHostFragment.findNavController(ConfigureWifiFragment.this);
