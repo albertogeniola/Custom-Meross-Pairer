@@ -72,7 +72,7 @@
         app:layout_constraintTop_toBottomOf="@+id/imageView2" />
 
     <TextView
-        android:id="@+id/textView39"
+        android:id="@+id/gitHubSponsorshipTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -84,12 +84,12 @@
         app:layout_constraintTop_toBottomOf="@+id/textView36" />
 
     <TextView
-        android:id="@+id/textView38"
+        android:id="@+id/buyMeCoffeTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="@string/support_this_app_buy_me_a_coffe_link"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
-        app:layout_constraintStart_toStartOf="@+id/textView39"
-        app:layout_constraintTop_toBottomOf="@+id/textView39" />
+        app:layout_constraintStart_toStartOf="@+id/gitHubSponsorshipTextView"
+        app:layout_constraintTop_toBottomOf="@+id/gitHubSponsorshipTextView" />
 </androidx.constraintlayout.widget.ConstraintLayout>
