@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.view.Menu;
@@ -55,6 +57,14 @@ public class MainActivity extends AppCompatActivity {
         final NavigationView navigationView = findViewById(R.id.nav_view);
         mPairMenuItem = navigationView.getMenu().findItem(R.id.pair_activity);
         mDeviceMenuItem = navigationView.getMenu().findItem(R.id.devices_fragment);
+        try {
+            PackageInfo pInfo = getPackageManager().getPackageInfo(this.getPackageName(), 0);
+            String version = pInfo.versionName;
+            ((TextView)navigationView.getHeaderView(0).findViewById(R.id.appVersionTextView)).setText("v"+version);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+
 
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
