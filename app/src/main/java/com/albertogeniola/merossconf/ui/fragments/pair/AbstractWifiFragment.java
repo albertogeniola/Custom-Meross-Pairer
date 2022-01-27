@@ -108,6 +108,16 @@ public abstract class AbstractWifiFragment extends Fragment {
             unRegisterWifiBroadcastReceiver();
         }
 
+        // Reset Network process bindings
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // To make sure that requests don't go over mobile data
+            mConnectivityManager.bindProcessToNetwork(null);
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                ConnectivityManager.setProcessDefaultNetwork(null);
+            }
+        }
+
         // Unregister network callbacks
         if (mNetworkCallbackRegistered && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
             mConnectivityManager.unregisterNetworkCallback(mNetworkCallback);
@@ -355,7 +365,7 @@ public abstract class AbstractWifiFragment extends Fragment {
             @Override
             public void onLost(@NonNull Network network) {
                 super.onLost(network);
-                // TODO
+
                 /*
                 mConnectivityManager.bindProcessToNetwork(null);
                 mConnectivityManager.unregisterNetworkCallback(this);
