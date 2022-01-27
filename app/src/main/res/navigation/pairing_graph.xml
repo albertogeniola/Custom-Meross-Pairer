@@ -2,7 +2,7 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/nav_graph2"
+    android:id="@+id/pairing_graph"
     app:startDestination="@id/ScanDeviceFragment">
 
     <fragment
@@ -23,7 +23,7 @@
         <action
             android:id="@+id/action_fetchDeviceInfo_to_showDeviceInfo"
             app:destination="@id/ShowDeviceInfoFragment"
-            app:popUpTo="@+id/nav_graph2"
+            app:popUpTo="@id/pairing_graph"
             app:popUpToInclusive="false" />
     </fragment>
     <fragment
@@ -63,7 +63,7 @@
         <action
             android:id="@+id/action_executePair_to_pairCompleted"
             app:destination="@id/PairCompletedFragment"
-            app:popUpTo="@id/nav_graph2"
+            app:popUpTo="@id/pairing_graph"
             app:popUpToInclusive="false" />
     </fragment>
     <fragment

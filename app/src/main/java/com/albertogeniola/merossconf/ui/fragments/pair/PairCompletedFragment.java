@@ -60,7 +60,7 @@ public class PairCompletedFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 NavController ctrl = NavHostFragment.findNavController(PairCompletedFragment.this);
-                ctrl.popBackStack(R.id.nav_graph2, false);
+                ctrl.popBackStack(R.id.ScanDeviceFragment, false);
                 //ctrl.navigate(R.id.PairDone);
             }
         });
