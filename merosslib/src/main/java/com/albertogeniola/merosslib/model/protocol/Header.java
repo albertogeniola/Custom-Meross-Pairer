@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Getter
 public class Header implements Serializable {
+    @SerializedName("from")
+    private String from;
     @SerializedName("messageId")
     private String messageId;
     @SerializedName("method")
@@ -27,13 +29,18 @@ public class Header implements Serializable {
     @SerializedName("sign")
     private String sign;
 
-    public static Header BuildNew(String namespace, Method method) {
+    public static Header BuildNew(String namespace, Method method, String from) {
         Header header = new Header();
         header.namespace = namespace;
         header.method = method;
+        header.from = from;
         header.messageId = UUID.randomUUID().toString().replaceAll("-","");
         header.timestamp = new Date().getTime();
         return header;
+    }
+
+    public static Header BuildNew(String namespace, Method method) {
+        return BuildNew(namespace, method, "http://10.10.10.1/config");
     }
 
     public void sign(String cloudKey) {
