@@ -28,9 +28,11 @@
             android:id="@+id/manualUserIdEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:singleLine="true"
             android:digits="0123456789"
             android:hint="Example: 1"
             android:inputType="number"
+            android:imeOptions="actionNext"
             android:textIsSelectable="true" />
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -48,6 +50,8 @@
             android:layout_height="wrap_content"
             android:textIsSelectable="true"
             android:inputType="text"
+            android:singleLine="true"
+            android:imeOptions="actionDone"
             android:hint="Example: empty"/>
 
     </com.google.android.material.textfield.TextInputLayout>
