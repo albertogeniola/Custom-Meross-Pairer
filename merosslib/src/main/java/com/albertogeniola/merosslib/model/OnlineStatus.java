@@ -11,9 +11,9 @@ import java.lang.reflect.Type;
 
 
 public enum OnlineStatus {
-    OFFLINE(0),
+    UNKNOWN(0),
     ONLINE(1),
-    LAN(2),
+    OFFLINE(2),
     UPGRADING(3);
 
     private int value;

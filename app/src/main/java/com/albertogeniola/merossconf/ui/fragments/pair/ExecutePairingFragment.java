@@ -169,7 +169,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                         DeviceInfo d = findDevice(devices, targetUuid);
                         if (d == null) {
                             Log.i(TAG, "Device " +targetUuid + " not paired yet.");
-                        } else if (d.getOnlineStatus() == OnlineStatus.ONLINE || d.getOnlineStatus() == OnlineStatus.LAN) {
+                        } else if (d.getOnlineStatus() == OnlineStatus.ONLINE) {
                             Log.i(TAG, "Device " +targetUuid + " is online.");
                             succeeed = true;
                         } else {
