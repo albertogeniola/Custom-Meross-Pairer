@@ -51,6 +51,7 @@ public class LoginFragment extends Fragment {
     private static final  String TAG = "Login";
 
     // Instance attributes
+    private Context mAppContext = null;
     private boolean mDiscoveryInProgress = false;
     private boolean mDiscoveryEnabled = false;
     private boolean mRequiresWifiLocation = false;
@@ -83,6 +84,7 @@ public class LoginFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mAppContext = requireContext().getApplicationContext();
         mNsdManager = (NsdManager) requireContext().getSystemService(Context.NSD_SERVICE);
         mUiHandler = new Handler(this.requireContext().getMainLooper());
     }
@@ -105,7 +107,7 @@ public class LoginFragment extends Fragment {
         loginLogo = view.findViewById(R.id.loginLogo);
 
         // Configure HostEditText for progress showing
-        mSearchProgress = new CircularProgressIndicator(this.requireActivity(), null);
+        mSearchProgress = new CircularProgressIndicator(requireContext(), null);
         mSearchProgress.setIndicatorSize((int)dpToPx(requireContext(), 15));
         mSearchProgress.setIndeterminate(true);
         mProgressIndicatorDrawable = mSearchProgress.getIndeterminateDrawable();
@@ -210,8 +212,9 @@ public class LoginFragment extends Fragment {
                     mHttpHostnameEditText.setText(hostnameValue);
                 }
 
-                if (message != null)
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                if (message != null) {
+                    Toast.makeText(mAppContext, message, Toast.LENGTH_SHORT).show();
+                }
             }
         };
 
