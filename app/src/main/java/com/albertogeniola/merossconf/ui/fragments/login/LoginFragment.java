@@ -127,7 +127,12 @@ public class LoginFragment extends Fragment {
         mLoginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                performLogin();
+                // Make sure wifi is currently enabled and connected.
+                if (mRequiresWifiLocation && !AndroidUtils.isWifiConnected(requireContext())) {
+                    Snackbar.make(requireView(), "Please enable WiFi first.", Snackbar.LENGTH_SHORT).show();
+                } else {
+                    performLogin();
+                }
             }
         });
 
@@ -135,7 +140,11 @@ public class LoginFragment extends Fragment {
         mDiscoveryButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startApiDiscovery();
+                if (mRequiresWifiLocation && !AndroidUtils.isWifiConnected(requireContext())) {
+                    Snackbar.make(requireView(), "Please enable WiFi first.", Snackbar.LENGTH_SHORT).show();
+                } else {
+                    startApiDiscovery();
+                }
             }
         });
 

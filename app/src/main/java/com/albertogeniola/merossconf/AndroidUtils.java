@@ -3,6 +3,8 @@ package com.albertogeniola.merossconf;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -44,6 +46,12 @@ public class AndroidUtils {
     public static Boolean isWifiEnabled(Context context) {
         WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         return wifiManager.isWifiEnabled();
+    }
+
+    public static Boolean isWifiConnected(Context context) {
+        ConnectivityManager connManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        return mWifi != null && mWifi.isConnected();
     }
 
     public static boolean validateBaseUrl(String url) {
