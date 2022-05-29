@@ -354,13 +354,18 @@ public class LoginFragment extends Fragment {
         @Override
         public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
             Log.e(TAG, "Resolve failed" + errorCode);
-            configureUi(true,  false, null, "Discovery failed");
+            configureUi(true,  false, null, "Resolve failed");
         }
         @Override
         public void onServiceResolved(final NsdServiceInfo serviceInfo) {
             Log.e(TAG, "Found local API!. " + serviceInfo);
             String result = "http://" + serviceInfo.getHost().getHostName()+":"+serviceInfo.getPort();
-            configureUi(true,  false, result, "Found local API!");
+
+            mTimer.cancel();
+            mTimer = null;
+            if (mDiscoveryInProgress)
+                mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+            configureUi(true,  false, result, "Found local HTTP API service!");
         }
     };
 
