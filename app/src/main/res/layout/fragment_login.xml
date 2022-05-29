@@ -57,9 +57,8 @@
             <com.google.android.material.textfield.TextInputEditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:singleLine="true"
                 android:imeOptions="actionNext"
-                />
+                android:singleLine="true" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -68,6 +67,7 @@
             android:layout_height="wrap_content"
             android:ems="10"
             android:hint="Username / email"
+            android:autofillHints="emailAddress"
             android:inputType="textPersonName"
             android:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -91,6 +91,7 @@
             android:layout_height="wrap_content"
             android:ems="10"
             android:hint="Password"
+            android:autofillHints="password"
             android:inputType="textPersonName"
             android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"

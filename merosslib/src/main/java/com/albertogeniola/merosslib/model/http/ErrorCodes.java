@@ -51,4 +51,34 @@ public enum ErrorCodes {
         return this.value;
     }
 
+    public String getMessage() {
+        if (value==CODE_NO_ERROR.value)
+            return "All OK";
+        else if (value==CODE_MISSING_PASSWORD.value)
+            return "Missing password";
+        else if (value==CODE_UNEXISTING_ACCOUNT.value)
+            return "Account does not exist";
+        else if (value==CODE_DISABLED_OR_DELETED_ACCOUNT.value)
+            return "Account has been disabled or deleted";
+        else if (value==CODE_WRONG_CREDENTIALS.value)
+            return "Bad/wrong credentials";
+        else if (value==CODE_INVALID_EMAIL.value)
+            return "Invalid email address";
+        else if (value==CODE_BAD_PASSWORD_FORMAT.value)
+            return "Invalid password format";
+        else if (value==CODE_WRONG_EMAIL.value)
+            return "Wrong email";
+        else if (value==CODE_TOKEN_INVALID.value)
+            return "The token is invalid";
+        else if (value==CODE_TOKEN_EXPIRED.value)
+            return "Token has expired";
+        else if (value==CODE_TOKEN_ERROR.value)
+            return "Token error";
+        else if (value==CODE_TOO_MANY_TOKENS.value)
+            return "Too many tokens have been released.";
+        else if (value==CODE_GENERIC_ERROR.value)
+            return "Generic error";
+        else
+            return "Unknown error code";
+    }
 }

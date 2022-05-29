@@ -15,4 +15,8 @@ public class HttpApiException extends Exception {
         super(message);
         this.code = code;
     }
+
+    public String getErrorMessage() {
+        return code.getMessage();
+    }
 }

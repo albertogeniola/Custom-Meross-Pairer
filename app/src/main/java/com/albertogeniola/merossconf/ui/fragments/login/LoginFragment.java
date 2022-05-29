@@ -32,6 +32,8 @@ import com.albertogeniola.merossconf.R;
 import com.albertogeniola.merossconf.model.HttpClientManager;
 import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
+import com.albertogeniola.merosslib.model.http.ErrorCodes;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.progressindicator.CircularProgressIndicatorSpec;
@@ -160,7 +162,7 @@ public class LoginFragment extends Fragment {
         mRequiresWifiLocation = args.getBoolean(Args.REQUIRES_WIFI_LOCATION, false);
         mDiscoveryEnabled = args.getBoolean(Args.ENABLE_BROKER_DISCOVERY, false);
 
-        mHttpHostnameEditText.setText(args.getString(Args.HTTP_BROKER_URL, ""));
+        mHttpHostnameEditText.setText(args.getString(Args.HTTP_BROKER_URL, "http://homeassistant.local:2002"));
         mHttpUsernameEditText.setText(args.getString(Args.HTTP_BROKER_EMAIL, ""));
         mHttpPasswordEditText.setText(args.getString(Args.HTTP_BROKER_PASSWORD, ""));
         mDiscoveryButton.setEnabled(mDiscoveryEnabled);
@@ -302,9 +304,13 @@ public class LoginFragment extends Fragment {
             }
 
             @Override
-            public void onFailure(Exception result) {
+            public void onFailure(Exception exception) {
                 dialog.dismiss();
-                Snackbar.make(mLoginButton, "An error while executing the request.", Snackbar.LENGTH_LONG).show();
+                String errorMessage = "An error occurred while executing the request.";
+                if (exception instanceof HttpApiException) {
+                    errorMessage = ((HttpApiException)exception).getErrorMessage();
+                }
+                Snackbar.make(mLoginButton,errorMessage , Snackbar.LENGTH_LONG).show();
             }
         });
     }
