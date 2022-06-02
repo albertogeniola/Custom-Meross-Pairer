@@ -310,6 +310,10 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
             mTimer = null;
         }
 
+        // Stop the discovery service
+        if (mDiscoveryInProgress)
+            mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+
         Runnable r = new Runnable() {
             @Override
             public void run() {
