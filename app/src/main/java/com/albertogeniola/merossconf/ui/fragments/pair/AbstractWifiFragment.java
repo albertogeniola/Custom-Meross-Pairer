@@ -288,7 +288,7 @@ public abstract class AbstractWifiFragment extends Fragment {
      * Registers a broadcast received that listens to WIFI_STATE changes. It also sets the value
      * of the SSID to configure the broadcast receiver to intercept the desired network
      * connection.
-     * @param ssid SSID value that represet the network we are looking for
+     * @param ssid SSID value that represent the network we are looking for
      */
     private void registerWifiBroadcastReceiver(String ssid) {
         if (!mBroadcastReceiverRegistered) {

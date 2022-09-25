@@ -1,5 +1,5 @@
 # Custom Pairer for Meross Devices
-Hi there! If you came accross this repository it means you are looking for a way to 
+Hi there! If you came across this repository it means you are looking for a way to 
 take control over your Meross Hardware devices. Well, let me congratulate with you: that's 
 exactly what made me start the journey to develop the MerossIot API, Homeassistant component,
 Homeassitant addon and finally the Custom Pairer App.
