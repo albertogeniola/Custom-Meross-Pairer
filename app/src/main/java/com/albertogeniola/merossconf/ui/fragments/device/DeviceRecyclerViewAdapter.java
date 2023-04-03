@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.albertogeniola.merossconf.databinding.FragmentDeviceInfoBinding;
+import com.albertogeniola.merosslib.model.OnlineStatus;
 import com.albertogeniola.merosslib.model.http.DeviceInfo;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class DeviceRecyclerViewAdapter extends RecyclerView.Adapter<DeviceRecycl
         holder.mDeviceUuid.setText(mValues.get(position).getUuid());
         holder.mDeviceName.setText(mValues.get(position).getDevName());
         holder.deviceClass.setText(mValues.get(position).getDeviceType());
-        holder.mDeviceOnline.setText(mValues.get(position).getOnlineStatus().name());
+        holder.mDeviceOnline.setText(mValues.get(position).getOnlineStatus() == null ? OnlineStatus.UNKNOWN.name() : mValues.get(position).getOnlineStatus().name());
     }
 
     @Override
