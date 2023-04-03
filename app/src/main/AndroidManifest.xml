@@ -33,6 +33,7 @@
             android:theme="@style/AppTheme" />
         <activity
             android:name=".SplashActivity"
+            android:exported="true"
             android:launchMode="singleInstance"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:theme="@style/AppTheme.Launcher">
