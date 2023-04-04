@@ -160,10 +160,10 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
             public void run() {
                 MerossHttpClient client = new MerossHttpClient(mCreds);
                 String targetUuid = pairActivityViewModel.getDeviceInfo().getValue().getPayload().getAll().getSystem().getHardware().getUuid();
-                boolean succeeed = false;
+                boolean succeed = false;
                 boolean timedOut = GregorianCalendar.getInstance().getTimeInMillis() >= timeout;
                 boolean exitNow = false;
-                while(!exitNow && !succeeed && !Thread.currentThread().isInterrupted() && !timedOut) {
+                while(!exitNow && !succeed && !Thread.currentThread().isInterrupted() && !timedOut) {
                     try {
                         List<DeviceInfo> devices = client.listDevices();
                         DeviceInfo d = findDevice(devices, targetUuid);
@@ -171,7 +171,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                             Log.i(TAG, "Device " +targetUuid + " not paired yet.");
                         } else if (d.getOnlineStatus() == OnlineStatus.ONLINE) {
                             Log.i(TAG, "Device " +targetUuid + " is online.");
-                            succeeed = true;
+                            succeed = true;
                         } else {
                             Log.i(TAG, "Device " +targetUuid + " is paired, but not ready yet or in an unknown status.");
                         }
@@ -198,12 +198,12 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
                     }
                 }
 
-                final boolean finalSucceeed = succeeed;
+                final boolean finalSucceed = succeed;
                 final boolean finalTimedOut = timedOut;
                 uiThreadHandler.post(new Runnable() {
                     @Override
                     public void run() {
-                        if (finalSucceeed)
+                        if (finalSucceed)
                             stateMachine(Signal.DEVICE_PAIRED);
                         else if (finalTimedOut)
                             stateMachine(Signal.MISSING_CONFIRMATION);
