@@ -1,5 +1,6 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
+import android.net.MacAddress;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -114,7 +115,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
 
         try {
-            startWifiConnection(ssid, null, null, 15000);
+            startWifiConnection(ssid, bssid,null, null, 15000);
             // Flow starts again from onWifiConnected() / onWifiUnavailable()
         } catch (PermissionNotGrantedException e) {
             Log.e(TAG, "Missing wifi permissions");
@@ -127,12 +128,13 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         state = State.CONNETING_LOCAL_WIFI;
 
         String ssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
+        String bssid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getBssid();
         String passphrase = pairActivityViewModel.getMerossConfiguredWifi().getValue().getClearWifiPassword();
 
         // Check if we are already connected to such wifi
         // TODO: Check comparison happens with double quotes
         try {
-            startWifiConnection(ssid, passphrase, null, 60000);
+            startWifiConnection(ssid, bssid, passphrase, null, 60000);
             // Flow starts again from onWifiConnected() / onWifiUnavailable()
         } catch (PermissionNotGrantedException e) {
             Log.e(TAG, "Missing wifi permissions");
@@ -384,7 +386,7 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
     }
 
     @Override
-    protected void onWifiPermissionsGranted(String ssid) {
+    protected void onWifiPermissionsGranted(String ssid, @Nullable String bssid) {
         String pairingSsid = pairActivityViewModel.getMerossPairingAp().getValue().getSsid();
         String localSsid = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
 

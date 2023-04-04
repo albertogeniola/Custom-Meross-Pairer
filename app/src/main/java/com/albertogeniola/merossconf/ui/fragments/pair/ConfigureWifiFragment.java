@@ -1,6 +1,7 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
 import android.content.Context;
+import android.net.MacAddress;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
@@ -215,8 +216,8 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
 
     @SneakyThrows(PermissionNotGrantedException.class)
     @Override
-    protected void onWifiPermissionsGranted(String ssid) {
-        startWifiConnection(ssid, mSelectedWifi.getClearWifiPassword(), null, 60000);
+    protected void onWifiPermissionsGranted(String ssid, @Nullable String bssid) {
+        startWifiConnection(ssid, bssid, mSelectedWifi.getClearWifiPassword(), null, 60000);
     }
 
     @UiThread
@@ -331,7 +332,7 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
 
         // Start wifi connection
         try {
-            startWifiConnection(mSelectedWifi.getScannedWifi().getSsid(), mSelectedWifi.getClearWifiPassword(), null, 20000);
+            startWifiConnection(mSelectedWifi.getScannedWifi().getSsid(), mSelectedWifi.getScannedWifi().getBssid(), mSelectedWifi.getClearWifiPassword(), null, 20000);
             // The flow starts back from on onWifiConnected / onWifiUnavailable().
         } catch (PermissionNotGrantedException e) {
             // The flow starts back from onWifiPermissionsGranted()

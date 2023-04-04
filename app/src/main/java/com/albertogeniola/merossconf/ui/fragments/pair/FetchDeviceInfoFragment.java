@@ -123,8 +123,9 @@ public class FetchDeviceInfoFragment extends AbstractWifiFragment {
 
     private void connectAp() {
         String ssid = pairActivityViewModel.getMerossPairingAp().getValue().getSsid();
+        String bssid = pairActivityViewModel.getMerossPairingAp().getValue().getBssid();
         try {
-            startWifiConnection(ssid, null, null, CONNECT_AP_TIMEOUT);
+            startWifiConnection(ssid, bssid,null, null, CONNECT_AP_TIMEOUT);
             // The flow starts back from on onWifiConnected / onWifiUnavailable().
         } catch (PermissionNotGrantedException e) {
             Log.w(TAG, "Missing user permissions.");
@@ -260,8 +261,8 @@ public class FetchDeviceInfoFragment extends AbstractWifiFragment {
 
     @SneakyThrows(PermissionNotGrantedException.class)
     @Override
-    protected void onWifiPermissionsGranted(String ssid) {
-        startWifiConnection(ssid, null, null, 10000);
+    protected void onWifiPermissionsGranted(String ssid, @Nullable String bssid) {
+        startWifiConnection(ssid, bssid,null, null, 10000);
     }
 
     @Override

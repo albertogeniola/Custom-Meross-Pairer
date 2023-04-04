@@ -14,6 +14,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -35,6 +36,7 @@ import org.eclipse.paho.client.mqttv3.util.Strings;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.crypto.Mac;
 
 
 public abstract class AbstractWifiFragment extends Fragment {
@@ -61,6 +63,9 @@ public abstract class AbstractWifiFragment extends Fragment {
 
     // hold target wifi ssid
     private String mTargetSsid;
+
+    // hold target wifi bssid
+    private String mTargetBssid;
 
     public AbstractWifiFragment() {
         mTimer = new Timer();
@@ -154,6 +159,7 @@ public abstract class AbstractWifiFragment extends Fragment {
     /**
      * Starts the wifi connection to the specified ssid
      * @param targetSsid Target Wifi SSID to connect to
+     * @param targetBssid (Optional) Target BSSID
      * @param targetPassphrase (Optional) Wifi passphrase to use
      * @param reason A reason to show to the user that explains why Wifi is being requested.
      * @param timeout Number of milliseconds to wait before issuing a timeout to the wifi operation
@@ -162,6 +168,7 @@ public abstract class AbstractWifiFragment extends Fragment {
      *                                       is automatically requested by this method.
      */
     public void startWifiConnection(String targetSsid,
+                                    @Nullable String targetBssid,
                                     @Nullable String targetPassphrase,
                                     @Nullable String reason,
                                     int timeout) throws PermissionNotGrantedException {
@@ -196,12 +203,13 @@ public abstract class AbstractWifiFragment extends Fragment {
 
         // Store ssid for callback later usage
         mTargetSsid = targetSsid;
+        mTargetBssid = targetBssid;
 
         // Since Android Q, Android requires the developer to work with NetworkRequest API.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             startWifiConnectionLegacy(targetSsid, targetPassphrase, timeout);
         } else {
-            startWifiConnectionAndroidQ(targetSsid, targetPassphrase, timeout);
+            startWifiConnectionAndroidQ(targetSsid, targetBssid, targetPassphrase, timeout);
         }
     }
 
@@ -267,9 +275,14 @@ public abstract class AbstractWifiFragment extends Fragment {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    private void startWifiConnectionAndroidQ(String ssid, @Nullable String passphrase, int timeout) {
+    private void startWifiConnectionAndroidQ(String ssid, @Nullable String bssid, @Nullable String passphrase, int timeout) {
         WifiNetworkSpecifier.Builder specifierBuilder = new WifiNetworkSpecifier.Builder()
                 .setSsid(ssid);
+
+        if (bssid != null) {
+            specifierBuilder.setBssid( MacAddress.fromString(bssid));
+        }
+
         if (passphrase != null)
             specifierBuilder.setWpa2Passphrase(passphrase);
 
@@ -333,7 +346,7 @@ public abstract class AbstractWifiFragment extends Fragment {
     /**
      * Callback called when the user has granted necessary wifi permissions
      */
-    protected abstract void onWifiPermissionsGranted(String ssid);
+    protected abstract void onWifiPermissionsGranted(String ssid, @Nullable String bssid);
 
     private void notifyWifiConnected() {
         mWifiConnectionAttemptInProgress = false;
@@ -365,12 +378,6 @@ public abstract class AbstractWifiFragment extends Fragment {
             @Override
             public void onLost(@NonNull Network network) {
                 super.onLost(network);
-
-                /*
-                mConnectivityManager.bindProcessToNetwork(null);
-                mConnectivityManager.unregisterNetworkCallback(this);
-                // Here you can have a fallback option to show a 'Please connect manually' page with an Intent to the Wifi settings
-                */
             }
 
             @Override
@@ -454,7 +461,7 @@ public abstract class AbstractWifiFragment extends Fragment {
             if (!permsOk)
                 onMissingWifiPermissions(mTargetSsid);
             else
-                onWifiPermissionsGranted(mTargetSsid);
+                onWifiPermissionsGranted(mTargetSsid, mTargetBssid);
         }
     }
 }
