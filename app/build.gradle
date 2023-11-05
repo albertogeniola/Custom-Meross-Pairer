@@ -2,15 +2,15 @@ apply plugin: 'com.android.application'
 
 android {
 
-    compileSdkVersion 31
+    compileSdkVersion 33
     buildToolsVersion "29.0.3"
 
     defaultConfig {
         applicationId "com.albertogeniola.merossconf"
         minSdkVersion 16
         targetSdkVersion 31
-        versionCode 16
-        versionName "0.0.9rc1"
+        versionCode 17
+        versionName "0.0.9rc2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -68,8 +68,8 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.6'
 
     //noinspection AnnotationProcessorOnCompilePath
-    compileOnly 'org.projectlombok:lombok:1.18.20'
-    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     implementation project(path: ':merosslib')
     implementation 'androidx.cardview:cardview:1.0.0'
