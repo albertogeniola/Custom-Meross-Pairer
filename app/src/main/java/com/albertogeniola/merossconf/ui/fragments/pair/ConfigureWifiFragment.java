@@ -454,6 +454,12 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
         public void onServiceResolved(final NsdServiceInfo serviceInfo) {
             Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
             mResolveInProgress = false;
+            // Make sure we only rely on IPv4 Addresses. IPV4 are 4 bytes long.
+            if (serviceInfo.getHost().getAddress().length!=4) {
+                Log.w(TAG, "Ignoring discovered IP " + serviceInfo.getHost().getHostAddress() + " as it is not a valid IPv4 address");
+                return;
+            }
+
             configureUi(false, VALIDATE_AND_PROCEED, null);
             notifyResolveCompleted(serviceInfo.getHost().getHostName(), serviceInfo.getPort());
         }

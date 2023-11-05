@@ -12,14 +12,15 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:backgroundTint="@android:color/darker_gray"
+        android:backgroundTint="@color/design_default_color_secondary_variant"
         android:text="Discovery"
         android:drawableTint="@color/design_default_color_on_primary"
         android:drawableEnd="@drawable/ic_baseline_search_24"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/constraintLayout" />
+        app:layout_constraintTop_toBottomOf="@+id/constraintLayout"
+        android:drawableRight="@drawable/ic_baseline_search_24" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/constraintLayout"
@@ -42,24 +43,37 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/httpHostnameInputLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="0dp"
             android:layout_height="56dp"
             android:ems="10"
-            android:hint="HTTP server hostname"
+            android:hint="API endpoint (http://homeassistant.local:2003)"
             android:inputType="textPersonName"
             android:visibility="visible"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+            app:layout_constraintTop_toTopOf="parent">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:imeOptions="actionNext"
                 android:singleLine="true" />
+
         </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/hintForDiscovery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="If unsure, press the discovery button!"
+            android:gravity="center_horizontal"
+            android:textColor="@color/design_default_color_secondary_variant"
+            app:layout_constraintEnd_toEndOf="@+id/httpHostnameInputLayout"
+            app:layout_constraintStart_toStartOf="@+id/httpHostnameInputLayout"
+            app:layout_constraintTop_toBottomOf="@+id/httpHostnameInputLayout" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/httpUsernameEditText"
@@ -74,15 +88,16 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/httpHostnameInputLayout"
+            app:layout_constraintTop_toBottomOf="@+id/hintForDiscovery"
             app:layout_constraintVertical_bias="0.0"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:imeOptions="actionNext"/>
+                android:imeOptions="actionNext"
+                android:singleLine="true" />
+
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -121,6 +136,7 @@
         android:id="@+id/loginButton"
         android:drawableEnd="@drawable/ic_baseline_login_24"
         android:drawableTint="@color/design_default_color_on_primary"
+        android:backgroundTint="@color/design_default_color_primary"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
@@ -132,7 +148,8 @@
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/discoveryButton"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintVertical_bias="0.0"
+        android:drawableRight="@drawable/ic_baseline_login_24" />
 
     <TextView
         android:id="@+id/httpLoginIntroText"

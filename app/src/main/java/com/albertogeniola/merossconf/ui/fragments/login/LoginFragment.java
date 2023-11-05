@@ -162,7 +162,7 @@ public class LoginFragment extends Fragment {
         mRequiresWifiLocation = args.getBoolean(Args.REQUIRES_WIFI_LOCATION, false);
         mDiscoveryEnabled = args.getBoolean(Args.ENABLE_BROKER_DISCOVERY, false);
 
-        mHttpHostnameEditText.setText(args.getString(Args.HTTP_BROKER_URL, "http://homeassistant.local:2002"));
+        mHttpHostnameEditText.setText(args.getString(Args.HTTP_BROKER_URL, ""));
         mHttpUsernameEditText.setText(args.getString(Args.HTTP_BROKER_EMAIL, ""));
         mHttpPasswordEditText.setText(args.getString(Args.HTTP_BROKER_PASSWORD, ""));
         mDiscoveryButton.setEnabled(mDiscoveryEnabled);
@@ -240,16 +240,14 @@ public class LoginFragment extends Fragment {
     public void onResume() {
         super.onResume();
         ((MainActivity)requireActivity()).setWifiLocationWarnRequired(mRequiresWifiLocation);
-
-        if (mDiscoveryEnabled)
-            startApiDiscovery();
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
+    public void onStop() {
+        super.onStop();
         try {
-            mNsdManager.stopServiceDiscovery(mDiscoveryListener);
+            if (mDiscoveryEnabled)
+                mNsdManager.stopServiceDiscovery(mDiscoveryListener);
         } catch (Exception e) {
             Log.e(TAG, "Failed to stop service discovery");
         }
@@ -365,8 +363,13 @@ public class LoginFragment extends Fragment {
         @Override
         public void onServiceResolved(final NsdServiceInfo serviceInfo) {
             Log.e(TAG, "Found local API!. " + serviceInfo);
-            String result = "http://" + serviceInfo.getHost().getHostName()+":"+serviceInfo.getPort();
+            // Make sure we only rely on IPv4 Addresses. IPV4 are 4 bytes long.
+            if (serviceInfo.getHost().getAddress().length!=4) {
+                Log.w(TAG, "Ignoring discovered IP " + serviceInfo.getHost().getHostAddress() + " as it is not a valid IPv4 address");
+                return;
+            }
 
+            String result = "http://" + serviceInfo.getHost().getHostName()+":"+serviceInfo.getPort();
             mTimer.cancel();
             mTimer = null;
             if (mDiscoveryInProgress)
