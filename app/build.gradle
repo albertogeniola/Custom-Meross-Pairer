@@ -2,14 +2,15 @@ apply plugin: 'com.android.application'
 
 android {
 
-    compileSdkVersion 33
+    namespace "com.albertogeniola.merossconf"
+    compileSdkVersion 35
 
     defaultConfig {
         applicationId "com.albertogeniola.merossconf"
         minSdkVersion 16
-        targetSdkVersion 33
-        versionCode 19
-        versionName "0.0.9rc2"
+        targetSdkVersion 35
+        versionCode 20
+        versionName "0.0.10"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -40,6 +41,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
 
 }
@@ -77,7 +79,7 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
 
-    implementation "de.adorsys.android:securestoragelibrary:0.0.2"
+    implementation 'com.github.adorsys:secure-storage-android:0.0.2' // using jitpack to workaround mavencentral deprecation
     implementation 'com.github.cdflynn:checkview:v1.1'
 
     // required to avoid crash on Android 12 API 31

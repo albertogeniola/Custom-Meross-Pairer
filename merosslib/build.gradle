@@ -11,5 +11,11 @@ dependencies {
 
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
 sourceCompatibility = "7"
 targetCompatibility = "7"
