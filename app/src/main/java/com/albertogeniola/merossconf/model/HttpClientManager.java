@@ -36,7 +36,7 @@ public class HttpClientManager {
         return mClient;
     }
 
-    public void asyncLogin(final String serverUrl, final String username, final String password, Callback<ApiCredentials> callback) {
+    public void asyncLogin(final String serverUrl, final String username, final String password, @Nullable String mfa, Callback<ApiCredentials> callback) {
         if (mClient == null) {
             throw new IllegalStateException("HttpClient has not been loaded yet.");
         }
@@ -44,7 +44,7 @@ public class HttpClientManager {
         CallbackTask<ApiCredentials> t = new CallbackTask<ApiCredentials>(callback) {
             @Override
             protected ApiCredentials run(MerossHttpClient client) throws Exception {
-                client.login(serverUrl, username, password);
+                client.login(serverUrl, username, password, mfa);
                 return client.getCredentials();
             }
         };

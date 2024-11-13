@@ -34,6 +34,7 @@ import com.albertogeniola.merossconf.ui.MainActivityViewModel;
 import com.albertogeniola.merosslib.model.http.ApiCredentials;
 import com.albertogeniola.merosslib.model.http.ErrorCodes;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiMissingMFAException;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.android.material.progressindicator.CircularProgressIndicatorSpec;
@@ -62,6 +63,7 @@ public class LoginFragment extends Fragment {
     private EditText mHttpHostnameEditText;
     private EditText mHttpUsernameEditText;
     private EditText mHttpPasswordEditText;
+    private EditText mHttpMfaEditText;
     private MaterialButton mLoginButton;
     private MaterialButton mDiscoveryButton;
     private TextView httpLoginIntroText;
@@ -103,6 +105,7 @@ public class LoginFragment extends Fragment {
         mHttpHostnameEditText = mHttpHostnameInputLayout.getEditText();
         mHttpPasswordEditText = ((TextInputLayout)view.findViewById(R.id.httpPasswordEditText)).getEditText();
         mHttpUsernameEditText = ((TextInputLayout)view.findViewById(R.id.httpUsernameEditText)).getEditText();
+        mHttpMfaEditText = ((TextInputLayout)view.findViewById(R.id.httpMFA)).getEditText();
         mLoginButton = view.findViewById(R.id.loginButton);
         mDiscoveryButton = view.findViewById(R.id.discoveryButton);
         httpLoginIntroText = view.findViewById(R.id.httpLoginIntroText);
@@ -283,6 +286,10 @@ public class LoginFragment extends Fragment {
         }
         mHttpPasswordEditText.setError(null);
 
+        // Retrieve MFA, if specified
+        final String mfa = mHttpMfaEditText.getText().toString().trim();
+        mHttpMfaEditText.setError(null);
+
         // Execute the login.
         final ProgressDialog dialog = new ProgressDialog(getContext());
         dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
@@ -291,7 +298,7 @@ public class LoginFragment extends Fragment {
         dialog.setMessage("Please wait while logging in...");
         dialog.show();
 
-        HttpClientManager.getInstance().asyncLogin(strurl, username, password, new HttpClientManager.Callback<ApiCredentials>() {
+        HttpClientManager.getInstance().asyncLogin(strurl, username, password, mfa, new HttpClientManager.Callback<ApiCredentials>() {
             @Override
             public void onSuccess(ApiCredentials creds) {
                 AndroidPreferencesManager.storeHttpCredentials(requireContext(), creds);
@@ -305,7 +312,11 @@ public class LoginFragment extends Fragment {
             public void onFailure(Exception exception) {
                 dialog.dismiss();
                 String errorMessage = "An error occurred while executing the request.";
-                if (exception instanceof HttpApiException) {
+                if (exception instanceof HttpApiMissingMFAException) {
+                    errorMessage = "MFA code required. Please login with MFA.";
+                    mHttpMfaEditText.setError("Please specify MFA");
+                }
+                else if (exception instanceof HttpApiException) {
                     errorMessage = ((HttpApiException)exception).getErrorMessage();
                 }
                 Snackbar.make(mLoginButton,errorMessage , Snackbar.LENGTH_LONG).show();

@@ -33,6 +33,9 @@ public enum ErrorCodes {
     @SerializedName("1030")
     CODE_BAD_DOMAIN(1030),
 
+    @SerializedName("1033")
+    CODE_MFA_REQUIRED(1033),
+
     @SerializedName("1200")
     CODE_TOKEN_EXPIRED (1200),
 
@@ -71,6 +74,10 @@ public enum ErrorCodes {
             return "Invalid password format";
         else if (value==CODE_WRONG_EMAIL.value)
             return "Wrong email";
+        else if (value==CODE_BAD_DOMAIN.value)
+            return "Unsupported or invalid login URL";
+        else if (value==CODE_MFA_REQUIRED.value)
+            return "Missing MFA. Login requires MFA code";
         else if (value==CODE_TOKEN_INVALID.value)
             return "The token is invalid";
         else if (value==CODE_TOKEN_EXPIRED.value)

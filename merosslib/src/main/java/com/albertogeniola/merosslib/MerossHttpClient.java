@@ -8,6 +8,7 @@ import com.albertogeniola.merosslib.model.http.LoginResponseData;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiBadDomainException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiInvalidCredentialsException;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiMissingMFAException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiTokenException;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -18,6 +19,7 @@ import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
 import org.apache.commons.codec.binary.Base64;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -73,10 +75,13 @@ public class MerossHttpClient implements Serializable {
     }
 
     @SneakyThrows(UnsupportedEncodingException.class)
-    public void login(String apiUrl, String username, String password) throws IOException, HttpApiException, HttpApiInvalidCredentialsException {
+    public void login(String apiUrl, String username, String password, @Nullable String mfa) throws IOException, HttpApiException {
         HashMap<String, Object> data = new HashMap<>();
         data.put("email", username);
         data.put("password", password);
+        if (mfa != null) {
+            data.put("mfaCode", mfa);
+        }
         LoginResponseData result;
 
         try {
@@ -178,6 +183,8 @@ public class MerossHttpClient implements Serializable {
         switch (responseData.getApiStatus()) {
             case CODE_NO_ERROR:
                 return responseData.getData();
+            case CODE_MFA_REQUIRED:
+                throw new HttpApiMissingMFAException(responseData.getApiStatus());
             case CODE_BAD_DOMAIN:
                 token = TypeToken.getParameterized(ApiResponse.class, Map.class);
                 ApiResponse<Map> errorData = g.fromJson(strdata, token.getType());
