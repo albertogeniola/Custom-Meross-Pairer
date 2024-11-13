@@ -15,14 +15,14 @@ jobs:
       - name: Build the APK
         run: ./gradlew assRU
       - name: Upload APK
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: apk
           path: app/build/outputs/apk/releaseUnsigned/app-releaseUnsigned-unsigned.apk
       - name: Build the APP Bundle
         run: ./gradlew app:bundleRelease
       - name: Upload APP Bundle
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: bundle
           path: app/build/outputs/bundle/release/app-release.aab
