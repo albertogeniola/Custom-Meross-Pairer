@@ -30,6 +30,9 @@ public enum ErrorCodes {
     @SerializedName("1019")
     CODE_TOKEN_INVALID(1019),
 
+    @SerializedName("1030")
+    CODE_BAD_DOMAIN(1030),
+
     @SerializedName("1200")
     CODE_TOKEN_EXPIRED (1200),
 

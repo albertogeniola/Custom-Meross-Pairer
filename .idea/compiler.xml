@@ -11,7 +11,7 @@
         <module name="meross_pair.merosslib.main" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel target="1.7">
+    <bytecodeTargetLevel target="11">
       <module name="meross_pair.app" target="21" />
     </bytecodeTargetLevel>
   </component>

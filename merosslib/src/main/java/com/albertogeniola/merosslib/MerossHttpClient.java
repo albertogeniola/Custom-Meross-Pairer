@@ -5,6 +5,7 @@ import com.albertogeniola.merosslib.model.http.ApiResponse;
 import com.albertogeniola.merosslib.model.http.DeviceInfo;
 import com.albertogeniola.merosslib.model.http.ErrorCodes;
 import com.albertogeniola.merosslib.model.http.LoginResponseData;
+import com.albertogeniola.merosslib.model.http.exceptions.HttpApiBadDomainException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiInvalidCredentialsException;
 import com.albertogeniola.merosslib.model.http.exceptions.HttpApiTokenException;
@@ -27,6 +28,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -43,7 +45,7 @@ public class MerossHttpClient implements Serializable {
 
     private static final Gson g =  Utils.getGson();
     private static final String NOONCE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static final String LOGIN_PATH = "/v1/Auth/Login";
+    private static final String LOGIN_PATH = "/v1/Auth/signIn";
     private static final String DEVICE_LIST = "/v1/Device/devList";
     private static final String LOGOUT_PATH = "/v1/Profile/logout";
     private static final String SECRET = "23x17ahWarFH6w29";
@@ -75,7 +77,13 @@ public class MerossHttpClient implements Serializable {
         HashMap<String, Object> data = new HashMap<>();
         data.put("email", username);
         data.put("password", password);
-        LoginResponseData result = authenticatedPost( apiUrl+LOGIN_PATH, data, null, LoginResponseData.class);
+        LoginResponseData result;
+
+        try {
+            result = authenticatedPost(apiUrl + LOGIN_PATH, data, null, LoginResponseData.class);
+        } catch (HttpApiBadDomainException ex) {
+            result = authenticatedPost(ex.getDomain() + LOGIN_PATH, data, null, LoginResponseData.class);
+        }
 
         this.mCredentials = new ApiCredentials(
                 apiUrl,
@@ -126,7 +134,7 @@ public class MerossHttpClient implements Serializable {
     }
 
     @SneakyThrows({UnsupportedEncodingException.class, NoSuchAlgorithmException.class})
-    private <T> T authenticatedPost(@NonNull String url, HashMap<String, Object> data, String httpToken, Type dataType) throws IOException, HttpApiException, HttpApiInvalidCredentialsException {
+    private <T> T authenticatedPost(@NonNull String url, HashMap<String, Object> data, String httpToken, Type dataType) throws IOException, HttpApiException  {
 
         String nonce = generateNonce(16);
         long timestampMillis = new Date().getTime();
@@ -170,6 +178,11 @@ public class MerossHttpClient implements Serializable {
         switch (responseData.getApiStatus()) {
             case CODE_NO_ERROR:
                 return responseData.getData();
+            case CODE_BAD_DOMAIN:
+                token = TypeToken.getParameterized(ApiResponse.class, Map.class);
+                ApiResponse<Map> errorData = g.fromJson(strdata, token.getType());
+                String newDomain = errorData.getData().get("domain").toString();
+                throw new HttpApiBadDomainException(responseData.getApiStatus(), newDomain);
             case CODE_WRONG_CREDENTIALS:
             case CODE_UNEXISTING_ACCOUNT:
                 throw new HttpApiInvalidCredentialsException(responseData.getApiStatus());
