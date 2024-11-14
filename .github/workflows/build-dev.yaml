@@ -39,6 +39,10 @@ jobs:
           prerelease: true
           tag_name: dev-${{ github.run_id }}
           release_name: PreRelease dev-${{ github.run_id }}
+      - name: List files
+        run: |
+          ls -l
+          ls -l apk
       - name: Upload Release APK
         id: upload_release_asset
         uses: actions/upload-release-asset@v1.0.1
