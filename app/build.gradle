@@ -30,6 +30,7 @@ android {
             proguardFiles getDefaultProguardFile(
                     'proguard-android-optimize.txt'),
                     'proguard-rules.pro'
+            signingConfig signingConfigs.debug
         }
         releaseUnsigned.initWith(buildTypes.release)
         releaseUnsigned {

@@ -311,6 +311,7 @@ public class LoginFragment extends Fragment {
             @Override
             public void onFailure(Exception exception) {
                 dialog.dismiss();
+                Log.e(TAG, "Error occurred", exception);
                 String errorMessage = "An error occurred while executing the request.";
                 if (exception instanceof HttpApiMissingMFAException) {
                     errorMessage = "MFA code required. Please login with MFA.";
