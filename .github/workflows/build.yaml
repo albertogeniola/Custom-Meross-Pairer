@@ -22,11 +22,15 @@ jobs:
           path: app/build/outputs/apk/releaseUnsigned/app-releaseUnsigned-unsigned.apk
       - name: Build the APP Bundle
         run: ./gradlew app:bundleReleaseUnsigned
+      - name: Debug
+        run: |
+          ls -l app/build/outputs/bundle/
+          ls -l app/build/outputs/bundle/release
       - name: Upload APP Bundle
         uses: actions/upload-artifact@v4
         with:
           name: bundle
-          path: app/build/outputs/bundle/release/app-release.aab
+          path: app/build/outputs/bundle/release/app-releaseUnsigned.aab
   release:
     name: Release APK
     needs: build
