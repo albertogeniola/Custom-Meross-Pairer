@@ -25,12 +25,12 @@ jobs:
       - name: Debug
         run: |
           ls -l app/build/outputs/bundle/
-          ls -l app/build/outputs/bundle/release
+          ls -l app/build/outputs/bundle/releaseUnsigned
       - name: Upload APP Bundle
         uses: actions/upload-artifact@v4
         with:
           name: bundle
-          path: app/build/outputs/bundle/release/app-releaseUnsigned.aab
+          path: app/build/outputs/bundle/releaseUnsigned/app-releaseUnsigned.aab
   release:
     name: Release APK
     needs: build
