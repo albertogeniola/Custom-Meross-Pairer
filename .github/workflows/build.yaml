@@ -67,16 +67,6 @@ jobs:
           keyPassword: ${{ secrets.KEY_PASSWORD }}
         env:
           BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
-      - name: Debug
-        run: |
-          ls -l ./release
-          ls -l .
-      - name: Debug 2
-        run: |
-          echo ${{ steps.sign_app.signedReleaseFile }}
-          echo ${{ steps.sign_app.signedReleaseFiles }}
-          echo ${{ steps.sign_app.signedReleaseFile0 }}
-          echo ${{ steps.sign_app.signedReleaseFile1 }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -94,7 +84,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/app-releaseUnsigned-unsigned.apk
+          asset_path: release/app-releaseUnsigned-unsigned-signed.apk
           asset_name: MerossPairer.apk
           asset_content_type: application/zip
       - name: Upload Release AAB
@@ -104,6 +94,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/app-release.aab
+          asset_path: release/app-releaseUnsigned.aab
           asset_name: MerossPairer.aab
           asset_content_type: application/zip
