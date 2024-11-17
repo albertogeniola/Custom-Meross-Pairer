@@ -67,6 +67,16 @@ jobs:
           keyPassword: ${{ secrets.KEY_PASSWORD }}
         env:
           BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
+      - name: Debug
+        run: |
+          ls -l app/build/outputs/bundle/
+          ls -l app/build/outputs/bundle/releaseUnsigned
+      - name: Debug 2
+        run: |
+          echo ${{ steps.sign_app.signedReleaseFile }}
+          echo ${{ steps.sign_app.signedReleaseFiles }}
+          echo ${{ steps.sign_app.signedReleaseFile0 }}
+          echo ${{ steps.sign_app.signedReleaseFile1 }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
