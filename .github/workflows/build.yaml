@@ -69,8 +69,8 @@ jobs:
           BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
       - name: Debug
         run: |
-          ls -l app/build/outputs/bundle/
-          ls -l app/build/outputs/bundle/releaseUnsigned
+          ls -l ./release
+          ls -l .
       - name: Debug 2
         run: |
           echo ${{ steps.sign_app.signedReleaseFile }}
