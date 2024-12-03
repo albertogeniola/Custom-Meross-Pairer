@@ -7,21 +7,12 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.os.Build;
-import android.provider.Settings;
 import android.util.DisplayMetrics;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.location.LocationManagerCompat;
 
-import com.albertogeniola.merosslib.model.Cipher;
-import com.albertogeniola.merosslib.model.Encryption;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import java.util.regex.Pattern;
-
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
 
 public class AndroidUtils {

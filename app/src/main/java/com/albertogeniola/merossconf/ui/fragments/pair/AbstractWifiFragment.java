@@ -14,7 +14,6 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
-import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -23,9 +22,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
 import com.albertogeniola.merossconf.AndroidUtils;
@@ -36,16 +38,17 @@ import org.eclipse.paho.client.mqttv3.util.Strings;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import javax.crypto.Mac;
-
 
 public abstract class AbstractWifiFragment extends Fragment {
     private static final String TAG = "AbstractWifiFragment";
     private final Timer mTimer;
     private WifiManager mWifiManager;
     private ConnectivityManager mConnectivityManager;
-    private static final String[] WIFI_PERMS = new String[] {Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.CHANGE_WIFI_STATE, Manifest.permission.CHANGE_NETWORK_STATE};
+    private static final String[] WIFI_PERMS = new String[] {
+            Manifest.permission.NEARBY_WIFI_DEVICES,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.CHANGE_WIFI_STATE,
+            Manifest.permission.CHANGE_NETWORK_STATE};
 
     private static final int REQUEST_PERMISSION_CODE = 1;
 
@@ -74,9 +77,24 @@ public abstract class AbstractWifiFragment extends Fragment {
     // Holds the callback for network connectivity (only used for version > LOLLIPOP)
     private ConnectivityManager.NetworkCallback mNetworkCallback;
 
+    private ActivityResultContracts.RequestMultiplePermissions multiplePermissionsContract;
+    private ActivityResultLauncher<String[]> multiplePermissionLauncher;
+
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        multiplePermissionsContract = new ActivityResultContracts.RequestMultiplePermissions();
+        multiplePermissionLauncher = registerForActivityResult(multiplePermissionsContract, isGranted -> {
+            if (isGranted.containsValue(false)) {
+                multiplePermissionLauncher.launch(WIFI_PERMS);
+                onMissingWifiPermissions(mTargetSsid);
+            } else {
+                onWifiPermissionsGranted(mTargetSsid, mTargetBssid);
+            }
+        });
+
         mWifiManager = (WifiManager) requireContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         mConnectivityManager = (ConnectivityManager) requireContext().getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -151,6 +169,29 @@ public abstract class AbstractWifiFragment extends Fragment {
         outState.putBoolean("mWifiConnectionAttemptInProgress", mWifiConnectionAttemptInProgress);
     }
 
+    private boolean hasPermissions(String[] permissions) {
+        if (permissions != null) {
+            for (String permission : permissions) {
+                if (ActivityCompat.checkSelfPermission(requireContext(), permission) != PackageManager.PERMISSION_GRANTED) {
+                    Log.d("PERMISSIONS", "Permission is not granted: " + permission);
+                    return false;
+                }
+                Log.d("PERMISSIONS", "Permission already granted: " + permission);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void askPermissions(ActivityResultLauncher<String[]> multiplePermissionLauncher) {
+        if (!hasPermissions(WIFI_PERMS)) {
+            Log.d("PERMISSIONS", "Launching multiple contract permission launcher for ALL required permissions");
+            multiplePermissionLauncher.launch(WIFI_PERMS);
+        } else {
+            Log.d("PERMISSIONS", "All permissions are already granted");
+        }
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -190,7 +231,8 @@ public abstract class AbstractWifiFragment extends Fragment {
             }
 
             // If the user did not yet grant Wifi and Location permissions, ask them here and abort the connection.
-            requestPermissions(WIFI_PERMS, REQUEST_PERMISSION_CODE);
+            askPermissions(multiplePermissionLauncher);
+            //requestPermissions(WIFI_PERMS, REQUEST_PERMISSION_CODE);
 
             // Return false, so the caller know it has to retry the operation after the
             // user's consent to use wifi
@@ -446,22 +488,4 @@ public abstract class AbstractWifiFragment extends Fragment {
         }
     };
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        Log.i(TAG, "User permissions handler...");
-        boolean permsOk = true;
-        if (requestCode == REQUEST_PERMISSION_CODE) {
-            for (int i=0; i<permissions.length;i++) {
-                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
-                    permsOk = false;
-                    break;
-                }
-            }
-
-            if (!permsOk)
-                onMissingWifiPermissions(mTargetSsid);
-            else
-                onWifiPermissionsGranted(mTargetSsid, mTargetBssid);
-        }
-    }
 }

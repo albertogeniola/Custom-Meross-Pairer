@@ -1,6 +1,11 @@
 package com.albertogeniola.merossconf.ui.fragments.pair;
 
-import androidx.appcompat.app.AlertDialog;
+import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
+import static android.Manifest.permission.ACCESS_FINE_LOCATION;
+import static android.Manifest.permission.CHANGE_NETWORK_STATE;
+import static android.Manifest.permission.CHANGE_WIFI_STATE;
+import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -22,8 +27,12 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -45,11 +54,6 @@ import com.google.android.material.snackbar.Snackbar;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.Manifest.permission.ACCESS_COARSE_LOCATION;
-import static android.Manifest.permission.ACCESS_FINE_LOCATION;
-import static android.Manifest.permission.CHANGE_NETWORK_STATE;
-import static android.Manifest.permission.CHANGE_WIFI_STATE;
-
 public class ScanDevicesFragment extends Fragment {
     private static final int REQUEST_PERMISSION_CODE = 1;
     private static final String TAG = "ScanDevicesFragment";
@@ -64,19 +68,72 @@ public class ScanDevicesFragment extends Fragment {
     private SwipeRefreshLayout swipeContainer;
     private Handler uiHandler;
     private boolean scanning;
+    private ActivityResultLauncher<String[]> multiplePermissionLauncher;
 
-    private static final String[] REQUIRED_PERMISSIONS = new String[] {ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, CHANGE_WIFI_STATE, CHANGE_NETWORK_STATE };
+    private static String[] REQUIRED_PERMISSIONS = null;
 
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        if (android.os.Build.VERSION.SDK_INT > 32){
+            REQUIRED_PERMISSIONS = new String[] {
+                    NEARBY_WIFI_DEVICES,
+                    ACCESS_FINE_LOCATION,
+                    ACCESS_COARSE_LOCATION,
+                    CHANGE_WIFI_STATE,
+                    CHANGE_NETWORK_STATE
+            };
+        } else{
+            // do something for phones running an SDK before lollipop
+            REQUIRED_PERMISSIONS = new String[] {
+                    ACCESS_FINE_LOCATION,
+                    ACCESS_COARSE_LOCATION,
+                    CHANGE_WIFI_STATE,
+                    CHANGE_NETWORK_STATE };
+        }
+
         this.wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         this.locationManager = (LocationManager)getContext().getSystemService(Context.LOCATION_SERVICE);
         this.uiHandler = new Handler(Looper.getMainLooper());
         scanning = false;
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
+
+        multiplePermissionLauncher = registerForActivityResult(new ActivityResultContracts
+                .RequestMultiplePermissions(), isGranted -> {
+            Log.d("PERMISSIONS", "Launcher result: " + isGranted.toString());
+            if (isGranted.containsValue(false)) {
+                Log.d("PERMISSIONS", "At least one of the permissions was not granted, launching again...");
+                Toast.makeText(requireContext(), "This app won't work without required permissions", Toast.LENGTH_LONG).show();
+            } else {
+                startScan();
+            }
+        });
+        multiplePermissionLauncher.launch(REQUIRED_PERMISSIONS);
+    }
+
+    private void askPermissions(ActivityResultLauncher<String[]> multiplePermissionLauncher) {
+        if (!hasPermissions(REQUIRED_PERMISSIONS)) {
+            Log.d("PERMISSIONS", "Launching multiple contract permission launcher for ALL required permissions");
+            multiplePermissionLauncher.launch(REQUIRED_PERMISSIONS);
+        } else {
+            Log.d("PERMISSIONS", "All permissions are already granted");
+        }
+    }
+
+    private boolean hasPermissions(String[] permissions) {
+        if (permissions != null) {
+            for (String permission : permissions) {
+                if (ActivityCompat.checkSelfPermission(requireContext(), permission) != PackageManager.PERMISSION_GRANTED) {
+                    Log.d("PERMISSIONS", "Permission is not granted: " + permission);
+                    return false;
+                }
+                Log.d("PERMISSIONS", "Permission already granted: " + permission);
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -186,25 +243,6 @@ public class ScanDevicesFragment extends Fragment {
         startScan();
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        Log.i(TAG, "User permissions handler...");
-        boolean permsOk = true;
-        if (requestCode == REQUEST_PERMISSION_CODE) {
-            for (int i=0; i<permissions.length;i++) {
-                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
-                    permsOk = false;
-                    break;
-                }
-            }
-
-            if (!permsOk)
-                Toast.makeText(requireContext(), "This app won't work without required permissions", Toast.LENGTH_LONG).show();
-            else
-                startScan();
-        }
-    }
-
     private void startScan() {
         if (scanning) {
             Toast.makeText(ScanDevicesFragment.this.getContext(), "Scan already in progress.", Toast.LENGTH_SHORT).show();
@@ -222,7 +260,8 @@ public class ScanDevicesFragment extends Fragment {
             permissionAlert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    requestPermissions(REQUIRED_PERMISSIONS, REQUEST_PERMISSION_CODE);
+                    askPermissions(multiplePermissionLauncher);
+                    //requestPermissions(REQUIRED_PERMISSIONS, REQUEST_PERMISSION_CODE);
                 }
             });
             permissionAlert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
