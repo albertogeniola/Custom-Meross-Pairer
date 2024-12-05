@@ -6,13 +6,13 @@ import static android.Manifest.permission.CHANGE_NETWORK_STATE;
 import static android.Manifest.permission.CHANGE_WIFI_STATE;
 import static android.Manifest.permission.NEARBY_WIFI_DEVICES;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.location.LocationManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -51,17 +51,17 @@ import com.albertogeniola.merossconf.ui.PairActivityViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
+import org.isomorphism.util.TokenBucket;
+import org.isomorphism.util.TokenBuckets;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class ScanDevicesFragment extends Fragment {
-    private static final int REQUEST_PERMISSION_CODE = 1;
-    private static final String TAG = "ScanDevicesFragment";
-
     private PairActivityViewModel pairActivityViewModel;
 
     private WifiManager wifiManager = null;
-    private LocationManager locationManager = null;
     private ProgressBar scanningProgressBar;
     private FloatingActionButton fab;
     private MerossWifiScanAdapter adapter = new MerossWifiScanAdapter();
@@ -69,15 +69,21 @@ public class ScanDevicesFragment extends Fragment {
     private Handler uiHandler;
     private boolean scanning;
     private ActivityResultLauncher<String[]> multiplePermissionLauncher;
-
     private static String[] REQUIRED_PERMISSIONS = null;
-
+    private static final String STATE_N_TOKENS = "_state_num_tokens";
+    private static final long DEFAULT_N_SCANS_PER_INTERVAL = 4;
+    private static final long DEFAULT_INTERVAL_MINUTES = 2;
+    private final TokenBucket scanBucket = TokenBuckets.builder().withCapacity(DEFAULT_N_SCANS_PER_INTERVAL).withFixedIntervalRefillStrategy(DEFAULT_N_SCANS_PER_INTERVAL, DEFAULT_INTERVAL_MINUTES, TimeUnit.MINUTES).build();
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        long tokens = DEFAULT_N_SCANS_PER_INTERVAL; // by default we are only allowed
+        if (savedInstanceState != null)
+            tokens = savedInstanceState.getLong(STATE_N_TOKENS);
+        scanBucket.refill(tokens);
         if (android.os.Build.VERSION.SDK_INT > 32){
+            // For releases > 32, we just need
             REQUIRED_PERMISSIONS = new String[] {
                     NEARBY_WIFI_DEVICES,
                     ACCESS_FINE_LOCATION,
@@ -86,7 +92,8 @@ public class ScanDevicesFragment extends Fragment {
                     CHANGE_NETWORK_STATE
             };
         } else{
-            // do something for phones running an SDK before lollipop
+            // For releases <= 32, we need to ask also for location permissions in order to scan
+            // wifis
             REQUIRED_PERMISSIONS = new String[] {
                     ACCESS_FINE_LOCATION,
                     ACCESS_COARSE_LOCATION,
@@ -95,7 +102,6 @@ public class ScanDevicesFragment extends Fragment {
         }
 
         this.wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        this.locationManager = (LocationManager)getContext().getSystemService(Context.LOCATION_SERVICE);
         this.uiHandler = new Handler(Looper.getMainLooper());
         scanning = false;
         pairActivityViewModel = new ViewModelProvider(requireActivity()).get(PairActivityViewModel.class);
@@ -139,6 +145,12 @@ public class ScanDevicesFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+    }
+
+    @Override
+    public void onSaveInstanceState(final Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong(STATE_N_TOKENS, scanBucket.getNumTokens());
     }
 
     @Override
@@ -244,6 +256,12 @@ public class ScanDevicesFragment extends Fragment {
     }
 
     private void startScan() {
+        if (!scanBucket.tryConsume(1)) {
+            long seconds = scanBucket.getDurationUntilNextRefill(TimeUnit.SECONDS);
+            Toast.makeText(ScanDevicesFragment.this.getContext(), "Scan rate limited. Wait " + seconds + " seconds before scanning again.", Toast.LENGTH_SHORT).show();
+            return ;
+        }
+
         if (scanning) {
             Toast.makeText(ScanDevicesFragment.this.getContext(), "Scan already in progress.", Toast.LENGTH_SHORT).show();
             return;
@@ -261,7 +279,6 @@ public class ScanDevicesFragment extends Fragment {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     askPermissions(multiplePermissionLauncher);
-                    //requestPermissions(REQUIRED_PERMISSIONS, REQUEST_PERMISSION_CODE);
                 }
             });
             permissionAlert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -307,10 +324,12 @@ public class ScanDevicesFragment extends Fragment {
         this.scanning = false;
     }
 
+    @SuppressLint("MissingPermission") // Scan is only triggered upon permissions checks
     private void scanSuccess() {
         updateScanData(wifiManager.getScanResults());
     }
 
+    @SuppressLint("MissingPermission") // Scan is only triggered upon permissions checks
     private void scanFailure() {
         // handle failure: new scan did NOT succeed
         // consider using old scan results: these are the OLD results!

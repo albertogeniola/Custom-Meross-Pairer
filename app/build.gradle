@@ -10,7 +10,7 @@ android {
         minSdkVersion 16
         targetSdkVersion 35
         versionCode 20
-        versionName "0.0.10"
+        versionName "0.0.11"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -85,4 +85,8 @@ dependencies {
 
     // required to avoid crash on Android 12 API 31
     implementation 'androidx.work:work-runtime-ktx:2.7.1'
+
+    // Token bucket
+    implementation ('org.isomorphism:token-bucket:1.7')
+    implementation 'com.google.guava:guava:33.3.1-android'
 }

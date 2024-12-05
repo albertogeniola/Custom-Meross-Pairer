@@ -44,12 +44,7 @@ public abstract class AbstractWifiFragment extends Fragment {
     private final Timer mTimer;
     private WifiManager mWifiManager;
     private ConnectivityManager mConnectivityManager;
-    private static final String[] WIFI_PERMS = new String[] {
-            Manifest.permission.NEARBY_WIFI_DEVICES,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.CHANGE_WIFI_STATE,
-            Manifest.permission.CHANGE_NETWORK_STATE};
-
+    private static String[] WIFI_PERMS = null;
     private static final int REQUEST_PERMISSION_CODE = 1;
 
     // holds the state of the wifi connection attempt
@@ -85,10 +80,24 @@ public abstract class AbstractWifiFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        if (android.os.Build.VERSION.SDK_INT <= 32) {
+            WIFI_PERMS = new String[]{
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.CHANGE_WIFI_STATE,
+                    Manifest.permission.CHANGE_NETWORK_STATE};
+        } else {
+            WIFI_PERMS = new String[]{
+                    Manifest.permission.NEARBY_WIFI_DEVICES,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.CHANGE_WIFI_STATE,
+                    Manifest.permission.CHANGE_NETWORK_STATE};
+        }
+
         multiplePermissionsContract = new ActivityResultContracts.RequestMultiplePermissions();
         multiplePermissionLauncher = registerForActivityResult(multiplePermissionsContract, isGranted -> {
             if (isGranted.containsValue(false)) {
-                multiplePermissionLauncher.launch(WIFI_PERMS);
+                askPermissions(multiplePermissionLauncher);
                 onMissingWifiPermissions(mTargetSsid);
             } else {
                 onWifiPermissionsGranted(mTargetSsid, mTargetBssid);
@@ -116,7 +125,7 @@ public abstract class AbstractWifiFragment extends Fragment {
         super.onDestroyView();
 
         // Unschedule the timeout task, if any
-        if (mTimeoutTask!=null) {
+        if (mTimeoutTask != null) {
             mTimeoutTask.cancel();
             mTimeoutTask = null;
         }
@@ -185,7 +194,6 @@ public abstract class AbstractWifiFragment extends Fragment {
 
     private void askPermissions(ActivityResultLauncher<String[]> multiplePermissionLauncher) {
         if (!hasPermissions(WIFI_PERMS)) {
-            Log.d("PERMISSIONS", "Launching multiple contract permission launcher for ALL required permissions");
             multiplePermissionLauncher.launch(WIFI_PERMS);
         } else {
             Log.d("PERMISSIONS", "All permissions are already granted");
@@ -199,11 +207,12 @@ public abstract class AbstractWifiFragment extends Fragment {
 
     /**
      * Starts the wifi connection to the specified ssid
-     * @param targetSsid Target Wifi SSID to connect to
-     * @param targetBssid (Optional) Target BSSID
+     *
+     * @param targetSsid       Target Wifi SSID to connect to
+     * @param targetBssid      (Optional) Target BSSID
      * @param targetPassphrase (Optional) Wifi passphrase to use
-     * @param reason A reason to show to the user that explains why Wifi is being requested.
-     * @param timeout Number of milliseconds to wait before issuing a timeout to the wifi operation
+     * @param reason           A reason to show to the user that explains why Wifi is being requested.
+     * @param timeout          Number of milliseconds to wait before issuing a timeout to the wifi operation
      * @throws PermissionNotGrantedException In case no enough permissions have been granted
      *                                       to the app by the user. In such case, permissions
      *                                       is automatically requested by this method.
@@ -223,7 +232,7 @@ public abstract class AbstractWifiFragment extends Fragment {
         if (!AndroidUtils.checkPermissions(requireContext(), WIFI_PERMS)) {
 
             // If a reason was specified, show it here.
-            if (reason!=null) {
+            if (reason != null) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
                 builder.setMessage(reason).setTitle("Wifi Access Request");
                 AlertDialog dialog = builder.create();
@@ -232,7 +241,6 @@ public abstract class AbstractWifiFragment extends Fragment {
 
             // If the user did not yet grant Wifi and Location permissions, ask them here and abort the connection.
             askPermissions(multiplePermissionLauncher);
-            //requestPermissions(WIFI_PERMS, REQUEST_PERMISSION_CODE);
 
             // Return false, so the caller know it has to retry the operation after the
             // user's consent to use wifi
@@ -259,11 +267,13 @@ public abstract class AbstractWifiFragment extends Fragment {
      * Starts the connection attempt against the legacy API.
      * To do so, it registers a broadcast receiver for the network connection events and
      * waits for the connection to attempt to the specified network.
+     *
      * @param ssid
      * @param passphrase
-     * @param timeout Timeout in milliseconds
+     * @param timeout    Timeout in milliseconds
      */
-    @SuppressLint("MissingPermission") //This piece of code is called only after permissions have bee granted
+    @SuppressLint("MissingPermission")
+    //This piece of code is called only after permissions have bee granted
     private void startWifiConnectionLegacy(String ssid, @Nullable String passphrase, int timeout) {
 
         WifiConfiguration targetWifiConf = null;
@@ -271,14 +281,14 @@ public abstract class AbstractWifiFragment extends Fragment {
         // Locate the existing network configuration entry.
         for (android.net.wifi.WifiConfiguration conf : mWifiManager.getConfiguredNetworks()) {
 
-            if (conf.SSID.compareTo("\""+ssid+"\"") == 0) {
+            if (conf.SSID.compareTo("\"" + ssid + "\"") == 0) {
                 // Found a matching configuration: make sure the network passphrase is OK
-                if (conf.preSharedKey != null && conf.preSharedKey.length()>0 && Strings.isEmpty(passphrase) || Strings.isEmpty(conf.preSharedKey) && !Strings.isEmpty(passphrase)) {
-                    Log.i(TAG, "Network configuration ("+conf.networkId+") ignored: passphrase mismatch.");
+                if (conf.preSharedKey != null && conf.preSharedKey.length() > 0 && Strings.isEmpty(passphrase) || Strings.isEmpty(conf.preSharedKey) && !Strings.isEmpty(passphrase)) {
+                    Log.i(TAG, "Network configuration (" + conf.networkId + ") ignored: passphrase mismatch.");
                     continue;
                 }
                 // If we reach this part, it means we found a valid, consistent wifi configuration to be used.
-                Log.i(TAG, "Network configuration ("+conf.networkId+") found for ssid "+ssid+".");
+                Log.i(TAG, "Network configuration (" + conf.networkId + ") found for ssid " + ssid + ".");
                 targetWifiConf = conf;
                 break;
             }
@@ -288,10 +298,10 @@ public abstract class AbstractWifiFragment extends Fragment {
         if (targetWifiConf == null || targetWifiConf.networkId == -1) {
             Log.i(TAG, "Adding new Wifi configuration for the desired network.");
             targetWifiConf = new android.net.wifi.WifiConfiguration();
-            targetWifiConf.SSID = "\""+ssid+"\"";
+            targetWifiConf.SSID = "\"" + ssid + "\"";
 
             if (!Strings.isEmpty(passphrase)) {
-                targetWifiConf.preSharedKey = "\""+passphrase+"\"";
+                targetWifiConf.preSharedKey = "\"" + passphrase + "\"";
                 targetWifiConf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
             } else {
                 targetWifiConf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
@@ -302,7 +312,7 @@ public abstract class AbstractWifiFragment extends Fragment {
         }
 
         // Disconnect from current network
-        Log.i(TAG, "Forcing disconnection/reconnection to the selected wifi "+targetWifiConf);
+        Log.i(TAG, "Forcing disconnection/reconnection to the selected wifi " + targetWifiConf);
         mWifiManager.disconnect();
 
         // Start the timeout countdown
@@ -322,7 +332,7 @@ public abstract class AbstractWifiFragment extends Fragment {
                 .setSsid(ssid);
 
         if (bssid != null) {
-            specifierBuilder.setBssid( MacAddress.fromString(bssid));
+            specifierBuilder.setBssid(MacAddress.fromString(bssid));
         }
 
         if (passphrase != null)
@@ -343,6 +353,7 @@ public abstract class AbstractWifiFragment extends Fragment {
      * Registers a broadcast received that listens to WIFI_STATE changes. It also sets the value
      * of the SSID to configure the broadcast receiver to intercept the desired network
      * connection.
+     *
      * @param ssid SSID value that represent the network we are looking for
      */
     private void registerWifiBroadcastReceiver(String ssid) {
@@ -392,7 +403,7 @@ public abstract class AbstractWifiFragment extends Fragment {
 
     private void notifyWifiConnected() {
         mWifiConnectionAttemptInProgress = false;
-        if (mTimeoutTask!=null) {
+        if (mTimeoutTask != null) {
             mTimeoutTask.cancel();
             mTimeoutTask = null;
         }
@@ -401,7 +412,7 @@ public abstract class AbstractWifiFragment extends Fragment {
 
     private void notifyWifiUnavailable() {
         mWifiConnectionAttemptInProgress = false;
-        if (mTimeoutTask!=null) {
+        if (mTimeoutTask != null) {
             mTimeoutTask.cancel();
             mTimeoutTask = null;
         }
@@ -452,7 +463,7 @@ public abstract class AbstractWifiFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (WifiManager.NETWORK_STATE_CHANGED_ACTION .equals(action)) {
+            if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(action)) {
                 NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 if (networkInfo == null) {
                     Log.w(TAG, "Network info is null!");
@@ -463,7 +474,7 @@ public abstract class AbstractWifiFragment extends Fragment {
                 String connectedSsid = null;
                 String connectedBssid = null;
 
-                if (connectionInfo!=null) {
+                if (connectionInfo != null) {
                     connectedSsid = connectionInfo.getSSID();
                     connectedBssid = connectionInfo.getBSSID();
                 }
@@ -475,9 +486,9 @@ public abstract class AbstractWifiFragment extends Fragment {
                     Log.i(TAG, "WifiState updated. Connected:  " + networkInfo.isConnected() + ", SSID: " + connectedSsid);
 
                 if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI && networkInfo.isConnected()) {
-                    Log.i(TAG, "WifiState updated. Current SSID: "+connectedSsid);
+                    Log.i(TAG, "WifiState updated. Current SSID: " + connectedSsid);
 
-                    String quotedSsid = "\""+mTargetSsid+"\"";
+                    String quotedSsid = "\"" + mTargetSsid + "\"";
                     if (quotedSsid.compareTo(connectedSsid) == 0) {
                         // Ok, we found the network we were looking for.
                         notifyWifiConnected();
