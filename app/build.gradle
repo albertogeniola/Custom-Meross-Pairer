@@ -8,6 +8,7 @@ android {
     defaultConfig {
         applicationId "com.albertogeniola.merossconf"
         minSdkVersion 16
+        multiDexEnabled true
         targetSdkVersion 35
         versionCode 20
         versionName "0.0.11"
