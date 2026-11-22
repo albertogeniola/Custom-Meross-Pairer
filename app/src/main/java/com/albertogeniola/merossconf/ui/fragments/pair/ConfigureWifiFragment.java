@@ -42,6 +42,7 @@ import com.albertogeniola.merosslib.model.protocol.payloads.GetConfigWifiListEnt
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -68,6 +69,7 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     private boolean mDiscoveryInProgress = false;
     private boolean mResolveInProgress = false;
     private WifiConfiguration mSelectedWifi = null;
+    private final ArrayDeque<NsdServiceInfo> mPendingResolves = new ArrayDeque<>();
 
     private Timer mTimer;
 
@@ -155,9 +157,15 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer = null;
+        }
         if (mDiscoveryInProgress)
             mNsdManager.stopServiceDiscovery(mDiscoveryListener);
-        mResolveInProgress = false;
+        synchronized (mPendingResolves) {
+            mPendingResolves.clear();
+        }
     }
 
     @Override
@@ -246,15 +254,42 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
             mUiHandler.post(r);
     }
 
+    /**
+     * Builds the wifi configuration from the current UI selection.
+     * Returns null (and notifies the user) if the selection is incomplete.
+     */
+    @Nullable
+    private WifiConfiguration buildWifiConfigurationFromUi() {
+        if (wifiSpinner.getSelectedItemPosition() < 0) {
+            Toast.makeText(getContext(), "Please select a Wifi AP from the dropdown", Toast.LENGTH_LONG).show();
+            return null;
+        }
+
+        // If the wifi requires a password, make sure the user inputted one.
+        GetConfigWifiListEntry selectedWifi = adapter.getItem(wifiSpinner.getSelectedItemPosition());
+        String clearPassword = mWifiPasswordTextView.getEditText().getText().toString();
+        if (selectedWifi.getEncryption() != Encryption.OPEN && clearPassword.isEmpty()) {
+            mWifiPasswordTextView.setError("That wifi requires a password.");
+            return null;
+        }
+        mWifiPasswordTextView.setError(null);
+        return new WifiConfiguration(selectedWifi, clearPassword);
+    }
+
     private final View.OnClickListener skipButtonClick = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
+            WifiConfiguration conf = buildWifiConfigurationFromUi();
+            if (conf == null)
+                return;
+            mSelectedWifi = conf;
+
             // Just store the current configuration and proceed to the next fragment
             pairActivityViewModel.setMerossWifiConfiguration(mSelectedWifi);
 
             // Store the password, if required
             if (mSaveWifiPasswordCheckBox.isChecked())
-                AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mSelectedWifi.getScannedWifi().getBssid(), mWifiPasswordTextView.getEditText().toString());
+                AndroidPreferencesManager.storeWifiStoredPassword(requireContext(), mSelectedWifi.getScannedWifi().getBssid(), mSelectedWifi.getClearWifiPassword());
 
             // Launch the next fragment
             NavController ctrl = NavHostFragment.findNavController(ConfigureWifiFragment.this);
@@ -265,24 +300,11 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
     private final View.OnClickListener nextButtonClick = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            // Validate the configuration...
-            if (wifiSpinner.getSelectedItemPosition() < 0) {
-                Toast.makeText(getContext(), "Please select a Wifi AP from the dropdown", Toast.LENGTH_LONG).show();
+            WifiConfiguration conf = buildWifiConfigurationFromUi();
+            if (conf == null)
                 return;
-            }
-
-            // If the wifi requires a password, make sure the user inputted one.
-            GetConfigWifiListEntry selectedWifi = adapter.getItem(wifiSpinner.getSelectedItemPosition());
-            if (selectedWifi.getEncryption() != Encryption.OPEN && mWifiPasswordTextView.getEditText().getText().toString().isEmpty()) {
-                mWifiPasswordTextView.setError("That wifi requires a password.");
-                return ;
-            } else {
-                mWifiPasswordTextView.setError(null);
-            }
 
             // Start wifi connection validation
-            String clearPassword = mWifiPasswordTextView.getEditText().getText().toString();
-            WifiConfiguration conf = new WifiConfiguration(selectedWifi, clearPassword);
             startWifiConnectionValidation(conf);
         }
     };
@@ -411,7 +433,13 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
         @Override
         public void onServiceFound(NsdServiceInfo service) {
             Log.d(TAG, "Service discovery success" + service);
-            mNsdManager.resolveService(service, mResolveListener);
+            // NsdManager does not allow re-using a ResolveListener while a resolve is still
+            // pending, and newer Android versions may report the same service multiple times
+            // (e.g. once per interface). Queue services and resolve them one at a time.
+            synchronized (mPendingResolves) {
+                mPendingResolves.add(service);
+            }
+            resolveNextService();
         }
 
         @Override
@@ -441,29 +469,51 @@ public class ConfigureWifiFragment extends AbstractWifiFragment {
         }
     };
 
-    // mDNS resolver
-    private final NsdManager.ResolveListener mResolveListener = new NsdManager.ResolveListener() {
+    private void resolveNextService() {
+        NsdServiceInfo next;
+        synchronized (mPendingResolves) {
+            if (mResolveInProgress || mPendingResolves.isEmpty())
+                return;
+            next = mPendingResolves.poll();
+            mResolveInProgress = true;
+        }
+        mNsdManager.resolveService(next, new MqttResolveListener());
+    }
+
+    private void onResolveFinished(boolean found) {
+        synchronized (mPendingResolves) {
+            mResolveInProgress = false;
+            if (found)
+                mPendingResolves.clear();
+        }
+        if (!found)
+            resolveNextService();
+    }
+
+    // mDNS resolver. A new instance is used for every resolveService() call, as NsdManager
+    // rejects listeners that are already registered.
+    private class MqttResolveListener implements NsdManager.ResolveListener {
         @Override
         public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
-
             Log.e(TAG, "Resolve failed" + errorCode);
-            mResolveInProgress = false;
-            configureUi(false, VALIDATE_AND_PROCEED, "mDNSResolve failed");
+            onResolveFinished(false);
         }
+
         @Override
         public void onServiceResolved(final NsdServiceInfo serviceInfo) {
-            Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
-            mResolveInProgress = false;
+            Log.i(TAG, "Resolve Succeeded. " + serviceInfo);
             // Make sure we only rely on IPv4 Addresses. IPV4 are 4 bytes long.
-            if (serviceInfo.getHost().getAddress().length!=4) {
-                Log.w(TAG, "Ignoring discovered IP " + serviceInfo.getHost().getHostAddress() + " as it is not a valid IPv4 address");
+            if (serviceInfo.getHost() == null || serviceInfo.getHost().getAddress().length != 4) {
+                Log.w(TAG, "Ignoring discovered service " + serviceInfo + " as it has no valid IPv4 address");
+                onResolveFinished(false);
                 return;
             }
 
+            onResolveFinished(true);
             configureUi(false, VALIDATE_AND_PROCEED, null);
             notifyResolveCompleted(serviceInfo.getHost().getHostName(), serviceInfo.getPort());
         }
-    };
+    }
 
     private class TimeoutTask extends TimerTask {
         @Override
