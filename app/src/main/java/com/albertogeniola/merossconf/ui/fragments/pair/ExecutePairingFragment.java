@@ -362,7 +362,15 @@ public class ExecutePairingFragment extends AbstractWifiFragment {
         uiThreadHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                String targetLocalSSID = pairActivityViewModel.getMerossConfiguredWifi().getValue().getScannedWifi().getSsid();
+                if (!isAdded())
+                    return;
+                com.albertogeniola.merossconf.model.WifiConfiguration localWifi = pairActivityViewModel.getMerossConfiguredWifi().getValue();
+                if (localWifi == null) {
+                    error = "No Wifi configuration available for the device. Please go back and configure the Wifi.";
+                    stateMachine(Signal.ERROR);
+                    return;
+                }
+                String targetLocalSSID = localWifi.getScannedWifi().getSsid();
                 String targetApSSID = pairActivityViewModel.getMerossPairingAp().getValue().getSsid() ;
                 if (targetLocalSSID.compareTo(ssid) == 0) {
                     stateMachine(Signal.LOCAL_WIFI_CONNECTED);

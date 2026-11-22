@@ -42,6 +42,7 @@ import com.google.android.material.progressindicator.IndeterminateDrawable;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.util.ArrayDeque;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -56,6 +57,8 @@ public class LoginFragment extends Fragment {
     // Instance attributes
     private Context mAppContext = null;
     private boolean mDiscoveryInProgress = false;
+    private boolean mResolveInProgress = false;
+    private final ArrayDeque<NsdServiceInfo> mPendingResolves = new ArrayDeque<>();
     private boolean mDiscoveryEnabled = false;
     private boolean mRequiresWifiLocation = false;
     private NsdManager mNsdManager;
@@ -202,6 +205,10 @@ public class LoginFragment extends Fragment {
         if (mDiscoveryInProgress)
             mNsdManager.stopServiceDiscovery(mDiscoveryListener);
 
+        synchronized (mPendingResolves) {
+            mPendingResolves.clear();
+        }
+
         super.onDestroy();
     }
 
@@ -337,7 +344,13 @@ public class LoginFragment extends Fragment {
         @Override
         public void onServiceFound(NsdServiceInfo service) {
             Log.d(TAG, "Service discovery success" + service);
-            mNsdManager.resolveService(service, mResolveListener);
+            // NsdManager does not allow re-using a ResolveListener while a resolve is still
+            // pending, and newer Android versions may report the same service multiple times
+            // (e.g. once per interface). Queue services and resolve them one at a time.
+            synchronized (mPendingResolves) {
+                mPendingResolves.add(service);
+            }
+            resolveNextService();
         }
 
         @Override
@@ -365,30 +378,57 @@ public class LoginFragment extends Fragment {
         }
     };
 
-    // mDNS resolver
-    private final NsdManager.ResolveListener mResolveListener = new NsdManager.ResolveListener() {
+    private void resolveNextService() {
+        NsdServiceInfo next;
+        synchronized (mPendingResolves) {
+            if (mResolveInProgress || mPendingResolves.isEmpty())
+                return;
+            next = mPendingResolves.poll();
+            mResolveInProgress = true;
+        }
+        mNsdManager.resolveService(next, new ApiResolveListener());
+    }
+
+    private void onResolveFinished(boolean found) {
+        synchronized (mPendingResolves) {
+            mResolveInProgress = false;
+            if (found)
+                mPendingResolves.clear();
+        }
+        if (!found)
+            resolveNextService();
+    }
+
+    // mDNS resolver. A new instance is used for every resolveService() call, as NsdManager
+    // rejects listeners that are already registered.
+    private class ApiResolveListener implements NsdManager.ResolveListener {
         @Override
         public void onResolveFailed(NsdServiceInfo serviceInfo, int errorCode) {
             Log.e(TAG, "Resolve failed" + errorCode);
-            configureUi(true,  false, null, "Resolve failed");
+            onResolveFinished(false);
         }
+
         @Override
         public void onServiceResolved(final NsdServiceInfo serviceInfo) {
-            Log.e(TAG, "Found local API!. " + serviceInfo);
+            Log.i(TAG, "Found local API!. " + serviceInfo);
             // Make sure we only rely on IPv4 Addresses. IPV4 are 4 bytes long.
-            if (serviceInfo.getHost().getAddress().length!=4) {
-                Log.w(TAG, "Ignoring discovered IP " + serviceInfo.getHost().getHostAddress() + " as it is not a valid IPv4 address");
+            if (serviceInfo.getHost() == null || serviceInfo.getHost().getAddress().length != 4) {
+                Log.w(TAG, "Ignoring discovered service " + serviceInfo + " as it has no valid IPv4 address");
+                onResolveFinished(false);
                 return;
             }
 
+            onResolveFinished(true);
             String result = "http://" + serviceInfo.getHost().getHostName()+":"+serviceInfo.getPort();
-            mTimer.cancel();
-            mTimer = null;
+            if (mTimer != null) {
+                mTimer.cancel();
+                mTimer = null;
+            }
             if (mDiscoveryInProgress)
                 mNsdManager.stopServiceDiscovery(mDiscoveryListener);
             configureUi(true,  false, result, "Found local HTTP API service!");
         }
-    };
+    }
 
     private class TimeoutTask extends TimerTask {
         @Override
